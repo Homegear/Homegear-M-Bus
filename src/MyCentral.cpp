@@ -98,6 +98,22 @@ void MyCentral::loadPeers()
 			if(!peer->getSerialNumber().empty()) _peersBySerial[peer->getSerialNumber()] = peer;
 			_peersById[peerID] = peer;
 		}
+
+        std::lock_guard<std::mutex> devicesToPairGuard(_devicesToPairMutex);
+        _devicesToPair.clear();
+        std::string key = "devicesToPair";
+        auto setting = GD::family->getFamilySetting(key);
+        if(setting)
+        {
+            auto serializedData = setting->binaryValue;
+            BaseLib::Rpc::RpcDecoder rpcDecoder(_bl, false, false);
+            auto devicesToPair = rpcDecoder.decodeResponse(serializedData);
+            for(auto& device : *devicesToPair->arrayValue)
+            {
+                if(device->arrayValue->size() != 2 || device->arrayValue->at(0)->integerValue == 0) continue;
+                _devicesToPair.emplace(device->arrayValue->at(0)->integerValue, device->arrayValue->at(1)->stringValue);
+            }
+        }
 	}
 	catch(const std::exception& ex)
     {
@@ -220,7 +236,18 @@ bool MyCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLib:
 					sniffedPacketsIterator->second.push_back(myPacket);
 				}
 			}
-			return false;
+
+            std::lock_guard<std::mutex> devicesToPairGuard(_devicesToPairMutex);
+            auto deviceIterator = _devicesToPair.find(myPacket->senderAddress());
+            if(deviceIterator != _devicesToPair.end())
+            {
+                myPacket->decrypt(deviceIterator->second);
+                _bl->out.printError("Moin: Would pair device " + BaseLib::HelperFunctions::getHexString(myPacket->senderAddress()) + " with key " + deviceIterator->second);
+            }
+            else if(_pairing)
+            {
+                _bl->out.printError("Moin: Would pair device " + BaseLib::HelperFunctions::getHexString(myPacket->senderAddress()) + " without knowing key");
+            }
 		}
 
 		bool result = false;
@@ -398,7 +425,7 @@ std::string MyCentral::handleCliCommand(std::string command)
 				if(duration < 5 || duration > 3600) return "Invalid duration. Duration has to be greater than 5 and less than 3600.\n";
 			}
 
-			setInstallMode(nullptr, true, duration, false);
+			setInstallMode(nullptr, true, duration, nullptr, false);
 			stringStream << "Pairing mode enabled." << std::endl;
 			return stringStream.str();
 		}
@@ -413,7 +440,7 @@ std::string MyCentral::handleCliCommand(std::string command)
 				return stringStream.str();
 			}
 
-			setInstallMode(nullptr, false, -1, false);
+			setInstallMode(nullptr, false, -1, nullptr, false);
 			stringStream << "Pairing mode disabled." << std::endl;
 			return stringStream.str();
 		}
@@ -675,6 +702,46 @@ std::string MyCentral::handleCliCommand(std::string command)
 			}
 			return stringStream.str();
 		}
+        else if(BaseLib::HelperFunctions::checkCliCommand(command, "packetunittests", "", "", 0, arguments, showHelp))
+        {
+			//C1 long
+            std::vector<uint8_t> data = _bl->hf.getUBinary("FF039C46C5142527706403077225277064C5140007900B00002F2F426C000044130000000001FD171084011300000000C401130000000084021300000000C402130000000084031300000000C403130000000084041300000000C404130000000084051300000000C405130000000084061300000000C406130000000084071300000000C407130000000084081300000000046D1B2F332C04132900000012FF");
+            MyPacket packet(data);
+            stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
+            stringStream << packet.getInfoString() << std::endl << std::endl;
+
+			//C1 long compact format
+			data = _bl->hf.getUBinary("FF035446C5142527706403076B25277064C5140007970B00002F2F3A2D05426C441301FD17840113C40113840213C40213840313C40313840413C40413840513C40513840613C40613840713C40713840813046D04131229");
+			packet = MyPacket(data);
+			stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
+			stringStream << packet.getInfoString() << std::endl << std::endl;
+
+			//C1 long compact data
+			data = _bl->hf.getUBinary("FF036846C5142527706403077325277064C5140007980B00002F2F2D052549000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001D2F332C290000001273");
+			packet = MyPacket(data);
+			stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
+			stringStream << packet.getInfoString() << std::endl << std::endl;
+
+			//C1 short
+			data = _bl->hf.getUBinary("FF032946C5142527706403077225277064C5140007A22B00202F2F046D202F332C04132900000001FD171012E5");
+			packet = MyPacket(data);
+			stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
+			stringStream << packet.getInfoString() << std::endl << std::endl;
+
+			//C1 short compact format
+			data = _bl->hf.getUBinary("FF032346C5142527706403076B25277064C5140007A92B00202F2F0911F6046D041301FD17123A");
+			packet = MyPacket(data);
+			stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
+			stringStream << packet.getInfoString() << std::endl << std::endl;
+
+			//C1 short compact data
+			data = _bl->hf.getUBinary("FF032646C5142527706403077325277064C5140007AA2B00202F2F11F605EC232F332C2900000010127B");
+			packet = MyPacket(data);
+			stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
+			stringStream << packet.getInfoString() << std::endl << std::endl;
+
+			return stringStream.str();
+        }
 		else return "Unknown command.\n";
 	}
 	catch(const std::exception& ex)
@@ -929,7 +996,7 @@ void MyCentral::pairingModeTimer(int32_t duration, bool debugOutput)
 	try
 	{
 		_pairing = true;
-		if(debugOutput) GD::out.printInfo("Info: Pairing mode enabled.");
+		if(debugOutput) GD::out.printInfo("Info: Pairing mode enabled for " + std::to_string(duration) + " seconds.");
 		_timeLeftInPairingMode = duration;
 		int64_t startTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 		int64_t timePassed = 0;
@@ -957,12 +1024,67 @@ void MyCentral::pairingModeTimer(int32_t duration, bool debugOutput)
     }
 }
 
-std::shared_ptr<Variable> MyCentral::setInstallMode(BaseLib::PRpcClientInfo clientInfo, bool on, uint32_t duration, bool debugOutput)
+std::shared_ptr<Variable> MyCentral::setInstallMode(BaseLib::PRpcClientInfo clientInfo, bool on, uint32_t duration, BaseLib::PVariable metadata, bool debugOutput)
 {
 	try
 	{
 		std::lock_guard<std::mutex> pairingModeGuard(_pairingModeThreadMutex);
 		if(_disposing) return Variable::createError(-32500, "Central is disposing.");
+
+		if(on && metadata)
+		{
+			/*
+			 {
+			   "devices": [
+			     {
+			       "address": 64656081,
+			       "key": "00112233445566778899AABBCCDDEEFF" [optional]
+			     },
+			     {
+			       "address": 64656082,
+			       "key": "00112233445566778899AABBCCDDEEFF" [optional]
+			     },
+			     .
+			     .
+			     .
+			   ]
+			 }
+			*/
+            std::lock_guard<std::mutex> devicesToPairGuard(_devicesToPairMutex);
+            _devicesToPair.clear();
+            auto devicesIterator = metadata->structValue->find("devices");
+            if(devicesIterator != metadata->structValue->end())
+            {
+                for(auto& device : *devicesIterator->second->arrayValue)
+                {
+                    auto addressIterator = device->structValue->find("address");
+                    if(addressIterator == device->structValue->end()) continue;
+                    int32_t address = addressIterator->second->integerValue;
+                    auto keyIterator = device->structValue->find("key");
+                    std::string key;
+                    if(keyIterator != device->structValue->end()) key = keyIterator->second->stringValue;
+                    _devicesToPair.emplace(address, key);
+                }
+            }
+
+            BaseLib::PVariable devicesToPair = std::make_shared<BaseLib::Variable>(BaseLib::VariableType::tArray);
+            devicesToPair->arrayValue->reserve(_devicesToPair.size());
+            for(auto& device : _devicesToPair)
+            {
+                BaseLib::PVariable element = std::make_shared<BaseLib::Variable>(BaseLib::VariableType::tArray);
+                element->arrayValue->reserve(2);
+                element->arrayValue->push_back(std::make_shared<BaseLib::Variable>(device.first));
+                element->arrayValue->push_back(std::make_shared<BaseLib::Variable>(device.second));
+                devicesToPair->arrayValue->push_back(element);
+            }
+
+            BaseLib::Rpc::RpcEncoder rpcEncoder(_bl);
+            std::vector<char> serializedData;
+            rpcEncoder.encodeResponse(devicesToPair, serializedData);
+            std::string key = "devicesToPair";
+            GD::family->setFamilySetting(key, serializedData);
+		}
+
 		_stopPairingModeThread = true;
 		_bl->threadManager.join(_pairingModeThread);
 		_stopPairingModeThread = false;

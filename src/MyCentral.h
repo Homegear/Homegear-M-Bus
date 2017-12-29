@@ -36,7 +36,7 @@ public:
 	virtual PVariable getSniffedDevices(BaseLib::PRpcClientInfo clientInfo);
 	virtual PVariable putParamset(BaseLib::PRpcClientInfo clientInfo, std::string serialNumber, int32_t channel, ParameterGroup::Type::Enum type, std::string remoteSerialNumber, int32_t remoteChannel, PVariable paramset);
 	virtual PVariable putParamset(BaseLib::PRpcClientInfo clientInfo, uint64_t peerId, int32_t channel, ParameterGroup::Type::Enum type, uint64_t remoteId, int32_t remoteChannel, PVariable paramset);
-	virtual PVariable setInstallMode(BaseLib::PRpcClientInfo clientInfo, bool on, uint32_t duration = 60, bool debugOutput = true);
+	virtual PVariable setInstallMode(BaseLib::PRpcClientInfo clientInfo, bool on, uint32_t duration, BaseLib::PVariable metadata, bool debugOutput = true);
 	virtual PVariable startSniffing(BaseLib::PRpcClientInfo clientInfo);
 	virtual PVariable stopSniffing(BaseLib::PRpcClientInfo clientInfo);
 protected:
@@ -49,6 +49,8 @@ protected:
 	std::atomic_bool _stopPairingModeThread;
 	std::mutex _pairingModeThreadMutex;
 	std::thread _pairingModeThread;
+	std::mutex _devicesToPairMutex;
+	std::unordered_map<int32_t, std::string> _devicesToPair;
 
 	std::string getFreeSerialNumber(int32_t address);
 	virtual void init();
