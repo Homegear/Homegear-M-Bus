@@ -8,11 +8,6 @@ override_dh_auto_install:
 	chmod 755 $(CURDIR)/debian/homegear-mbus/etc/homegear/families
 	chmod 644 $(CURDIR)/debian/homegear-mbus/etc/homegear/families/*
 
-	mkdir -p $(CURDIR)/debian/homegear-mbus/etc/homegear/devices/23
-	cp -R $(CURDIR)/misc/Device\ Description\ Files/* $(CURDIR)/debian/homegear-mbus/etc/homegear/devices/23
-	chmod 755 $(CURDIR)/debian/homegear-mbus/etc/homegear/devices/23
-	chmod 644 $(CURDIR)/debian/homegear-mbus/etc/homegear/devices/23/*
-
 override_dh_strip:
 	dh_strip
 

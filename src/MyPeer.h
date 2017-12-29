@@ -23,9 +23,20 @@ public:
 	void init();
 	void dispose();
 
-	//Features
+	//{{{ Features
 	virtual bool wireless() { return true; }
-	//End features
+	//}}}
+
+	//{{{ In table variables
+	std::vector<uint8_t> getAesKey() { return _aesKey; }
+	void setAesKey(std::vector<uint8_t>& value) { _aesKey = value; saveVariable(21, value); }
+	int32_t getControlInformation() { return _controlInformation; }
+	void setControlInformation(int32_t value) { _controlInformation = value; saveVariable(22, value); }
+    int32_t getDataRecordCount() { return _dataRecordCount; }
+    void setDataRecordCount(int32_t value) { _dataRecordCount = value; saveVariable(23, value); }
+	//}}}
+
+	bool expectsEncryption() { return !_aesKey.empty(); }
 
 	virtual std::string handleCliCommand(std::string command);
 	void packetReceived(PMyPacket& packet);
@@ -57,6 +68,8 @@ public:
 protected:
 	//In table variables:
 	std::vector<uint8_t> _aesKey;
+	int32_t _controlInformation = -1;
+    int32_t _dataRecordCount = -1;
 	//End
 
 	bool _shuttingDown = false;
@@ -66,8 +79,6 @@ protected:
 
 	virtual void loadVariables(BaseLib::Systems::ICentral* central, std::shared_ptr<BaseLib::Database::DataTable>& rows);
     virtual void saveVariables();
-
-    void setAesKey(std::vector<uint8_t>& value) { _aesKey = value; saveVariable(21, value); }
 
     void setRssiDevice(uint8_t rssi);
 

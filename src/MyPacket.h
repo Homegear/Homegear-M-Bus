@@ -36,7 +36,7 @@ class MyPacket : public BaseLib::Systems::Packet
         MyPacket(std::vector<uint8_t>& packet);
         virtual ~MyPacket();
 
-    std::string getInfoString();
+        std::string getInfoString();
 
         bool batteryEmpty() { return _status & 4; }
 
@@ -52,13 +52,22 @@ class MyPacket : public BaseLib::Systems::Packet
         uint8_t getEncryptionMode() { return _encryptionMode; }
         std::vector<uint8_t> getPayload() { return _payload; }
         std::list<DataRecord> getDataRecords() { return _dataRecords; }
+        int32_t dataRecordCount() { return (int32_t)_dataRecords.size(); }
+
+        bool isEncrypted() { return _encryptionMode != 0; }
+        bool isTelegramWithoutMeterData();
+        bool isShortTelegram();
+        bool isLongTelegram();
+        bool isFormatTelegram();
+        bool isCompactDataTelegram();
+        bool isDataTelegram();
 
         std::string getMediumString(uint8_t medium);
         std::string getControlInformationString(uint8_t controlInformation);
         std::vector<uint8_t> getBinary();
 
         std::vector<uint8_t> getPosition(uint32_t position, uint32_t size);
-        void decrypt(std::string key);
+        bool decrypt(std::string key);
     protected:
         std::array<uint8_t, 13> _difSizeMap;
 
@@ -80,11 +89,6 @@ class MyPacket : public BaseLib::Systems::Packet
 
         std::vector<uint8_t> _iv;
 
-        bool isTelegramWithoutMeterData();
-        bool isShortTelegram();
-        bool isLongTelegram();
-        bool isFormatTelegram();
-        bool isCompactDataTelegram();
         void strip2F();
         void parsePayload();
         uint32_t getDataSize(uint8_t dif, uint8_t firstDataByte);

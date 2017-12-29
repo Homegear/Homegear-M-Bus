@@ -450,6 +450,15 @@ bool MyPacket::isCompactDataTelegram()
            _controlInformation == 0x7B;
 }
 
+bool MyPacket::isDataTelegram()
+{
+    return _controlInformation == 0x72 ||
+           _controlInformation == 0x73 ||
+           _controlInformation == 0x79 ||
+           _controlInformation == 0x7A ||
+           _controlInformation == 0x7B;
+}
+
 std::vector<uint8_t> MyPacket::getPosition(uint32_t position, uint32_t size)
 {
 	try
@@ -471,7 +480,7 @@ std::vector<uint8_t> MyPacket::getPosition(uint32_t position, uint32_t size)
     return std::vector<uint8_t>();
 }
 
-void MyPacket::decrypt(std::string key)
+bool MyPacket::decrypt(std::string key)
 {
     try
     {
@@ -486,6 +495,7 @@ void MyPacket::decrypt(std::string key)
             _payload = decrypted;
             parsePayload();
         }
+        return true;
     }
     catch(const std::exception& ex)
     {
@@ -499,6 +509,7 @@ void MyPacket::decrypt(std::string key)
     {
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
     }
+    return false;
 }
 
 void MyPacket::strip2F()

@@ -5,6 +5,7 @@
 
 #include "MyPeer.h"
 #include "MyPacket.h"
+#include "DescriptionCreator.h"
 #include <homegear-base/BaseLib.h>
 
 #include <memory>
@@ -51,6 +52,8 @@ protected:
 	std::thread _pairingModeThread;
 	std::mutex _devicesToPairMutex;
 	std::unordered_map<int32_t, std::string> _devicesToPair;
+	std::mutex _pairMutex;
+	DescriptionCreator _descriptionCreator;
 
 	std::string getFreeSerialNumber(int32_t address);
 	virtual void init();
@@ -62,6 +65,7 @@ protected:
 	void deletePeer(uint64_t id);
 
 	void pairingModeTimer(int32_t duration, bool debugOutput = true);
+	void pairDevice(PMyPacket packet, std::vector<uint8_t>& key);
 };
 
 }

@@ -4,6 +4,8 @@ project(homegear_mbus)
 set(CMAKE_CXX_STANDARD 11)
 
 set(SOURCE_FILES
+        src/DescriptionCreator.cpp
+        src/DescriptionCreator.h
         src/PhysicalInterfaces/IMBusInterface.cpp
         src/PhysicalInterfaces/IMBusInterface.h
         src/PhysicalInterfaces/Amber.cpp

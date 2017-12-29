@@ -298,6 +298,12 @@ void MyPeer::loadVariables(BaseLib::Systems::ICentral* central, std::shared_ptr<
 				_aesKey.clear();
 				_aesKey.insert(_aesKey.end(), row->second.at(5)->binaryValue->begin(), row->second.at(5)->binaryValue->end());
 				break;
+			case 22:
+				_controlInformation = row->second.at(3)->intValue;
+				break;
+            case 23:
+                _dataRecordCount = row->second.at(3)->intValue;
+                break;
 			}
 		}
 	}
@@ -322,6 +328,8 @@ void MyPeer::saveVariables()
 		if(_peerID == 0) return;
 		Peer::saveVariables();
 		saveVariable(21, _aesKey);
+		saveVariable(22, _controlInformation);
+        saveVariable(23, _dataRecordCount);
 	}
 	catch(const std::exception& ex)
     {

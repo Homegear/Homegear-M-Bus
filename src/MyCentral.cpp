@@ -97,6 +97,7 @@ void MyCentral::loadPeers()
 			std::lock_guard<std::mutex> peersGuard(_peersMutex);
 			if(!peer->getSerialNumber().empty()) _peersBySerial[peer->getSerialNumber()] = peer;
 			_peersById[peerID] = peer;
+            _peers[peer->getAddress()] = peer;
 		}
 
         std::lock_guard<std::mutex> devicesToPairGuard(_devicesToPairMutex);
@@ -242,33 +243,60 @@ bool MyCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLib:
             if(deviceIterator != _devicesToPair.end())
             {
                 myPacket->decrypt(deviceIterator->second);
-                _bl->out.printError("Moin: Would pair device " + BaseLib::HelperFunctions::getHexString(myPacket->senderAddress()) + " with key " + deviceIterator->second);
+                std::vector<uint8_t> key = _bl->hf.getUBinary(deviceIterator->second);
+                pairDevice(myPacket, key);
+				peer = getPeer(myPacket->senderAddress());
+				if(!peer) return false;
             }
             else if(_pairing)
             {
-                _bl->out.printError("Moin: Would pair device " + BaseLib::HelperFunctions::getHexString(myPacket->senderAddress()) + " without knowing key");
+                if(myPacket->getEncryptionMode() != 0)
+				{
+					_bl->out.printInfo("Info: Can't pair device " + BaseLib::HelperFunctions::getHexString(myPacket->senderAddress()) + ", because the communication is encrypted and the key is unknown.");
+					return false;
+				}
+				else
+				{
+                    std::vector<uint8_t> key;
+					pairDevice(myPacket, key);
+					peer = getPeer(myPacket->senderAddress());
+					if(!peer) return false;
+				}
             }
+			else return false;
 		}
 
-		bool result = false;
-		/*bool unpaired = true;
-		for(auto& peer : peers)
-		{
-            std::string settingName = "roaming";
-            auto roamingSetting = GD::family->getFamilySetting(settingName);
-            bool roaming = roamingSetting ? roamingSetting->integerValue : true;
-			if(roaming && senderId != peer->getPhysicalInterfaceId() && peer->getPhysicalInterface()->getBaseAddress() == GD::physicalInterfaces.at(senderId)->getBaseAddress() && myPacket->getRssi() > peer->getPhysicalInterface()->getRssi(peer->getAddress(), peer->isWildcardPeer()) + 6)
-			{
-                GD::out.printInfo("Info: Setting physical interface of peer " + std::to_string(peer->getID()) + " to " + senderId + ", because the RSSI is better.");
-                peer->setPhysicalInterfaceId(senderId);
-			}
-			if((peer->getDeviceType() >> 16) == myPacket->getRorg()) unpaired = false;
+        if(peer->expectsEncryption() && !myPacket->isEncrypted())
+        {
+            _bl->out.printWarning("Warning: Unencrypted packet received for peer " + std::to_string(peer->getID()) + " dropping it.");
+            return false;
+        }
 
-			peer->packetReceived(myPacket);
-			result = true;
-		}
-		if(unpaired && _pairing) return handlePairingRequest(senderId, myPacket);*/
-		return result;
+        if(peer->getControlInformation() != (int32_t)myPacket->getControlInformation() || peer->getDataRecordCount() != myPacket->dataRecordCount())
+        {
+            //if(myPacket->isEncrypted() && (myPacket->isFormatTelegram() || myPacket->isDataTelegram()))
+            if((myPacket->isFormatTelegram() || myPacket->isDataTelegram()))
+            {
+                _bl->out.printInfo("Info: Packet type changed. Readding peer " + std::to_string(peer->getID()) + ".");
+                std::vector<uint8_t> key = peer->getAesKey();
+                peer.reset();
+
+                //Pair again
+                pairDevice(myPacket, key);
+                peer = getPeer(myPacket->senderAddress());
+                if(!peer) return false;
+            }
+            else
+            {
+                _bl->out.printWarning("Warning: Ignoring packet with wrong control information for peer " + std::to_string(peer->getID()) + ". Not changing the peer's configuration as the packet is unencrypted.");
+                return false;
+            }
+        }
+
+        if(!myPacket->isDataTelegram()) return false;
+
+		peer->packetReceived(myPacket);
+		return true;
 	}
 	catch(const std::exception& ex)
     {
@@ -283,6 +311,75 @@ bool MyCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLib:
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
     }
     return false;
+}
+
+void MyCentral::pairDevice(PMyPacket packet, std::vector<uint8_t>& key)
+{
+	try
+	{
+        if(!packet->isFormatTelegram() && !packet->isDataTelegram()) return;
+
+        std::lock_guard<std::mutex> pairGuard(_pairMutex);
+        GD::out.printInfo("Info: Pairing device 0x" + BaseLib::HelperFunctions::getHexString(packet->senderAddress(), 8) + "...");
+
+        auto peerInfo = _descriptionCreator.createDescription(packet);
+        if(peerInfo.serialNumber.empty()) return; //Error
+        GD::family->reloadRpcDevices();
+
+        uint64_t peerToDelete = 0;
+        {
+            std::lock_guard<std::mutex> peersGuard(_peersMutex);
+            auto peersIterator = _peers.find(peerInfo.address);
+            if(peersIterator != _peers.end())
+            {
+                peerToDelete = peersIterator->second->getID();
+            }
+        }
+        if(peerToDelete != 0) deletePeer(peerToDelete);
+
+        PMyPeer peer = createPeer(peerInfo.type, peerInfo.address, peerInfo.serialNumber, true);
+        if(!peer)
+        {
+            GD::out.printError("Error: Could not add device with type " + BaseLib::HelperFunctions::getHexString(peerInfo.type) + ". No matching XML file was found.");
+            return;
+        }
+
+        if(peerToDelete != 0 && peerToDelete != peer->getID()) peer->setId(nullptr, peerToDelete);
+        peer->setAesKey(key);
+        peer->setControlInformation(packet->getControlInformation());
+        peer->setDataRecordCount(packet->dataRecordCount());
+        peer->initializeCentralConfig();
+
+        {
+            std::lock_guard<std::mutex> peersGuard(_peersMutex);
+            _peersBySerial[peer->getSerialNumber()] = peer;
+            _peersById[peer->getID()] = peer;
+            _peers[peer->getAddress()] = peer;
+        }
+
+        GD::out.printInfo("Info: Device successfully added. Peer ID is: " + std::to_string(peer->getID()));
+
+        PVariable deviceDescriptions(new Variable(VariableType::tArray));
+        std::shared_ptr<std::vector<PVariable>> descriptions = peer->getDeviceDescriptions(nullptr, true, std::map<std::string, bool>());
+        if(!descriptions) return;
+        for(std::vector<PVariable>::iterator j = descriptions->begin(); j != descriptions->end(); ++j)
+        {
+            deviceDescriptions->arrayValue->push_back(*j);
+        }
+        raiseRPCNewDevices(deviceDescriptions);
+	}
+	catch(const std::exception& ex)
+	{
+		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+	}
+	catch(BaseLib::Exception& ex)
+	{
+		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+	}
+	catch(...)
+	{
+		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
+	}
 }
 
 std::string MyCentral::getFreeSerialNumber(int32_t address)
@@ -349,7 +446,7 @@ void MyCentral::deletePeer(uint64_t id)
             std::lock_guard<std::mutex> peersGuard(_peersMutex);
             if(_peersBySerial.find(peer->getSerialNumber()) != _peersBySerial.end()) _peersBySerial.erase(peer->getSerialNumber());
             if(_peersById.find(id) != _peersById.end()) _peersById.erase(id);
-            if(_peers.find(id) != _peers.end()) _peers.erase(peer->getAddress());
+            if(_peers.find(peer->getAddress()) != _peers.end()) _peers.erase(peer->getAddress());
         }
 
         while(peer.use_count() > 1)
@@ -741,6 +838,25 @@ std::string MyCentral::handleCliCommand(std::string command)
 			stringStream << packet.getInfoString() << std::endl << std::endl;
 
 			return stringStream.str();
+        }
+        else if(BaseLib::HelperFunctions::checkCliCommand(command, "receive", "", "", 1, arguments, showHelp))
+        {
+            if(showHelp)
+            {
+                stringStream << "Description: This command simulates the reception of a packet." << std::endl;
+                stringStream << "Usage: receive PACKETHEX" << std::endl << std::endl;
+                stringStream << "Parameters:" << std::endl;
+                stringStream << "  PACKETHEX: The packet to process in hexadecimal format." << std::endl;
+                return stringStream.str();
+            }
+
+            std::vector<uint8_t> data = _bl->hf.getUBinary(arguments.at(0));
+            PMyPacket packet = std::make_shared<MyPacket>(data);
+            std::string senderId = "TestInterface";
+            onPacketReceived(senderId, packet);
+
+            stringStream << "Packet processed." << std::endl;
+            return  stringStream.str();
         }
 		else return "Unknown command.\n";
 	}
