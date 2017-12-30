@@ -274,8 +274,7 @@ bool MyCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLib:
 
         if(peer->getControlInformation() != (int32_t)myPacket->getControlInformation() || peer->getDataRecordCount() != myPacket->dataRecordCount())
         {
-            //if(myPacket->isEncrypted() && (myPacket->isFormatTelegram() || myPacket->isDataTelegram()))
-            if((myPacket->isFormatTelegram() || myPacket->isDataTelegram()))
+            if(myPacket->isEncrypted() && (myPacket->isFormatTelegram() || (myPacket->isDataTelegram() && !myPacket->isCompactDataTelegram())))
             {
                 _bl->out.printInfo("Info: Packet type changed. Readding peer " + std::to_string(peer->getID()) + ".");
                 std::vector<uint8_t> key = peer->getAesKey();
@@ -317,7 +316,7 @@ void MyCentral::pairDevice(PMyPacket packet, std::vector<uint8_t>& key)
 {
 	try
 	{
-        if(!packet->isFormatTelegram() && !packet->isDataTelegram()) return;
+        if(!packet->isFormatTelegram() && (!packet->isDataTelegram() || packet->isCompactDataTelegram())) return;
 
         std::lock_guard<std::mutex> pairGuard(_pairMutex);
         GD::out.printInfo("Info: Pairing device 0x" + BaseLib::HelperFunctions::getHexString(packet->senderAddress(), 8) + "...");

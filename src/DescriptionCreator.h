@@ -30,6 +30,8 @@ private:
 
     void createDirectories();
     void createXmlMaintenanceChannel(PHomegearDevice& device);
+    std::string getFreeParameterId(std::string baseId, PFunction& function);
+    void parseDataRecord(MyPacket::DataRecord& dataRecord, PParameter& parameter, PFunction& function, PPacket& packet);
 };
 
 }
