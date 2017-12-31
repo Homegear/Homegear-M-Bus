@@ -67,7 +67,7 @@ class MyPacket : public BaseLib::Systems::Packet
         std::vector<uint8_t> getBinary();
 
         std::vector<uint8_t> getPosition(uint32_t position, uint32_t size);
-        bool decrypt(std::string key);
+        bool decrypt(std::vector<uint8_t>& key);
     protected:
         std::array<uint8_t, 13> _difSizeMap;
 
@@ -86,6 +86,7 @@ class MyPacket : public BaseLib::Systems::Packet
         std::vector<uint8_t> _payload;
         int32_t _dataOffset = 0;
         std::list<DataRecord> _dataRecords;
+        bool _isDecrypted = false;
 
         std::vector<uint8_t> _iv;
 

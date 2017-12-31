@@ -463,7 +463,7 @@ std::vector<uint8_t> MyPacket::getPosition(uint32_t position, uint32_t size)
 {
 	try
 	{
-		return BaseLib::BitReaderWriter::getPosition(_packet, position + (_dataOffset * 8), size);
+		return BaseLib::BitReaderWriter::getPosition(_payload, position, size);
 	}
 	catch(const std::exception& ex)
     {
@@ -480,19 +480,25 @@ std::vector<uint8_t> MyPacket::getPosition(uint32_t position, uint32_t size)
     return std::vector<uint8_t>();
 }
 
-bool MyPacket::decrypt(std::string key)
+bool MyPacket::decrypt(std::vector<uint8_t>& key)
 {
     try
     {
+        if(_isDecrypted) return true;
+        _isDecrypted = true;
         if(_encryptionMode == 4 || _encryptionMode == 5)
         {
             BaseLib::Security::Gcrypt gcrypt(GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CBC, GCRY_CIPHER_SECURE);
             gcrypt.setIv(_iv);
-            std::vector<uint8_t> binaryKey = GD::bl->hf.getUBinary(key);
-            gcrypt.setKey(binaryKey);
+            gcrypt.setKey(key);
             std::vector<uint8_t> decrypted;
             gcrypt.decrypt(decrypted, _payload);
             _payload = decrypted;
+            std::vector<uint8_t> packet;
+            packet.reserve(_packet.size());
+            packet.insert(packet.end(), _packet.begin(), _packet.end() - _payload.size());
+            packet.insert(packet.end(), _payload.begin(), _payload.end());
+            _packet = std::move(packet);
             parsePayload();
         }
         return true;
@@ -599,20 +605,19 @@ void MyPacket::parsePayload()
             //}}}
 
             //{{{ Get VIF
-            dataRecord.vifs.reserve(11);
+            dataRecord.vifs.reserve(2);
             dataRecord.vifs.push_back(_payload.at(pos++));
-            count = 0;
-            while(dataRecord.vifs.back() & 0x80 && pos < _payload.size() && count <= 11)
+            if((dataRecord.vifs.back() == 0xFB || dataRecord.vifs.back() == 0xFD) && pos < _payload.size())
             {
                 dataRecord.vifs.push_back(_payload.at(pos++));
-                count++;
             }
 
-            if(count > 11)
-            {
-                GD::out.printError("Error: Could not parse packet. Packet contains more than 10 VIFEs");
-                break;
-            }
+                //{{{ Fixes
+                if(dataRecord.vifs.front() == 0x6E && _controlInformation == 0x6B && _manufacturer == "EFE" && _medium == 7)
+                {
+                    dataRecord.vifs.at(0) = 0x6D;
+                }
+                //}}}
             //}}}
 
             dataRecord.dataStart = isFormatTelegram() ? dataPos : pos;

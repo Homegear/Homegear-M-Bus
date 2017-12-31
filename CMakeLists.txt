@@ -24,6 +24,8 @@ set(SOURCE_FILES
         src/MyPacket.h
         src/MyPeer.cpp
         src/MyPeer.h
+        src/VifConverter.cpp
+        src/VifConverter.h
         config.h)
 
 add_custom_target(homegear COMMAND ../../makeAll.sh SOURCES ${SOURCE_FILES})

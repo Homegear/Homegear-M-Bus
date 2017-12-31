@@ -423,11 +423,211 @@ void MyPeer::setRssiDevice(uint8_t rssi)
     }
 }
 
+void MyPeer::getValuesFromPacket(PMyPacket packet, std::vector<FrameValues>& frameValues)
+{
+	try
+	{
+		if(!_rpcDevice) return;
+
+        //Check for low battery
+        if(packet->batteryEmpty())
+        {
+            serviceMessages->set("LOWBAT", true);
+            if(_bl->debugLevel >= 4) GD::out.printInfo("Info: LOWBAT of peer " + std::to_string(_peerID) + " with serial number " + _serialNumber + " was set to \"true\".");
+        }
+        else serviceMessages->set("LOWBAT", false);
+
+		//equal_range returns all elements with "0" or an unknown element as argument
+		if(_rpcDevice->packetsByMessageType.find(1) == _rpcDevice->packetsByMessageType.end()) return;
+		std::pair<PacketsByMessageType::iterator, PacketsByMessageType::iterator> range = _rpcDevice->packetsByMessageType.equal_range(1);
+		if(range.first == _rpcDevice->packetsByMessageType.end()) return;
+		PacketsByMessageType::iterator i = range.first;
+		do
+		{
+			FrameValues currentFrameValues;
+			PPacket frame(i->second);
+			if(!frame) continue;
+			std::vector<uint8_t> payload = packet->getPayload();
+			if(payload.empty()) break;
+			uint32_t payloadBitSize = payload.size() * 8;
+			int32_t channelIndex = frame->channelIndex;
+			int32_t channel = -1;
+			if(channelIndex >= 0 && channelIndex < (signed)payload.size()) channel = payload.at(channelIndex);
+			if(channel > -1 && frame->channelSize < 8.0) channel &= (0xFF >> (8 - std::lround(frame->channelSize)));
+			channel += frame->channelIndexOffset;
+			if(frame->channel > -1) channel = frame->channel;
+			if(channel == -1) continue;
+			currentFrameValues.frameID = frame->id;
+			bool abort = false;
+
+			for(BinaryPayloads::iterator j = frame->binaryPayloads.begin(); j != frame->binaryPayloads.end(); ++j)
+			{
+				std::vector<uint8_t> data;
+				if((*j)->bitSize > 0 && (*j)->bitIndex > 0)
+				{
+					if((*j)->bitIndex >= payloadBitSize) continue;
+					data = packet->getPosition((*j)->bitIndex, (*j)->bitSize);
+
+					if((*j)->constValueInteger > -1)
+					{
+						int32_t intValue = 0;
+						_bl->hf.memcpyBigEndian(intValue, data);
+						if(intValue != (*j)->constValueInteger)
+						{
+							abort = true;
+							break;
+						}
+						else if((*j)->parameterId.empty()) continue;
+					}
+				}
+				else if((*j)->constValueInteger > -1)
+				{
+					_bl->hf.memcpyBigEndian(data, (*j)->constValueInteger);
+				}
+				else continue;
+
+				for(std::vector<PParameter>::iterator k = frame->associatedVariables.begin(); k != frame->associatedVariables.end(); ++k)
+				{
+					if((*k)->physical->groupId != (*j)->parameterId) continue;
+					currentFrameValues.parameterSetType = (*k)->parent()->type();
+					bool setValues = false;
+					if(currentFrameValues.paramsetChannels.empty()) //Fill paramsetChannels
+					{
+						int32_t startChannel = (channel < 0) ? 0 : channel;
+						int32_t endChannel;
+						//When fixedChannel is -2 (means '*') cycle through all channels
+						if(frame->channel == -2)
+						{
+							startChannel = 0;
+							endChannel = _rpcDevice->functions.rbegin()->first;
+						}
+						else endChannel = startChannel;
+						for(int32_t l = startChannel; l <= endChannel; l++)
+						{
+							Functions::iterator functionIterator = _rpcDevice->functions.find(l);
+							if(functionIterator == _rpcDevice->functions.end()) continue;
+							PParameterGroup parameterGroup = functionIterator->second->getParameterGroup(currentFrameValues.parameterSetType);
+							if(!parameterGroup || parameterGroup->parameters.find((*k)->id) == parameterGroup->parameters.end()) continue;
+							currentFrameValues.paramsetChannels.push_back(l);
+							currentFrameValues.values[(*k)->id].channels.push_back(l);
+							setValues = true;
+						}
+					}
+					else //Use paramsetChannels
+					{
+						for(std::list<uint32_t>::const_iterator l = currentFrameValues.paramsetChannels.begin(); l != currentFrameValues.paramsetChannels.end(); ++l)
+						{
+							Functions::iterator functionIterator = _rpcDevice->functions.find(*l);
+							if(functionIterator == _rpcDevice->functions.end()) continue;
+							PParameterGroup parameterGroup = functionIterator->second->getParameterGroup(currentFrameValues.parameterSetType);
+							if(!parameterGroup || parameterGroup->parameters.find((*k)->id) == parameterGroup->parameters.end()) continue;
+							currentFrameValues.values[(*k)->id].channels.push_back(*l);
+							setValues = true;
+						}
+					}
+					if(setValues) currentFrameValues.values[(*k)->id].value = data;
+				}
+			}
+			if(abort) continue;
+			if(!currentFrameValues.values.empty()) frameValues.push_back(currentFrameValues);
+		} while(++i != range.second && i != _rpcDevice->packetsByMessageType.end());
+	}
+	catch(const std::exception& ex)
+	{
+		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+	}
+	catch(BaseLib::Exception& ex)
+	{
+		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+	}
+	catch(...)
+	{
+		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
+	}
+}
+
 void MyPeer::packetReceived(PMyPacket& packet)
 {
 	try
 	{
+        if(_disposing || !packet || !_rpcDevice) return;
+        if(packet->senderAddress() != _address) return;
+        std::shared_ptr<MyCentral> central = std::dynamic_pointer_cast<MyCentral>(getCentral());
+        if(!central) return;
+        setLastPacketReceived();
+        if(_lastPacket && BaseLib::HelperFunctions::getTime() - _lastPacket->timeReceived() < 1000 && _lastPacket->getBinary() == packet->getBinary()) return;
+        setRssiDevice(packet->getRssi() * -1);
+        serviceMessages->endUnreach();
 
+        std::vector<FrameValues> frameValues;
+        getValuesFromPacket(packet, frameValues);
+        std::map<uint32_t, std::shared_ptr<std::vector<std::string>>> valueKeys;
+        std::map<uint32_t, std::shared_ptr<std::vector<PVariable>>> rpcValues;
+
+        //Loop through all matching frames
+        for(std::vector<FrameValues>::iterator a = frameValues.begin(); a != frameValues.end(); ++a)
+        {
+            PPacket frame;
+            if(!a->frameID.empty()) frame = _rpcDevice->packetsById.at(a->frameID);
+            if(!frame) continue;
+
+            for(std::map<std::string, FrameValue>::iterator i = a->values.begin(); i != a->values.end(); ++i)
+            {
+                for(std::list<uint32_t>::const_iterator j = a->paramsetChannels.begin(); j != a->paramsetChannels.end(); ++j)
+                {
+                    if(std::find(i->second.channels.begin(), i->second.channels.end(), *j) == i->second.channels.end()) continue;
+                    if(!valueKeys[*j] || !rpcValues[*j])
+                    {
+                        valueKeys[*j].reset(new std::vector<std::string>());
+                        rpcValues[*j].reset(new std::vector<PVariable>());
+                    }
+
+                    BaseLib::Systems::RpcConfigurationParameter& parameter = valuesCentral[*j][i->first];
+                    if(parameter.equals(i->second.value)) continue;
+                    parameter.setBinaryData(i->second.value);
+                    if(parameter.databaseId > 0) saveParameter(parameter.databaseId, i->second.value);
+                    else saveParameter(0, ParameterGroup::Type::Enum::variables, *j, i->first, i->second.value);
+                    if(_bl->debugLevel >= 4) GD::out.printInfo("Info: " + i->first + " on channel " + std::to_string(*j) + " of peer " + std::to_string(_peerID) + " with serial number " + _serialNumber  + " was set to 0x" + BaseLib::HelperFunctions::getHexString(i->second.value) + ".");
+
+                    if(parameter.rpcParameter)
+                    {
+                        if(parameter.rpcParameter->casts.empty()) continue;
+                        ParameterCast::PGeneric parameterCast = std::dynamic_pointer_cast<ParameterCast::Generic>(parameter.rpcParameter->casts.at(0));
+                        if(!parameterCast) continue;
+
+                        uint8_t type = BaseLib::Math::getUnsignedNumber(parameterCast->type);
+                        std::vector<uint8_t> vifs = _bl->hf.getUBinary(parameter.rpcParameter->metadata);
+
+                        //Process service messages
+                        if(parameter.rpcParameter->service && !i->second.value.empty())
+                        {
+                            if(parameter.rpcParameter->logical->type == ILogical::Type::Enum::tEnum)
+                            {
+                                serviceMessages->set(i->first, i->second.value.at(0), *j);
+                            }
+                            else if(parameter.rpcParameter->logical->type == ILogical::Type::Enum::tBoolean)
+                            {
+                                serviceMessages->set(i->first, _vifConverter.getVariable(type, vifs, i->second.value)->booleanValue);
+                            }
+                        }
+
+                        valueKeys[*j]->push_back(i->first);
+                        rpcValues[*j]->push_back(_vifConverter.getVariable(type, vifs, i->second.value));
+                    }
+                }
+            }
+        }
+
+        if(!rpcValues.empty())
+        {
+            for(std::map<uint32_t, std::shared_ptr<std::vector<std::string>>>::const_iterator j = valueKeys.begin(); j != valueKeys.end(); ++j)
+            {
+                if(j->second->empty()) continue;
+                std::string address(_serialNumber + ":" + std::to_string(j->first));
+                raiseEvent(_peerID, j->first, j->second, rpcValues.at(j->first));
+                raiseRPCEvent(_peerID, j->first, address, j->second, rpcValues.at(j->first));
+            }
+        }
 	}
 	catch(const std::exception& ex)
     {
@@ -523,6 +723,35 @@ bool MyPeer::getParamsetHook2(PRpcClientInfo clientInfo, PParameter parameter, u
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
     }
     return false;
+}
+
+bool MyPeer::convertFromPacketHook(PParameter parameter, std::vector<uint8_t>& data, PVariable& result)
+{
+    try
+    {
+        if(!parameter) return false;
+        if(parameter->casts.empty()) return false;
+        ParameterCast::PGeneric cast = std::dynamic_pointer_cast<ParameterCast::Generic>(parameter->casts.at(0));
+        if(!cast) return false;
+
+        uint8_t type = BaseLib::Math::getUnsignedNumber(cast->type);
+        std::vector<uint8_t> vifs = _bl->hf.getUBinary(parameter->metadata);
+
+        result = _vifConverter.getVariable(type, vifs, data);
+    }
+    catch(const std::exception& ex)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    }
+    catch(BaseLib::Exception& ex)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    }
+    catch(...)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
+    }
+    return true;
 }
 
 PVariable MyPeer::putParamset(BaseLib::PRpcClientInfo clientInfo, int32_t channel, ParameterGroup::Type::Enum type, uint64_t remoteID, int32_t remoteChannel, PVariable variables, bool onlyPushing)

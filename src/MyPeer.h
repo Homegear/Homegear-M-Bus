@@ -5,6 +5,7 @@
 
 #include "PhysicalInterfaces/IMBusInterface.h"
 #include "MyPacket.h"
+#include "VifConverter.h"
 #include <homegear-base/BaseLib.h>
 
 using namespace BaseLib;
@@ -66,6 +67,20 @@ public:
 	virtual PVariable setValue(BaseLib::PRpcClientInfo clientInfo, uint32_t channel, std::string valueKey, PVariable value, bool wait);
 	//End RPC methods
 protected:
+	struct FrameValue
+	{
+		std::list<uint32_t> channels;
+		std::vector<uint8_t> value;
+	};
+
+	struct FrameValues
+	{
+		std::string frameID;
+		std::list<uint32_t> paramsetChannels;
+		ParameterGroup::Type::Enum parameterSetType;
+		std::map<std::string, FrameValue> values;
+	};
+
 	//In table variables:
 	std::vector<uint8_t> _aesKey;
 	int32_t _controlInformation = -1;
@@ -76,6 +91,7 @@ protected:
 
 	PMyPacket _lastPacket;
 	uint32_t _lastRssiDevice = 0;
+	VifConverter _vifConverter;
 
 	virtual void loadVariables(BaseLib::Systems::ICentral* central, std::shared_ptr<BaseLib::Database::DataTable>& rows);
     virtual void saveVariables();
@@ -83,6 +99,8 @@ protected:
     void setRssiDevice(uint8_t rssi);
 
 	virtual std::shared_ptr<BaseLib::Systems::ICentral> getCentral();
+
+	void getValuesFromPacket(PMyPacket packet, std::vector<FrameValues>& frameValue);
 
 	virtual PParameterGroup getParameterSet(int32_t channel, ParameterGroup::Type::Enum type);
 
@@ -96,6 +114,11 @@ protected:
 		 * {@inheritDoc}
 		 */
 		virtual bool getParamsetHook2(PRpcClientInfo clientInfo, PParameter parameter, uint32_t channel, PVariable parameters);
+
+		/**
+		 * {@inheritDoc}
+		 */
+		virtual bool convertFromPacketHook(PParameter parameter, std::vector<uint8_t>& data, PVariable& result);
 	// }}}
 };
 

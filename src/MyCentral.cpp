@@ -242,8 +242,9 @@ bool MyCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLib:
             auto deviceIterator = _devicesToPair.find(myPacket->senderAddress());
             if(deviceIterator != _devicesToPair.end())
             {
-                myPacket->decrypt(deviceIterator->second);
                 std::vector<uint8_t> key = _bl->hf.getUBinary(deviceIterator->second);
+                myPacket->decrypt(key);
+                if(myPacket->isEncrypted() && _bl->debugLevel >= 4) std::cout << BaseLib::HelperFunctions::getTimeString(myPacket->timeReceived()) << " Decrypted M-Bus packet: " << BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) << " - Sender address: 0x" << BaseLib::HelperFunctions::getHexString(myPacket->senderAddress(), 8) << std::endl;
                 pairDevice(myPacket, key);
 				peer = getPeer(myPacket->senderAddress());
 				if(!peer) return false;
@@ -272,22 +273,33 @@ bool MyCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLib:
             return false;
         }
 
+        if(myPacket->isEncrypted())
+        {
+            std::vector<uint8_t> aesKey = peer->getAesKey();
+            if(!myPacket->decrypt(aesKey)) return false;
+            if(_bl->debugLevel >= 4) std::cout << BaseLib::HelperFunctions::getTimeString(myPacket->timeReceived()) << " Decrypted M-Bus packet: " << BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) << " - Sender address: 0x" << BaseLib::HelperFunctions::getHexString(myPacket->senderAddress(), 8) << std::endl;
+            if(_bl->debugLevel >= 5) std::cout << "Extended packet info:" << std::endl << myPacket->getInfoString() << std::endl;
+        }
+
         if(peer->getControlInformation() != (int32_t)myPacket->getControlInformation() || peer->getDataRecordCount() != myPacket->dataRecordCount())
         {
-            if(myPacket->isEncrypted() && (myPacket->isFormatTelegram() || (myPacket->isDataTelegram() && !myPacket->isCompactDataTelegram())))
+            if(myPacket->isEncrypted())
             {
-                _bl->out.printInfo("Info: Packet type changed. Readding peer " + std::to_string(peer->getID()) + ".");
-                std::vector<uint8_t> key = peer->getAesKey();
-                peer.reset();
+				if((myPacket->isFormatTelegram() || (myPacket->isDataTelegram() && !myPacket->isCompactDataTelegram())))
+				{
+					_bl->out.printInfo("Info: Packet type changed from " + std::to_string(peer->getControlInformation()) + " to " + std::to_string(myPacket->getControlInformation()) + " or data record count changed from " + std::to_string(peer->getDataRecordCount()) + " to " + std::to_string(myPacket->dataRecordCount()) + ". Readding peer " + std::to_string(peer->getID()) + ".");
+					std::vector<uint8_t> key = peer->getAesKey();
+					peer.reset();
 
-                //Pair again
-                pairDevice(myPacket, key);
-                peer = getPeer(myPacket->senderAddress());
-                if(!peer) return false;
+					//Pair again
+					pairDevice(myPacket, key);
+					peer = getPeer(myPacket->senderAddress());
+					if(!peer) return false;
+				}
             }
             else
             {
-                _bl->out.printWarning("Warning: Ignoring packet with wrong control information for peer " + std::to_string(peer->getID()) + ". Not changing the peer's configuration as the packet is unencrypted.");
+				_bl->out.printWarning("Warning: Ignoring packet with wrong control information for peer " + std::to_string(peer->getID()) + ". Not changing the peer's configuration as the packet is unencrypted.");
                 return false;
             }
         }
@@ -321,20 +333,24 @@ void MyCentral::pairDevice(PMyPacket packet, std::vector<uint8_t>& key)
         std::lock_guard<std::mutex> pairGuard(_pairMutex);
         GD::out.printInfo("Info: Pairing device 0x" + BaseLib::HelperFunctions::getHexString(packet->senderAddress(), 8) + "...");
 
-        auto peerInfo = _descriptionCreator.createDescription(packet);
-        if(peerInfo.serialNumber.empty()) return; //Error
-        GD::family->reloadRpcDevices();
-
         uint64_t peerToDelete = 0;
         {
             std::lock_guard<std::mutex> peersGuard(_peersMutex);
-            auto peersIterator = _peers.find(peerInfo.address);
+            auto peersIterator = _peers.find(packet->senderAddress());
             if(peersIterator != _peers.end())
             {
                 peerToDelete = peersIterator->second->getID();
             }
         }
-        if(peerToDelete != 0) deletePeer(peerToDelete);
+        if(peerToDelete != 0)
+        {
+            GD::out.printInfo("Info: Deleting old peer.");
+            deletePeer(peerToDelete);
+        }
+
+        auto peerInfo = _descriptionCreator.createDescription(packet);
+        if(peerInfo.serialNumber.empty()) return; //Error
+        GD::family->reloadRpcDevices();
 
         PMyPeer peer = createPeer(peerInfo.type, peerInfo.address, peerInfo.serialNumber, true);
         if(!peer)
@@ -448,10 +464,16 @@ void MyCentral::deletePeer(uint64_t id)
             if(_peers.find(peer->getAddress()) != _peers.end()) _peers.erase(peer->getAddress());
         }
 
-        while(peer.use_count() > 1)
+        if(_currentPeer && _currentPeer->getID() == id) _currentPeer.reset();
+
+        int32_t i = 0;
+        while(peer.use_count() > 1 && i < 600)
         {
+            if(_currentPeer && _currentPeer->getID() == id) _currentPeer.reset();
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            i++;
         }
+        if(i == 600) GD::out.printError("Error: Peer deletion took too long.");
 
         peer->deleteFromDatabase();
 
@@ -938,6 +960,7 @@ PVariable MyCentral::deleteDevice(BaseLib::PRpcClientInfo clientInfo, uint64_t p
 		std::shared_ptr<MyPeer> peer = getPeer(peerID);
 		if(!peer) return PVariable(new Variable(VariableType::tVoid));
 		uint64_t id = peer->getID();
+        peer.reset();
 
 		deletePeer(id);
 

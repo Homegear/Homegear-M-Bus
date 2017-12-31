@@ -28,6 +28,8 @@ public:
 private:
     std::map<uint8_t, std::string> _vifVariableNameMap;
     std::map<uint8_t, std::string> _vifUnit;
+    std::map<uint8_t, std::string> _vifFbVariableNameMap;
+    std::map<uint8_t, std::string> _vifFbUnit;
     std::map<uint8_t, std::string> _vifFdVariableNameMap;
     std::map<uint8_t, std::string> _vifFdUnit;
     std::string _xmlPath;
