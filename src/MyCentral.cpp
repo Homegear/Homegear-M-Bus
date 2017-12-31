@@ -455,6 +455,9 @@ void MyCentral::deletePeer(uint64_t id)
 
         peer->deleteFromDatabase();
 
+        GD::out.printInfo("Info: Deleting XML file \"" + peer->getRpcDevice()->getPath() + "\"");
+        GD::bl->io.deleteFile(peer->getRpcDevice()->getPath());
+
 		GD::out.printMessage("Removed M-Bus peer " + std::to_string(peer->getID()));
 	}
 	catch(const std::exception& ex)
@@ -683,7 +686,7 @@ std::string MyCentral::handleCliCommand(std::string command)
 							typeID += "...";
 						}
 						else typeID.resize(typeWidth2, ' ');
-						stringStream << typeID << bar;
+						stringStream << typeID;
 					}
 					else stringStream << std::setw(typeWidth2);
 					stringStream << std::endl << std::dec;

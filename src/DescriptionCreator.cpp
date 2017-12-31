@@ -6,6 +6,68 @@
 namespace MyFamily
 {
 
+DescriptionCreator::DescriptionCreator()
+{
+    _vifVariableNameMap[0] = "ENERGY";
+    _vifUnit[0] = "mWh";
+    _vifVariableNameMap[1] = "ENERGY";
+    _vifUnit[1] = "10^-2 Wh";
+    _vifVariableNameMap[2] = "ENERGY";
+    _vifUnit[2] = "10^-1 Wh";
+    _vifVariableNameMap[3] = "ENERGY";
+    _vifUnit[3] = "Wh";
+    _vifVariableNameMap[4] = "ENERGY";
+    _vifUnit[4] = "10^-2 kWh";
+    _vifVariableNameMap[5] = "ENERGY";
+    _vifUnit[5] = "10^-1 kWh";
+    _vifVariableNameMap[6] = "ENERGY";
+    _vifUnit[6] = "kWh";
+    _vifVariableNameMap[7] = "ENERGY";
+    _vifUnit[7] = "10^-2 MWh";
+    _vifVariableNameMap[8] = "ENERGY";
+    _vifUnit[8] = "J";
+    _vifVariableNameMap[9] = "ENERGY";
+    _vifUnit[9] = "10^-2 kJ";
+    _vifVariableNameMap[10] = "ENERGY";
+    _vifUnit[10] = "10^-1 kJ";
+    _vifVariableNameMap[11] = "ENERGY";
+    _vifUnit[11] = "kJ";
+    _vifVariableNameMap[12] = "ENERGY";
+    _vifUnit[12] = "10^-2 MJ";
+    _vifVariableNameMap[13] = "ENERGY";
+    _vifUnit[13] = "10^-1 MJ";
+    _vifVariableNameMap[14] = "ENERGY";
+    _vifUnit[14] = "MJ";
+    _vifVariableNameMap[15] = "ENERGY";
+    _vifUnit[15] = "10^-2 GJ";
+    _vifVariableNameMap[16] = "VOLUME";
+    _vifUnit[16] = "cm³";
+    _vifVariableNameMap[17] = "VOLUME";
+    _vifUnit[17] = "10^1 cm³";
+    _vifVariableNameMap[18] = "VOLUME";
+    _vifUnit[18] = "10^2 cm³";
+    _vifVariableNameMap[19] = "VOLUME";
+    _vifUnit[19] = "l";
+    _vifVariableNameMap[20] = "VOLUME";
+    _vifUnit[20] = "10^-2 m³";
+    _vifVariableNameMap[21] = "VOLUME";
+    _vifUnit[21] = "10^-1 m³";
+    _vifVariableNameMap[22] = "VOLUME";
+    _vifUnit[22] = "m³";
+    _vifVariableNameMap[23] = "VOLUME";
+    _vifUnit[23] = "10^1 m³";
+    _vifVariableNameMap[24] = "ON_TIME";
+    _vifUnit[24] = "s";
+    _vifVariableNameMap[25] = "ON_TIME";
+    _vifUnit[25] = "m";
+    _vifVariableNameMap[26] = "ON_TIME";
+    _vifUnit[26] = "h";
+    _vifVariableNameMap[27] = "ON_TIME";
+    _vifUnit[27] = "d";
+
+    _vifFdVariableNameMap[23] = "ERROR_FLAGS_BINARY";
+}
+
 DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMyPacket packet)
 {
     try
@@ -164,21 +226,69 @@ void DescriptionCreator::parseDataRecord(MyPacket::DataRecord& dataRecord, PPara
     try
     {
         uint8_t dif = dataRecord.difs.front() & 0x0F;
-        uint8_t vif = dataRecord.vifs.front();
         parameter->metadata = "0x" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
 
         ParameterCast::PGeneric cast = std::make_shared<ParameterCast::Generic>(GD::bl);
         cast->type = "0x" + BaseLib::HelperFunctions::getHexString(dif, 2);
-        //Todo: Create unit and variable name look-up table
-        if(vif == 0x13)
+
+        parameter->physical = std::make_shared<PhysicalInteger>(GD::bl);
+        parameter->physical->operationType = IPhysical::OperationType::Enum::command;
+        std::shared_ptr<Parameter::Packet> eventPacket = std::make_shared<Parameter::Packet>();
+        eventPacket->type = Parameter::Packet::Type::Enum::event;
+        eventPacket->id = "INFO";
+        parameter->eventPackets.push_back(eventPacket);
+
+        if(dif == 0 || dif == 1 || dif == 2 || dif == 3 || dif == 4 || dif == 6 || dif == 7 || dif == 9 || dif == 10 || dif == 11 || dif == 12 || dif == 14)
         {
-            parameter->id = "VOLUME";
-            parameter->unit = "l";
+            parameter->logical = std::make_shared<LogicalInteger>(GD::bl);
         }
-        else if(vif == (uint8_t)0xFD && dataRecord.vifs.at(1) == 0x17) parameter->id = "ERROR_FLAGS";
+        else if(dif == 5)
+        {
+            parameter->logical = std::make_shared<LogicalDecimal>(GD::bl);
+        }
+        else if(dif == 8 || dif == 13 || dif == 15)
+        {
+            GD::out.printWarning("Warning: DIF 0x" + BaseLib::HelperFunctions::getHexString(dif) + " is currently not supported.");
+            return;
+        }
+
+        if(dataRecord.vifs.size() == 1)
+        {
+            auto vifIterator = _vifVariableNameMap.find(dataRecord.vifs.front());
+            if(vifIterator == _vifVariableNameMap.end())
+            {
+                GD::out.printWarning("Warning: VIF 0x" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs) + " is currently not supported.");
+                return;
+            }
+            parameter->id = vifIterator->second;
+
+            auto unitIterator = _vifUnit.find(dataRecord.vifs.front());
+            if(unitIterator != _vifUnit.end()) parameter->unit = unitIterator->second;
+        }
+        else if(dataRecord.vifs.size() == 2)
+        {
+            if(dataRecord.vifs.front() == 0xFD)
+            {
+                auto vifIterator = _vifFdVariableNameMap.find(dataRecord.vifs.at(1));
+                if(vifIterator == _vifFdVariableNameMap.end())
+                {
+                    GD::out.printWarning("Warning: VIF 0x" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs) + " is currently not supported.");
+                    return;
+                }
+                parameter->id = vifIterator->second;
+
+                auto unitIterator = _vifFdUnit.find(dataRecord.vifs.at(1));
+                if(unitIterator != _vifFdUnit.end()) parameter->unit = unitIterator->second;
+            }
+            else
+            {
+                GD::out.printWarning("Warning: VIF 0x" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs) + " is currently not supported.");
+                return;
+            }
+        }
         else
         {
-            GD::out.printWarning("Warning: Unknown VIF " + BaseLib::HelperFunctions::getHexString(dataRecord.vifs));
+            GD::out.printWarning("Warning: VIF 0x" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs) + " is currently not supported.");
             return;
         }
 

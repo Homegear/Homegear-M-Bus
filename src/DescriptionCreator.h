@@ -21,11 +21,15 @@ public:
         int32_t type = -1;
     };
 
-    DescriptionCreator() = default;
+    DescriptionCreator();
     virtual ~DescriptionCreator() = default;
 
     DescriptionCreator::PeerInfo createDescription(PMyPacket packet);
 private:
+    std::map<uint8_t, std::string> _vifVariableNameMap;
+    std::map<uint8_t, std::string> _vifUnit;
+    std::map<uint8_t, std::string> _vifFdVariableNameMap;
+    std::map<uint8_t, std::string> _vifFdUnit;
     std::string _xmlPath;
 
     void createDirectories();
