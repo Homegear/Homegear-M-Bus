@@ -35,6 +35,8 @@ public:
 	void setControlInformation(int32_t value) { _controlInformation = value; saveVariable(22, value); }
     int32_t getDataRecordCount() { return _dataRecordCount; }
     void setDataRecordCount(int32_t value) { _dataRecordCount = value; saveVariable(23, value); }
+	int32_t getFormatCrc() { return _formatCrc; }
+	void setFormatCrc(int32_t value) { _formatCrc = value; saveVariable(24, (int32_t)value); }
 	//}}}
 
 	bool expectsEncryption() { return !_aesKey.empty(); }
@@ -85,6 +87,7 @@ protected:
 	std::vector<uint8_t> _aesKey;
 	int32_t _controlInformation = -1;
     int32_t _dataRecordCount = -1;
+	uint16_t _formatCrc = 0;
 	//End
 
 	bool _shuttingDown = false;

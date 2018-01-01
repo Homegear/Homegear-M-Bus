@@ -493,6 +493,7 @@ bool MyPacket::decrypt(std::vector<uint8_t>& key)
             gcrypt.setKey(key);
             std::vector<uint8_t> decrypted;
             gcrypt.decrypt(decrypted, _payload);
+            if(decrypted.at(0) != 0x2F || decrypted.at(1) != 0x2F) return false; //Two "2F" at the beginning are suggested to verify correct decryption
             _payload = decrypted;
             std::vector<uint8_t> packet;
             packet.reserve(_packet.size());
@@ -561,7 +562,15 @@ void MyPacket::parsePayload()
     {
         _dataRecords.clear();
         strip2F();
-        if(isCompactDataTelegram()) return; //Not parseable
+        if(isCompactDataTelegram())
+        {
+            _formatCrc = (((uint16_t)_payload.at(1)) << 8) | _payload.at(0);
+            return; //Not parseable
+        }
+        else if(isFormatTelegram())
+        {
+            _formatCrc = (((uint16_t)_payload.at(2)) << 8) | _payload.at(1);
+        }
 
         //Skip first three for format packets. The format packet starts with length + 2 unknown bytes.
         //Each compact data packet starts with these 2 unknown bytes + 2 additional random unknown bytes
@@ -607,6 +616,15 @@ void MyPacket::parsePayload()
             //{{{ Get VIFs
             dataRecord.vifs.reserve(2);
             dataRecord.vifs.push_back(_payload.at(pos++));
+
+                //{{{ Fixes
+                if(dataRecord.vifs.front() == 0x6E && _controlInformation == 0x6B && _manufacturer == "EFE" && _medium == 7)
+                {
+                    dataRecord.vifs.at(0) = 0x6D;
+                    _payload.at(pos - 1) = 0x6D;
+                }
+                //}}}
+
             count = 0;
             while(dataRecord.vifs.back() & 0x80 && pos < _payload.size() && count <= 11)
             {
@@ -620,17 +638,10 @@ void MyPacket::parsePayload()
                 break;
             }
 
-                //{{{ Fixes
-                if(dataRecord.vifs.front() == 0x6E && _controlInformation == 0x6B && _manufacturer == "EFE" && _medium == 7)
-                {
-                    dataRecord.vifs.at(0) = 0x6D;
-                }
-                //}}}
-
             if(dataRecord.vifs.front() == 0x0F || dataRecord.vifs.front() == 0x1F)
             {
                 GD::out.printInfo("Info: The packet contains manufacturer specific data which is currently not supported.");
-                return;
+                break;
             }
             //}}}
 
@@ -646,6 +657,21 @@ void MyPacket::parsePayload()
 
             _dataRecords.push_back(std::move(dataRecord));
         }
+
+        if(_dataRecords.size() < 3) return;
+
+        if(isFormatTelegram())
+        {
+            if(_payload.size() - 1 != _payload.at(0)) return; //Wrong length byte
+            uint16_t crc16 = _crc16.calculate(_payload, 3);
+            if((crc16 >> 8) != _payload.at(2) || (crc16 & 0xFF) != _payload.at(1))
+            {
+                GD::out.printError("Error: Format frame CRC is invalid: " + BaseLib::HelperFunctions::getHexString(getBinary()));
+                return;
+            }
+        }
+
+        _dataValid = true;
     }
     catch(const std::exception& ex)
     {

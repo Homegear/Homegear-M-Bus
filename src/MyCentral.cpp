@@ -281,7 +281,7 @@ bool MyCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLib:
             if(_bl->debugLevel >= 5) std::cout << "Extended packet info:" << std::endl << myPacket->getInfoString() << std::endl;
         }
 
-        if(peer->getControlInformation() != (int32_t)myPacket->getControlInformation() || peer->getDataRecordCount() != myPacket->dataRecordCount())
+        if(peer->getControlInformation() != (int32_t)myPacket->getControlInformation() || peer->getDataRecordCount() != myPacket->dataRecordCount() || (myPacket->isFormatTelegram() && peer->getFormatCrc() != myPacket->getFormatCrc()))
         {
             if(myPacket->isEncrypted())
             {
@@ -363,6 +363,7 @@ void MyCentral::pairDevice(PMyPacket packet, std::vector<uint8_t>& key)
         peer->setAesKey(key);
         peer->setControlInformation(packet->getControlInformation());
         peer->setDataRecordCount(packet->dataRecordCount());
+        peer->setFormatCrc(packet->getFormatCrc());
         peer->initializeCentralConfig();
 
         {

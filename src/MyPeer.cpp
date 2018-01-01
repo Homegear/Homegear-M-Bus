@@ -304,6 +304,9 @@ void MyPeer::loadVariables(BaseLib::Systems::ICentral* central, std::shared_ptr<
             case 23:
                 _dataRecordCount = row->second.at(3)->intValue;
                 break;
+            case 24:
+                _formatCrc = row->second.at(3)->intValue;
+                break;
 			}
 		}
 	}
@@ -330,6 +333,7 @@ void MyPeer::saveVariables()
 		saveVariable(21, _aesKey);
 		saveVariable(22, _controlInformation);
         saveVariable(23, _dataRecordCount);
+        saveVariable(24, _formatCrc);
 	}
 	catch(const std::exception& ex)
     {
@@ -552,6 +556,11 @@ void MyPeer::packetReceived(PMyPacket& packet)
 	{
         if(_disposing || !packet || !_rpcDevice) return;
         if(packet->senderAddress() != _address) return;
+        if(packet->getFormatCrc() != _formatCrc)
+        {
+            GD::out.printWarning("Warning: Ignoring packet with wrong format frame CRC.");
+            return;
+        }
         std::shared_ptr<MyCentral> central = std::dynamic_pointer_cast<MyCentral>(getCentral());
         if(!central) return;
         setLastPacketReceived();

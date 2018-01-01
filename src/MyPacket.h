@@ -4,6 +4,7 @@
 #define MYPACKET_H_
 
 #include <homegear-base/BaseLib.h>
+#include "Crc16.h"
 
 namespace MyFamily
 {
@@ -50,10 +51,12 @@ class MyPacket : public BaseLib::Systems::Packet
         uint8_t getStatus() { return _status; }
         uint16_t getConfiguration() { return _configuration; }
         uint8_t getEncryptionMode() { return _encryptionMode; }
+        uint16_t getFormatCrc() { return _formatCrc; }
         std::vector<uint8_t> getPayload() { return _payload; }
         std::list<DataRecord> getDataRecords() { return _dataRecords; }
         int32_t dataRecordCount() { return (int32_t)_dataRecords.size(); }
 
+        bool dataValid() { return _dataValid; }
         bool isEncrypted() { return _encryptionMode != 0; }
         bool isTelegramWithoutMeterData();
         bool isShortTelegram();
@@ -83,12 +86,16 @@ class MyPacket : public BaseLib::Systems::Packet
         uint8_t _status = 0;
         uint16_t _configuration = 0;
         uint8_t _encryptionMode = 0;
+        uint16_t _formatCrc = 0;
         std::vector<uint8_t> _payload;
         int32_t _dataOffset = 0;
         std::list<DataRecord> _dataRecords;
         bool _isDecrypted = false;
+        bool _dataValid = false;
 
         std::vector<uint8_t> _iv;
+
+        Crc16 _crc16;
 
         void strip2F();
         void parsePayload();
