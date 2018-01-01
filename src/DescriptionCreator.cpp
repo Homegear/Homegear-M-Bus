@@ -270,8 +270,11 @@ DescriptionCreator::DescriptionCreator()
     _vifVariableNameMap[121] = "ENHANCED_IDENTIFICATION";
     _vifVariableNameMap[122] = "BUS_ADDRESS";
 
+    _vifVariableNameMap[0x7C] = "CUSTOM_STRING";
     _vifVariableNameMap[0xFC] = "CUSTOM_STRING";
+    _vifVariableNameMap[0x7E] = "ANY_VIF";
     _vifVariableNameMap[0xFE] = "ANY_VIF";
+    _vifVariableNameMap[0x7F] = "MANUFACTURER_SPECIFIC";
     _vifVariableNameMap[0xFF] = "MANUFACTURER_SPECIFIC";
 
 

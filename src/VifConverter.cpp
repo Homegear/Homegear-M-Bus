@@ -17,11 +17,13 @@ PVariable VifConverter::getVariable(uint8_t type, std::vector<uint8_t>& vifs, co
             int32_t year = ((value.at(1) & 0xF0) >> 1) | (value.at(0) >> 5);
             uint8_t month = value.at(1) & 0x0F;
             uint8_t day = value.at(0) & 0x1F;
-            year += (year >= 70 ? 2000 : 1900);
+            if(year == 0 || month == 0 || day == 0) return std::make_shared<Variable>(0);
+            year += (year >= 70 ? 1900 : 2000);
             std::tm t = {};
-            std::istringstream stringStream(std::to_string(year) + "-" + std::to_string(month) + "-" + std::to_string(day));
+            std::stringstream stringStream;
+            stringStream << std::setfill('0') << std::setw(4) << std::to_string(year) << "-" << std::setw(2) << std::to_string(month) << "-" << std::setw(2) << std::to_string(day);
             stringStream >> std::get_time(&t, "%Y-%m-%d");
-            if(stringStream.fail()) return std::make_shared<Variable>();
+            if(stringStream.fail()) return std::make_shared<Variable>(0);
             std::time_t time = std::mktime(&t);
             return std::make_shared<Variable>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::from_time_t(time).time_since_epoch()).count());
         }
@@ -31,6 +33,7 @@ PVariable VifConverter::getVariable(uint8_t type, std::vector<uint8_t>& vifs, co
             int32_t year = ((value.at(3) & 0xF0) >> 1) | (value.at(2) >> 5);
             uint8_t month = value.at(3) & 0x0F;
             uint8_t day = value.at(2) & 0x1F;
+            if(year == 0 || month == 0 || day == 0) return std::make_shared<Variable>(0);
             year += (year >= 70 ? 1900 : 2000);
             uint8_t hour = value.at(1) & 0x1F;
             uint8_t minute = value.at(0) & 0x3F;
@@ -41,11 +44,17 @@ PVariable VifConverter::getVariable(uint8_t type, std::vector<uint8_t>& vifs, co
             }
 
             std::tm t = {};
-            std::istringstream stringStream(std::to_string(year) + "-" + std::to_string(month) + "-" + std::to_string(day) + " " + std::to_string(hour) + ":" + std::to_string(minute));
+            std::stringstream stringStream;
+            stringStream << std::setfill('0') << std::setw(4) << std::to_string(year) << "-" << std::setw(2) << std::to_string(month) << "-" << std::setw(2) << std::to_string(day) << " " << std::setw(2) << std::to_string(hour) << ":" << std::setw(2) << std::to_string(minute);
             stringStream >> std::get_time(&t, "%Y-%m-%d %H:%M");
             if(stringStream.fail()) return std::make_shared<Variable>();
             std::time_t time = std::mktime(&t);
             return std::make_shared<Variable>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::from_time_t(time).time_since_epoch()).count());
+        }
+        else if(vif == 0x7C)
+        {
+            if(value.size() == 1) return std::make_shared<Variable>(std::string());
+            return std::make_shared<Variable>(std::string((char*)value.data() + 1, value.size() - 1));
         }
 
         if(type == 0)

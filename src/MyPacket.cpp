@@ -618,6 +618,12 @@ void MyPacket::parsePayload()
                     dataRecord.vifs.at(0) = 0x6D;
                 }
                 //}}}
+
+            if(dataRecord.vifs.front() == 0x0F || dataRecord.vifs.front() == 0x1F)
+            {
+                GD::out.printInfo("Info: The packet contains manufacturer specific data which is currently not supported.");
+                return;
+            }
             //}}}
 
             dataRecord.dataStart = isFormatTelegram() ? dataPos : pos;

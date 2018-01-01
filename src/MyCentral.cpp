@@ -861,6 +861,12 @@ std::string MyCentral::handleCliCommand(std::string command)
 			stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
 			stringStream << packet.getInfoString() << std::endl << std::endl;
 
+			//C1 short with VIF 7C (not sure, if the packet really looks this way)
+			data = _bl->hf.getUBinary("FF033746C5142527706403077225277064C5140007A22B00202F2F046D202F332C04132900000001FD17100D7C0C48656C6C6F20576F726C642112E5");
+			packet = MyPacket(data);
+			stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
+			stringStream << packet.getInfoString() << std::endl << std::endl;
+
 			return stringStream.str();
         }
         else if(BaseLib::HelperFunctions::checkCliCommand(command, "receive", "", "", 1, arguments, showHelp))
