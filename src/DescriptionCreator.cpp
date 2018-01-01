@@ -297,7 +297,295 @@ DescriptionCreator::DescriptionCreator()
     _vifFbVariableNameMap[17] = "VOLUME";
     _vifFbUnit[17] = "10³ m³";
 
+    //18 to 23 reserved
+
+    _vifFbVariableNameMap[24] = "MASS";
+    _vifFbUnit[24] = "10² t";
+    _vifFbVariableNameMap[25] = "MASS";
+    _vifFbUnit[25] = "10³ t";
+
+    //26 to 32 reserved
+
+    _vifFbVariableNameMap[33] = "VOLUME";
+    _vifFbUnit[33] = "10⁻¹ feet³";
+    _vifFbVariableNameMap[34] = "VOLUME";
+    _vifFbUnit[34] = "10⁻¹ american gallons";
+    _vifFbVariableNameMap[35] = "VOLUME";
+    _vifFbUnit[35] = "american gallon";
+
+    _vifFbVariableNameMap[36] = "VOLUME_FLOW";
+    _vifFbUnit[36] = "10⁻³ american gallons/min";
+    _vifFbVariableNameMap[37] = "VOLUME_FLOW";
+    _vifFbUnit[37] = "american gallons/min";
+    _vifFbVariableNameMap[38] = "VOLUME_FLOW";
+    _vifFbUnit[38] = "american gallons/hour";
+
+    //39 reserved
+
+    _vifFbVariableNameMap[40] = "POWER";
+    _vifFbUnit[40] = "10⁻¹ MW";
+    _vifFbVariableNameMap[41] = "POWER";
+    _vifFbUnit[41] = "MW";
+
+    //42 to 87 reserved
+
+    _vifFbVariableNameMap[88] = "FLOW_TEMPERATURE";
+    _vifFbUnit[88] = "10⁻³ °F";
+    _vifFbVariableNameMap[89] = "FLOW_TEMPERATURE";
+    _vifFbUnit[89] = "10⁻² °F";
+    _vifFbVariableNameMap[90] = "FLOW_TEMPERATURE";
+    _vifFbUnit[90] = "10⁻¹ °F";
+    _vifFbVariableNameMap[91] = "FLOW_TEMPERATURE";
+    _vifFbUnit[91] = "°F";
+
+    _vifFbVariableNameMap[92] = "RETURN_TEMPERATURE";
+    _vifFbUnit[92] = "10⁻³ °F";
+    _vifFbVariableNameMap[93] = "RETURN_TEMPERATURE";
+    _vifFbUnit[93] = "10⁻² °F";
+    _vifFbVariableNameMap[94] = "RETURN_TEMPERATURE";
+    _vifFbUnit[94] = "10⁻¹ °F";
+    _vifFbVariableNameMap[95] = "RETURN_TEMPERATURE";
+    _vifFbUnit[95] = "°F";
+
+    _vifFbVariableNameMap[96] = "TEMPERATURE_DIFFERENCE";
+    _vifFbUnit[96] = "10⁻³ °F";
+    _vifFbVariableNameMap[97] = "TEMPERATURE_DIFFERENCE";
+    _vifFbUnit[97] = "10⁻² °F";
+    _vifFbVariableNameMap[98] = "TEMPERATURE_DIFFERENCE";
+    _vifFbUnit[98] = "10⁻¹ °F";
+    _vifFbVariableNameMap[99] = "TEMPERATURE_DIFFERENCE";
+    _vifFbUnit[99] = "°F";
+
+    _vifFbVariableNameMap[100] = "EXTERNAL_TEMPERATURE";
+    _vifFbUnit[100] = "10⁻³ °F";
+    _vifFbVariableNameMap[101] = "EXTERNAL_TEMPERATURE";
+    _vifFbUnit[101] = "10⁻² °F";
+    _vifFbVariableNameMap[102] = "EXTERNAL_TEMPERATURE";
+    _vifFbUnit[102] = "10⁻¹ °F";
+    _vifFbVariableNameMap[103] = "EXTERNAL_TEMPERATURE";
+    _vifFbUnit[103] = "°F";
+
+    //104 to 111
+
+    _vifFbVariableNameMap[112] = "COLD_WARM_TEMPERATURE_LIMIT";
+    _vifFbUnit[112] = "10⁻³ °F";
+    _vifFbVariableNameMap[113] = "COLD_WARM_TEMPERATURE_LIMIT";
+    _vifFbUnit[113] = "10⁻² °F";
+    _vifFbVariableNameMap[114] = "COLD_WARM_TEMPERATURE_LIMIT";
+    _vifFbUnit[114] = "10⁻¹ °F";
+    _vifFbVariableNameMap[115] = "COLD_WARM_TEMPERATURE_LIMIT";
+    _vifFbUnit[115] = "°F";
+
+    _vifFbVariableNameMap[116] = "COLD_WARM_TEMPERATURE_LIMIT";
+    _vifFbUnit[116] = "10⁻³ °C";
+    _vifFbVariableNameMap[117] = "COLD_WARM_TEMPERATURE_LIMIT";
+    _vifFbUnit[117] = "10⁻² °C";
+    _vifFbVariableNameMap[118] = "COLD_WARM_TEMPERATURE_LIMIT";
+    _vifFbUnit[118] = "10⁻¹ °C";
+    _vifFbVariableNameMap[119] = "COLD_WARM_TEMPERATURE_LIMIT";
+    _vifFbUnit[119] = "°C";
+
+    _vifFbVariableNameMap[120] = "MAX_POWER_COUNT";
+    _vifFbUnit[120] = "mW";
+    _vifFbVariableNameMap[121] = "MAX_POWER_COUNT";
+    _vifFbUnit[121] = "10⁻² W";
+    _vifFbVariableNameMap[122] = "MAX_POWER_COUNT";
+    _vifFbUnit[122] = "10⁻¹ W";
+    _vifFbVariableNameMap[123] = "MAX_POWER_COUNT";
+    _vifFbUnit[123] = "W";
+    _vifFbVariableNameMap[124] = "MAX_POWER_COUNT";
+    _vifFbUnit[124] = "10⁻² kW";
+    _vifFbVariableNameMap[125] = "MAX_POWER_COUNT";
+    _vifFbUnit[125] = "10⁻¹ kW";
+    _vifFbVariableNameMap[126] = "MAX_POWER_COUNT";
+    _vifFbUnit[126] = "kW";
+    _vifFbVariableNameMap[127] = "MAX_POWER_COUNT";
+    _vifFbUnit[127] = "10¹ kW";
+
+
+    _vifFdVariableNameMap[0] = "CREDIT";
+    _vifFdUnit[0] = "10⁻³ Currency Units";
+    _vifFdVariableNameMap[1] = "CREDIT";
+    _vifFdUnit[1] = "10⁻² Currency Units";
+    _vifFdVariableNameMap[2] = "CREDIT";
+    _vifFdUnit[2] = "10⁻¹ Currency Units";
+    _vifFdVariableNameMap[3] = "CREDIT";
+    _vifFdUnit[3] = "Currency Units";
+
+    _vifFdVariableNameMap[4] = "DEBIT";
+    _vifFdUnit[4] = "10⁻³ Currency Units";
+    _vifFdVariableNameMap[5] = "DEBIT";
+    _vifFdUnit[5] = "10⁻² Currency Units";
+    _vifFdVariableNameMap[6] = "DEBIT";
+    _vifFdUnit[6] = "10⁻¹ Currency Units";
+    _vifFdVariableNameMap[7] = "DEBIT";
+    _vifFdUnit[7] = "Currency Units";
+
+    _vifFdVariableNameMap[8] = "ACCESS_NUMBER";
+    _vifFdVariableNameMap[9] = "MEDIUM";
+    _vifFdVariableNameMap[10] = "MANUFACTURER";
+    _vifFdVariableNameMap[11] = "PARAMETER_SET_IDENTIFICATION";
+    _vifFdVariableNameMap[12] = "MODEL";
+    _vifFdVariableNameMap[13] = "HARDWARE_VERSION";
+    _vifFdVariableNameMap[14] = "FIRMWARE_VERSION";
+    _vifFdVariableNameMap[15] = "SOFTWARE_VERSION";
+    _vifFdVariableNameMap[16] = "CUSTOMER_LOCATION";
+    _vifFdVariableNameMap[17] = "CUSTOMER";
+    _vifFdVariableNameMap[18] = "ACCESS_CODE_USER";
+    _vifFdVariableNameMap[19] = "ACCESS_CODE_OPERATOR";
+    _vifFdVariableNameMap[20] = "ACCESS_CODE_SYSTEM_OPERATOR";
+    _vifFdVariableNameMap[21] = "ACCESS_CODE_DEVELOPER";
+    _vifFdVariableNameMap[22] = "PASSWORD";
     _vifFdVariableNameMap[23] = "ERROR_FLAGS_BINARY";
+    _vifFdVariableNameMap[24] = "ERROR_MASK";
+    _vifFdVariableNameMap[26] = "DIGITAL_OUTPUT_BINARY";
+    _vifFdVariableNameMap[27] = "DIGITAL_INPUT_BINARY";
+    _vifFdVariableNameMap[28] = "BAUDRATE";
+    _vifFdVariableNameMap[29] = "RESPONSE_DELAY";
+    _vifFdVariableNameMap[30] = "RETRY";
+    _vifFdVariableNameMap[32] = "FIRST_STORAGE_NUMBER";
+    _vifFdVariableNameMap[33] = "LAST_STORAGE_NUMBER";
+    _vifFdVariableNameMap[34] = "STORAGE_BLOCK_SIZE";
+
+    _vifFdVariableNameMap[36] = "STORAGE_INTERVAL";
+    _vifFdUnit[36] = "s";
+    _vifFdVariableNameMap[37] = "STORAGE_INTERVAL";
+    _vifFdUnit[37] = "m";
+    _vifFdVariableNameMap[38] = "STORAGE_INTERVAL";
+    _vifFdUnit[38] = "h";
+    _vifFdVariableNameMap[39] = "STORAGE_INTERVAL";
+    _vifFdUnit[39] = "d";
+
+    _vifFdVariableNameMap[40] = "STORAGE_INTERVAL_MONTHS";
+    _vifFdVariableNameMap[41] = "STORAGE_INTERVAL_YEARS";
+
+    _vifFdVariableNameMap[44] = "DURATION_SINCE_LAST_READOUT";
+    _vifFdUnit[44] = "s";
+    _vifFdVariableNameMap[45] = "DURATION_SINCE_LAST_READOUT";
+    _vifFdUnit[45] = "m";
+    _vifFdVariableNameMap[46] = "DURATION_SINCE_LAST_READOUT";
+    _vifFdUnit[46] = "h";
+    _vifFdVariableNameMap[47] = "DURATION_SINCE_LAST_READOUT";
+    _vifFdUnit[47] = "d";
+
+    _vifFdVariableNameMap[48] = "TARIFF_START_DATETIME";
+
+    _vifFdVariableNameMap[49] = "TARIFF_DURATION";
+    _vifFdUnit[49] = "s";
+    _vifFdVariableNameMap[50] = "TARIFF_DURATION";
+    _vifFdUnit[50] = "m";
+    _vifFdVariableNameMap[51] = "TARIFF_DURATION";
+    _vifFdUnit[51] = "h";
+    _vifFdVariableNameMap[52] = "TARIFF_DURATION";
+    _vifFdUnit[52] = "d";
+
+    _vifFdVariableNameMap[53] = "TARIFF_PERIOD";
+    _vifFdUnit[53] = "s";
+    _vifFdVariableNameMap[54] = "TARIFF_PERIOD";
+    _vifFdUnit[54] = "m";
+    _vifFdVariableNameMap[55] = "TARIFF_PERIOD";
+    _vifFdUnit[55] = "h";
+    _vifFdVariableNameMap[56] = "TARIFF_PERIOD";
+    _vifFdUnit[56] = "d";
+
+    _vifFdVariableNameMap[57] = "TARIFF_PERIOD_MONTHS";
+    _vifFdVariableNameMap[58] = "TARIFF_PERIOD_YEARS";
+    _vifFdVariableNameMap[59] = "DIMENSIONLESS";
+
+    _vifFdVariableNameMap[64] = "VOLTAGE";
+    _vifFdUnit[64] = "nV";
+    _vifFdVariableNameMap[65] = "VOLTAGE";
+    _vifFdUnit[65] = "10⁻² µV";
+    _vifFdVariableNameMap[66] = "VOLTAGE";
+    _vifFdUnit[66] = "10⁻¹ µV";
+    _vifFdVariableNameMap[67] = "VOLTAGE";
+    _vifFdUnit[67] = "µV";
+    _vifFdVariableNameMap[68] = "VOLTAGE";
+    _vifFdUnit[68] = "10⁻² mV";
+    _vifFdVariableNameMap[69] = "VOLTAGE";
+    _vifFdUnit[69] = "10⁻¹ mV";
+    _vifFdVariableNameMap[70] = "VOLTAGE";
+    _vifFdUnit[70] = "mV";
+    _vifFdVariableNameMap[71] = "VOLTAGE";
+    _vifFdUnit[71] = "10⁻² V";
+    _vifFdVariableNameMap[72] = "VOLTAGE";
+    _vifFdUnit[72] = "10⁻¹ V";
+    _vifFdVariableNameMap[73] = "VOLTAGE";
+    _vifFdUnit[73] = "V";
+    _vifFdVariableNameMap[74] = "VOLTAGE";
+    _vifFdUnit[74] = "10⁻² kV";
+    _vifFdVariableNameMap[75] = "VOLTAGE";
+    _vifFdUnit[75] = "10⁻¹ kV";
+    _vifFdVariableNameMap[76] = "VOLTAGE";
+    _vifFdUnit[76] = "kV";
+    _vifFdVariableNameMap[77] = "VOLTAGE";
+    _vifFdUnit[77] = "10⁻² MV";
+    _vifFdVariableNameMap[78] = "VOLTAGE";
+    _vifFdUnit[78] = "10⁻¹ MV";
+    _vifFdVariableNameMap[79] = "VOLTAGE";
+    _vifFdUnit[79] = "MV";
+
+    _vifFdVariableNameMap[80] = "CURRENT";
+    _vifFdUnit[80] = "pA";
+    _vifFdVariableNameMap[81] = "CURRENT";
+    _vifFdUnit[81] = "10⁻² nA";
+    _vifFdVariableNameMap[82] = "CURRENT";
+    _vifFdUnit[82] = "10⁻¹ nA";
+    _vifFdVariableNameMap[83] = "CURRENT";
+    _vifFdUnit[83] = "nA";
+    _vifFdVariableNameMap[84] = "CURRENT";
+    _vifFdUnit[84] = "10⁻² µA";
+    _vifFdVariableNameMap[85] = "CURRENT";
+    _vifFdUnit[85] = "10⁻¹ µA";
+    _vifFdVariableNameMap[86] = "CURRENT";
+    _vifFdUnit[86] = "µA";
+    _vifFdVariableNameMap[87] = "CURRENT";
+    _vifFdUnit[87] = "10⁻² mA";
+    _vifFdVariableNameMap[88] = "CURRENT";
+    _vifFdUnit[88] = "10⁻¹ mA";
+    _vifFdVariableNameMap[89] = "CURRENT";
+    _vifFdUnit[89] = "mA";
+    _vifFdVariableNameMap[90] = "CURRENT";
+    _vifFdUnit[90] = "10⁻² A";
+    _vifFdVariableNameMap[91] = "CURRENT";
+    _vifFdUnit[91] = "10⁻¹ A";
+    _vifFdVariableNameMap[92] = "CURRENT";
+    _vifFdUnit[92] = "A";
+    _vifFdVariableNameMap[93] = "CURRENT";
+    _vifFdUnit[93] = "10⁻² kA";
+    _vifFdVariableNameMap[94] = "CURRENT";
+    _vifFdUnit[94] = "10⁻¹ kA";
+    _vifFdVariableNameMap[95] = "CURRENT";
+    _vifFdUnit[95] = "kA";
+
+    _vifFdVariableNameMap[96] = "RESET_COUNTER";
+    _vifFdVariableNameMap[97] = "CUMULATION_COUNTER";
+    _vifFdVariableNameMap[98] = "CONTROL_SIGNAL";
+    _vifFdVariableNameMap[99] = "DAY_OF_WEEK";
+    _vifFdVariableNameMap[100] = "WEEK_NUMBER";
+    _vifFdVariableNameMap[101] = "DAY_CHANGE_TIMEPOINT";
+    _vifFdVariableNameMap[102] = "PARAMETER_ACTIVATION_STATE";
+    _vifFdVariableNameMap[103] = "SPECIAL_SUPPLIER_INFORMATION";
+
+    _vifFdVariableNameMap[104] = "DURATION_SINCE_LAST_CUMULATION";
+    _vifFdUnit[104] = "h";
+    _vifFdVariableNameMap[105] = "DURATION_SINCE_LAST_CUMULATION";
+    _vifFdUnit[105] = "d";
+    _vifFdVariableNameMap[106] = "DURATION_SINCE_LAST_CUMULATION";
+    _vifFdUnit[106] = "m";
+    _vifFdVariableNameMap[107] = "DURATION_SINCE_LAST_CUMULATION";
+    _vifFdUnit[107] = "y";
+
+    _vifFdVariableNameMap[108] = "BATTERY_OPERATING_TIME";
+    _vifFdUnit[108] = "h";
+    _vifFdVariableNameMap[109] = "BATTERY_OPERATING_TIME";
+    _vifFdUnit[109] = "d";
+    _vifFdVariableNameMap[110] = "BATTERY_OPERATING_TIME";
+    _vifFdUnit[110] = "m";
+    _vifFdVariableNameMap[111] = "BATTERY_OPERATING_TIME";
+    _vifFdUnit[111] = "y";
+
+    _vifFdVariableNameMap[112] = "BATTERY_CHANGE_DATETIME";
 }
 
 DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMyPacket packet)
@@ -516,14 +804,12 @@ void DescriptionCreator::parseDataRecord(MyPacket::DataRecord& dataRecord, PPara
             }
             else
             {
-                GD::out.printWarning("Warning: Invalid VIF array: " + BaseLib::HelperFunctions::getHexString(dataRecord.vifs));
-                return;
+                parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
             }
         }
         else
         {
-            GD::out.printWarning("Warning: Invalid VIF array." + BaseLib::HelperFunctions::getHexString(dataRecord.vifs));
-            return;
+            parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
         }
 
         if((int32_t)dataRecord.difFunction > 0) parameter->id += "_F" + std::to_string((int32_t)dataRecord.difFunction);

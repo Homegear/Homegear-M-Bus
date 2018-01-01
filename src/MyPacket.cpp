@@ -604,12 +604,20 @@ void MyPacket::parsePayload()
             }
             //}}}
 
-            //{{{ Get VIF
+            //{{{ Get VIFs
             dataRecord.vifs.reserve(2);
             dataRecord.vifs.push_back(_payload.at(pos++));
-            if((dataRecord.vifs.back() == 0xFB || dataRecord.vifs.back() == 0xFD) && pos < _payload.size())
+            count = 0;
+            while(dataRecord.vifs.back() & 0x80 && pos < _payload.size() && count <= 11)
             {
                 dataRecord.vifs.push_back(_payload.at(pos++));
+                count++;
+            }
+
+            if(count > 11)
+            {
+                GD::out.printError("Error: Could not parse packet. Packet contains more than 10 VIFEs");
+                break;
             }
 
                 //{{{ Fixes
