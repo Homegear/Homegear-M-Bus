@@ -17,13 +17,13 @@ PVariable VifConverter::getVariable(uint8_t type, std::vector<uint8_t>& vifs, co
             int32_t year = ((value.at(1) & 0xF0) >> 1) | (value.at(0) >> 5);
             uint8_t month = value.at(1) & 0x0F;
             uint8_t day = value.at(0) & 0x1F;
-            if(year == 0 || month == 0 || day == 0) return std::make_shared<Variable>(0);
-            year += (year >= 70 ? 1900 : 2000);
+            if(year == 0 || month > 12 || month < 1 || day > 31 || day < 1) return std::make_shared<Variable>(0);
+            year += (year >= 70 ? 0 : 100);
             std::tm t = {};
-            std::stringstream stringStream;
-            stringStream << std::setfill('0') << std::setw(4) << std::to_string(year) << "-" << std::setw(2) << std::to_string(month) << "-" << std::setw(2) << std::to_string(day);
-            stringStream >> std::get_time(&t, "%Y-%m-%d");
-            if(stringStream.fail()) return std::make_shared<Variable>(0);
+            t.tm_year = year;
+            t.tm_mon = month - 1;
+            t.tm_mday = day;
+            t.tm_isdst = -1;
             std::time_t time = std::mktime(&t);
             return std::make_shared<Variable>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::from_time_t(time).time_since_epoch()).count());
         }
@@ -33,21 +33,23 @@ PVariable VifConverter::getVariable(uint8_t type, std::vector<uint8_t>& vifs, co
             int32_t year = ((value.at(3) & 0xF0) >> 1) | (value.at(2) >> 5);
             uint8_t month = value.at(3) & 0x0F;
             uint8_t day = value.at(2) & 0x1F;
-            if(year == 0 || month == 0 || day == 0) return std::make_shared<Variable>(0);
-            year += (year >= 70 ? 1900 : 2000);
+            if(year == 0 || month > 12 || month < 1 || day > 31 || day < 1) return std::make_shared<Variable>(0);
+            year += (year >= 70 ? 0 : 100);
             uint8_t hour = value.at(1) & 0x1F;
             uint8_t minute = value.at(0) & 0x3F;
-            if(value.at(0) & 0x80) //Time invalid
+            if(value.at(0) & 0x80 || hour > 24 || minute > 59) //Time invalid
             {
                 hour = 0;
                 minute = 0;
             }
 
             std::tm t = {};
-            std::stringstream stringStream;
-            stringStream << std::setfill('0') << std::setw(4) << std::to_string(year) << "-" << std::setw(2) << std::to_string(month) << "-" << std::setw(2) << std::to_string(day) << " " << std::setw(2) << std::to_string(hour) << ":" << std::setw(2) << std::to_string(minute);
-            stringStream >> std::get_time(&t, "%Y-%m-%d %H:%M");
-            if(stringStream.fail()) return std::make_shared<Variable>();
+            t.tm_year = year;
+            t.tm_mon = month - 1;
+            t.tm_mday = day;
+            t.tm_hour = hour;
+            t.tm_min = minute;
+            t.tm_isdst = (bool)(value.at(1) & 0x80);
             std::time_t time = std::mktime(&t);
             return std::make_shared<Variable>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::from_time_t(time).time_since_epoch()).count());
         }
