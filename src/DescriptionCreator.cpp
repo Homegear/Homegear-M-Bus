@@ -739,6 +739,17 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice& device)
     parameter->physical = PPhysicalInteger(new PhysicalInteger(GD::bl));
     parameter->physical->groupId = parameter->id;
     parameter->physical->operationType = IPhysical::OperationType::internal;
+
+    parameter.reset(new Parameter(GD::bl, function->variables.get()));
+    parameter->id = "POSSIBLE_HACKING_ATTEMPT";
+    function->variables->parametersOrdered.push_back(parameter);
+    function->variables->parameters[parameter->id] = parameter;
+    parameter->sticky = true;
+    parameter->service = true;
+    parameter->logical = PLogicalBoolean(new LogicalBoolean(GD::bl));;
+    parameter->physical = PPhysicalInteger(new PhysicalInteger(GD::bl));
+    parameter->physical->groupId = parameter->id;
+    parameter->physical->operationType = IPhysical::OperationType::internal;
     // }}}
 }
 

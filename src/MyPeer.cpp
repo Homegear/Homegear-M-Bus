@@ -620,8 +620,20 @@ void MyPeer::packetReceived(PMyPacket& packet)
                             }
                         }
 
+                        BaseLib::PVariable value = _vifConverter.getVariable(type, vifs, i->second.value);
+
+                        if(i->first == "DATE" || i->first == "DATETIME")
+                        {
+                            int32_t time = BaseLib::HelperFunctions::getTimeSeconds();
+                            if(value->integerValue < time - (86400 * 2) || value->integerValue > time + (86400 * 2))
+                            {
+                                serviceMessages->set("POSSIBLE_HACKING_ATTEMPT", true);
+                                GD::out.printWarning("Warning: Possible hacking attempt. Date in packet deviates more than two days from current date.");
+                            }
+                        }
+
                         valueKeys[*j]->push_back(i->first);
-                        rpcValues[*j]->push_back(_vifConverter.getVariable(type, vifs, i->second.value));
+                        rpcValues[*j]->push_back(value);
                     }
                 }
             }
@@ -831,6 +843,10 @@ PVariable MyPeer::setValue(BaseLib::PRpcClientInfo clientInfo, uint32_t channel,
 {
 	try
 	{
+		Peer::setValue(clientInfo, channel, valueKey, value, wait); //Ignore result, otherwise setHomegerValue might not be executed
+		if(_disposing) return Variable::createError(-32500, "Peer is disposing.");
+		if(valueKey.empty()) return Variable::createError(-5, "Value key is empty.");
+        if(channel == 0 && serviceMessages->set(valueKey, value->booleanValue)) return std::make_shared<BaseLib::Variable>();
 		return Variable::createError(-5, "Unknown parameter.");
 	}
 	catch(const std::exception& ex)
