@@ -8,15 +8,34 @@ namespace MyFamily
 {
 MyPacket::MyPacket()
 {
+    _difSizeMap[0] = 0;
+    _difSizeMap[1] = 1;
+    _difSizeMap[2] = 2;
+    _difSizeMap[3] = 3;
+    _difSizeMap[4] = 4;
+    _difSizeMap[5] = 5;
+    _difSizeMap[6] = 6;
+    _difSizeMap[7] = 8;
+    _difSizeMap[8] = 0;
+    _difSizeMap[9] = 1;
+    _difSizeMap[10] = 2;
+    _difSizeMap[11] = 3;
+    _difSizeMap[12] = 4;
+    _difSizeMap[13] = 0;
+    _difSizeMap[14] = 6;
+    _difSizeMap[15] = 0;
 }
 
-MyPacket::MyPacket(std::vector<uint8_t>& packet) : _packet(packet)
+MyPacket::MyPacket(std::vector<uint8_t>& packet) : MyPacket()
 {
+    _packet = packet;
 	_timeReceived = BaseLib::HelperFunctions::getTime();
     _rssi = packet.at(packet.size() - 2);
     if(_rssi >= 128) _rssi = ((_rssi - 256) / 2) - 74; //From Amber wireless datasheet
     else _rssi = (_rssi / 2) - 74;
 
+    _command = packet.at(1);
+    _length = packet.at(2);
     _control = packet.at(3);
     _iv.clear();
     _iv.reserve(16);
@@ -90,20 +109,60 @@ MyPacket::MyPacket(std::vector<uint8_t>& packet) : _packet(packet)
     }
     else _iv.clear();
 
-    std::vector<uint8_t> key{0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
-    BaseLib::Security::Gcrypt gcrypt(GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CBC, GCRY_CIPHER_SECURE);
-    gcrypt.setIv(_iv);
-    gcrypt.setKey(key);
-    std::vector<uint8_t> decrypted;
-    gcrypt.decrypt(decrypted, _payload);
-    _payload = decrypted;
-
-    std::cout << "Moin " << std::hex << (int32_t)_control << " " << _manufacturer << " " << _senderAddress << " " << (int32_t)_version << " " << getMediumString(_medium) << " " << (int32_t)_controlInformation << " " << BaseLib::HelperFunctions::getHexString(_payload) << " " << BaseLib::HelperFunctions::getHexString(_iv) << std::endl;
+    if(_encryptionMode == 0) parsePayload();
 }
 
 MyPacket::~MyPacket()
 {
 	_packet.clear();
+}
+
+std::string MyPacket::getInfoString()
+{
+    try
+    {
+        std::string info = "Command:       0x" + BaseLib::HelperFunctions::getHexString(_command) + "\n";
+        info +=            "Length:        " + std::to_string(_length) + "\n";
+        info +=            "Control:       0x" + BaseLib::HelperFunctions::getHexString(_control) + "\n";
+        info +=            "Manufacturer:  " + _manufacturer + "\n";
+        info +=            "Address:       0x" + BaseLib::HelperFunctions::getHexString(_senderAddress, 8) + "\n";
+        info +=            "Version:       " + std::to_string(_version) + "\n";
+        info +=            "Medium:        0x" + std::to_string(_medium) + " (" + getMediumString(_medium) + ")\n";
+        info +=            "Control info:  0x" + std::to_string(_controlInformation) + " (" + getControlInformationString(_controlInformation) + ")\n";
+        info +=            "Counter:       0x" + BaseLib::HelperFunctions::getHexString(_messageCounter) + "\n";
+        info +=            "Status:        0x" + BaseLib::HelperFunctions::getHexString(_status) + "\n";
+        info +=            "Battery empty: " + std::to_string(batteryEmpty()) + "\n";
+        info +=            "Config:        0x" + BaseLib::HelperFunctions::getHexString(_configuration, 4) + "\n";
+        info +=            "Encryption:    " + std::string(_encryptionMode == 4 || _encryptionMode == 5 ? "AES" : (_encryptionMode != 0 ? "unknown" : "none")) + "\n";
+        for(auto& dataRecord : _dataRecords)
+        {
+            info += "\n ---\n";
+            info += "   DIF: 0x" + BaseLib::HelperFunctions::getHexString(dataRecord.difs.front() & 0x0F) + " (0x" + BaseLib::HelperFunctions::getHexString(dataRecord.difs) + ")" + "\n";
+            info += "    - Function:       " + std::to_string((int32_t)dataRecord.difFunction) + "\n";
+            info += "    - Storage number: " + std::to_string(dataRecord.storageNumber) + "\n";
+            info += "    - Subunit:        " + std::to_string(dataRecord.subunit) + "\n";
+            info += "    - Tariff:         " + std::to_string(dataRecord.tariff) + "\n";
+            info += "   VIF: 0x" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs) + "\n";
+            info += "    - Data start pos: " + std::to_string(dataRecord.dataStart) + "\n";
+            info += "    - Data size:      " + std::to_string(dataRecord.dataSize) + "\n";
+            info += "    - Data:           " + std::string(dataRecord.data.empty() ? "" : "0x" + BaseLib::HelperFunctions::getHexString(dataRecord.data)) + "\n";
+        }
+
+        return info;
+    }
+    catch(const std::exception& ex)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    }
+    catch(BaseLib::Exception& ex)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    }
+    catch(...)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
+    }
+    return "";
 }
 
 std::vector<uint8_t> MyPacket::getBinary()
@@ -377,11 +436,34 @@ bool MyPacket::isLongTelegram()
            _controlInformation == 0x8B;
 }
 
+bool MyPacket::isFormatTelegram()
+{
+    return _controlInformation == 0x69 ||
+           _controlInformation == 0x6A ||
+           _controlInformation == 0x6B;
+}
+
+bool MyPacket::isCompactDataTelegram()
+{
+    return _controlInformation == 0x73 ||
+           _controlInformation == 0x79 ||
+           _controlInformation == 0x7B;
+}
+
+bool MyPacket::isDataTelegram()
+{
+    return _controlInformation == 0x72 ||
+           _controlInformation == 0x73 ||
+           _controlInformation == 0x79 ||
+           _controlInformation == 0x7A ||
+           _controlInformation == 0x7B;
+}
+
 std::vector<uint8_t> MyPacket::getPosition(uint32_t position, uint32_t size)
 {
 	try
 	{
-		return BaseLib::BitReaderWriter::getPosition(_packet, position + (_dataOffset * 8), size);
+		return BaseLib::BitReaderWriter::getPosition(_payload, position, size);
 	}
 	catch(const std::exception& ex)
     {
@@ -396,6 +478,220 @@ std::vector<uint8_t> MyPacket::getPosition(uint32_t position, uint32_t size)
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
     }
     return std::vector<uint8_t>();
+}
+
+bool MyPacket::decrypt(std::vector<uint8_t>& key)
+{
+    try
+    {
+        if(_isDecrypted) return true;
+        _isDecrypted = true;
+        if(_encryptionMode == 4 || _encryptionMode == 5)
+        {
+            BaseLib::Security::Gcrypt gcrypt(GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CBC, GCRY_CIPHER_SECURE);
+            gcrypt.setIv(_iv);
+            gcrypt.setKey(key);
+            std::vector<uint8_t> decrypted;
+            gcrypt.decrypt(decrypted, _payload);
+            if(decrypted.at(0) != 0x2F || decrypted.at(1) != 0x2F) return false; //Two "2F" at the beginning are suggested to verify correct decryption
+            _payload = decrypted;
+            std::vector<uint8_t> packet;
+            packet.reserve(_packet.size());
+            packet.insert(packet.end(), _packet.begin(), _packet.end() - _payload.size());
+            packet.insert(packet.end(), _payload.begin(), _payload.end());
+            _packet = std::move(packet);
+            parsePayload();
+        }
+        return true;
+    }
+    catch(const std::exception& ex)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    }
+    catch(BaseLib::Exception& ex)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    }
+    catch(...)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
+    }
+    return false;
+}
+
+void MyPacket::strip2F()
+{
+    try
+    {
+        uint32_t startPos = 0;
+        uint32_t endPos = _payload.size() - 1;
+        for(auto& byte : _payload)
+        {
+            if(byte != 0x2F) break;
+            startPos++;
+        }
+
+        for(uint32_t i = _payload.size() - 1; i >= 0; i--)
+        {
+            if(_payload[i] != 0x2F) break;
+            endPos--;
+        }
+
+        if(startPos >= endPos) return;
+
+        std::vector<uint8_t> strippedPayload(_payload.begin() + startPos, _payload.begin() + endPos + 1);
+        _payload = std::move(strippedPayload);
+    }
+    catch(const std::exception& ex)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    }
+    catch(BaseLib::Exception& ex)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    }
+    catch(...)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
+    }
+}
+
+void MyPacket::parsePayload()
+{
+    try
+    {
+        _dataRecords.clear();
+        strip2F();
+        if(isCompactDataTelegram())
+        {
+            _formatCrc = (((uint16_t)_payload.at(1)) << 8) | _payload.at(0);
+            return; //Not parseable
+        }
+        else if(isFormatTelegram())
+        {
+            _formatCrc = (((uint16_t)_payload.at(2)) << 8) | _payload.at(1);
+        }
+
+        //Skip first three for format packets. The format packet starts with length + 2 unknown bytes.
+        //Each compact data packet starts with these 2 unknown bytes + 2 additional random unknown bytes
+        uint32_t dataPos = 4;
+        for(uint32_t pos = isFormatTelegram() ? 3 : 0; pos < _payload.size();)
+        {
+            DataRecord dataRecord;
+
+            //{{{ Get DIF
+            dataRecord.difs.reserve(11);
+            dataRecord.difs.push_back(_payload.at(pos++));
+            dataRecord.difFunction = (DifFunction)((dataRecord.difs.back() & 0x30) >> 4);
+            uint32_t count = 0;
+            while(dataRecord.difs.back() & 0x80 && pos < _payload.size() && count <= 11)
+            {
+                dataRecord.difs.push_back(_payload.at(pos++));
+                count++;
+            }
+
+            if(pos >= _payload.size()) break;
+
+            if(count > 11)
+            {
+                GD::out.printError("Error: Could not parse packet. Packet contains more than 10 DIFEs");
+                break;
+            }
+
+            //Get storage number, tariff and subunit
+            dataRecord.storageNumber = (dataRecord.difs.front() & 0x40) >> 6;
+            if(dataRecord.difs.size() > 1)
+            {
+                dataRecord.subunit = 0;
+                dataRecord.tariff = 0;
+            }
+            for(uint32_t i = 1; i < dataRecord.difs.size(); i++)
+            {
+                dataRecord.storageNumber |= ((dataRecord.difs.at(i) & 0xF) << (((i - 1) * 4) + 1));
+                dataRecord.subunit |= (((dataRecord.difs.at(i) & 0x40) >> 6) << (i - 1));
+                dataRecord.tariff |= (((dataRecord.difs.at(i) & 0x30) >> 4) << ((i - 1) * 2));
+            }
+            //}}}
+
+            //{{{ Get VIFs
+            dataRecord.vifs.reserve(2);
+            dataRecord.vifs.push_back(_payload.at(pos++));
+
+                //{{{ Fixes
+                if(dataRecord.vifs.front() == 0x6E && _controlInformation == 0x6B && _manufacturer == "EFE" && _medium == 7)
+                {
+                    dataRecord.vifs.at(0) = 0x6D;
+                    _payload.at(pos - 1) = 0x6D;
+                }
+                //}}}
+
+            count = 0;
+            while(dataRecord.vifs.back() & 0x80 && pos < _payload.size() && count <= 11)
+            {
+                dataRecord.vifs.push_back(_payload.at(pos++));
+                count++;
+            }
+
+            if(count > 11)
+            {
+                GD::out.printError("Error: Could not parse packet. Packet contains more than 10 VIFEs");
+                break;
+            }
+
+            if(dataRecord.vifs.front() == 0x0F || dataRecord.vifs.front() == 0x1F)
+            {
+                GD::out.printInfo("Info: The packet contains manufacturer specific data which is currently not supported.");
+                break;
+            }
+            //}}}
+
+            dataRecord.dataStart = isFormatTelegram() ? dataPos : pos;
+            dataRecord.dataSize = getDataSize(dataRecord.difs.front(), pos < _payload.size() ? _payload.at(pos) : 0);
+            if(isFormatTelegram()) dataPos += dataRecord.dataSize;
+            else
+            {
+                if(pos + dataRecord.dataSize > _payload.size()) break;
+                dataRecord.data.insert(dataRecord.data.end(), _payload.begin() + pos, _payload.begin() + pos + dataRecord.dataSize);
+                pos += dataRecord.dataSize;
+            }
+
+            _dataRecords.push_back(std::move(dataRecord));
+        }
+
+        if(_dataRecords.size() < 3) return;
+
+        if(isFormatTelegram())
+        {
+            if(_payload.size() - 1 != _payload.at(0)) return; //Wrong length byte
+            uint16_t crc16 = _crc16.calculate(_payload, 3);
+            if((crc16 >> 8) != _payload.at(2) || (crc16 & 0xFF) != _payload.at(1))
+            {
+                GD::out.printError("Error: Format frame CRC is invalid: " + BaseLib::HelperFunctions::getHexString(getBinary()));
+                return;
+            }
+        }
+
+        _dataValid = true;
+    }
+    catch(const std::exception& ex)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    }
+    catch(BaseLib::Exception& ex)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    }
+    catch(...)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
+    }
+}
+
+uint32_t MyPacket::getDataSize(uint8_t dif, uint8_t firstDataByte)
+{
+    dif = dif & 0xF;
+    if(dif == 0xD) return firstDataByte + 1;
+    return _difSizeMap.at(dif);
 }
 
 }

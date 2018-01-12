@@ -4,6 +4,10 @@ project(homegear_mbus)
 set(CMAKE_CXX_STANDARD 11)
 
 set(SOURCE_FILES
+        src/Crc16.cpp
+        src/Crc16.h
+        src/DescriptionCreator.cpp
+        src/DescriptionCreator.h
         src/PhysicalInterfaces/IMBusInterface.cpp
         src/PhysicalInterfaces/IMBusInterface.h
         src/PhysicalInterfaces/Amber.cpp
@@ -22,6 +26,8 @@ set(SOURCE_FILES
         src/MyPacket.h
         src/MyPeer.cpp
         src/MyPeer.h
+        src/VifConverter.cpp
+        src/VifConverter.h
         config.h)
 
 add_custom_target(homegear COMMAND ../../makeAll.sh SOURCES ${SOURCE_FILES})
