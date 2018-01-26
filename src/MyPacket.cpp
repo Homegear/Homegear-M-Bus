@@ -523,6 +523,7 @@ void MyPacket::strip2F()
 {
     try
     {
+        if(_payload.empty()) return;
         uint32_t startPos = 0;
         uint32_t endPos = _payload.size() - 1;
         for(auto& byte : _payload)
