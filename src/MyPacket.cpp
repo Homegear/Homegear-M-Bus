@@ -848,6 +848,7 @@ bool MyPacket::decrypt(std::vector<uint8_t>& key)
             //}}}
 
             parsePayload();
+            if(!_dataValid) return false;
             _isDecrypted = true;
         }
         else if(_encryptionMode != 0)

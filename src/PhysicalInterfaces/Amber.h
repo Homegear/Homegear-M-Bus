@@ -26,6 +26,8 @@ protected:
     std::atomic_bool _initComplete;
 	std::thread _initThread;
 
+	std::unordered_set<uint8_t> _securityModeWhitelist;
+
 	void init();
 	void reconnect();
 	void listen();

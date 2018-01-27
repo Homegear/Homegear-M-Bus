@@ -243,7 +243,7 @@ bool MyCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLib:
             if(deviceIterator != _devicesToPair.end())
             {
                 std::vector<uint8_t> key = _bl->hf.getUBinary(deviceIterator->second);
-                if(!myPacket->decrypt(key)) return false;
+                if(!myPacket->decrypt(key) || !myPacket->dataValid()) return false;
                 if(myPacket->isEncrypted() && _bl->debugLevel >= 4) std::cout << BaseLib::HelperFunctions::getTimeString(myPacket->timeReceived()) << " Decrypted M-Bus packet: " << BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) << " - Sender address: 0x" << BaseLib::HelperFunctions::getHexString(myPacket->senderAddress(), 8) << std::endl;
                 pairDevice(myPacket, key);
 				peer = getPeer(myPacket->senderAddress());
@@ -267,16 +267,16 @@ bool MyCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLib:
 			else return false;
 		}
 
-        if(peer->expectsEncryption() && !myPacket->isEncrypted())
+        if(peer->getEncryptionMode() != myPacket->getEncryptionMode())
         {
-            _bl->out.printWarning("Warning: Unencrypted packet received for peer " + std::to_string(peer->getID()) + " dropping it.");
+            _bl->out.printWarning("Warning: Encryption mode of peer " + std::to_string(peer->getID()) + " differs from encryption mode of packet. Dropping it.");
             return false;
         }
 
         if(myPacket->isEncrypted())
         {
             std::vector<uint8_t> aesKey = peer->getAesKey();
-            if(!myPacket->decrypt(aesKey)) return false;
+            if(!myPacket->decrypt(aesKey) || !myPacket->dataValid()) return false;
             if(_bl->debugLevel >= 4) std::cout << BaseLib::HelperFunctions::getTimeString(myPacket->timeReceived()) << " Decrypted M-Bus packet: " << BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) << " - Sender address: 0x" << BaseLib::HelperFunctions::getHexString(myPacket->senderAddress(), 8) << std::endl;
             if(_bl->debugLevel >= 5) std::cout << "Extended packet info:" << std::endl << myPacket->getInfoString() << std::endl;
         }
@@ -338,6 +338,12 @@ void MyCentral::pairDevice(PMyPacket packet, std::vector<uint8_t>& key)
         std::unique_lock<std::mutex> lockGuard(_peersMutex);
         if(peer)
         {
+            if(peer->getEncryptionMode() != packet->getEncryptionMode())
+            {
+                _bl->out.printWarning("Warning: Encryption mode of peer " + std::to_string(peer->getID()) + " differs from encryption mode of packet. Not updating peer.");
+                return;
+            }
+
             newPeer = false;
             if(_peers.find(peer->getAddress()) != _peers.end()) _peers.erase(peer->getAddress());
             if(_peersBySerial.find(peer->getSerialNumber()) != _peersBySerial.end()) _peersBySerial.erase(peer->getSerialNumber());
@@ -374,6 +380,7 @@ void MyCentral::pairDevice(PMyPacket packet, std::vector<uint8_t>& key)
         peer->setControlInformation(packet->getControlInformation());
         peer->setDataRecordCount(packet->dataRecordCount());
         peer->setFormatCrc(packet->getFormatCrc());
+        peer->setEncryptionMode(packet->getEncryptionMode());
 
         lockGuard.lock();
         _peersBySerial[peer->getSerialNumber()] = peer;
