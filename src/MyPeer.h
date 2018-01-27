@@ -43,6 +43,7 @@ public:
 
 	bool expectsEncryption() { return !_aesKey.empty(); }
 
+    void worker();
 	virtual std::string handleCliCommand(std::string command);
 	void packetReceived(PMyPacket& packet);
 
