@@ -41,57 +41,201 @@ MyPacket::MyPacket(std::vector<uint8_t>& packet) : MyPacket()
     _iv.reserve(16);
     _iv.insert(_iv.end(), packet.begin() + 4, packet.begin() + 12);
     _version = packet.at(10);
-    _controlInformation = packet.at(12);
 
-    if(isLongTelegram()) //Address, manufacturer and medium from header take precedence over outer frame
+    size_t ciStart = 12;
+    uint8_t controlInformation = 0;
+    for(int32_t i = 0; i < 10; i++)
     {
-        _senderAddress = (((uint32_t)packet.at(16)) << 24) | (((uint32_t)packet.at(15)) << 16) | (((uint32_t)packet.at(14)) << 8) | ((uint32_t)packet.at(13));
-        uint32_t value = (((uint32_t)packet.at(18)) << 8) | packet.at(17);
-        _manufacturer.clear();
-        _manufacturer.reserve(3);
-        _manufacturer.push_back((char)(((value >> 10) & 0x1F) + 64));
-        _manufacturer.push_back((char)(((value >> 5) & 0x1F) + 64));
-        _manufacturer.push_back((char)((value & 0x1F) + 64));
-        _medium = packet.at(20);
+        if(ciStart >= packet.size()) break;
+        controlInformation = packet.at(ciStart);
+        if(controlInformation == 0x8C) //ELL I
+        {
+            ciStart += 3;
+            continue;
+        }
+        else if(controlInformation == 0x8D) //ELL II
+        {
+            ciStart += 9;
+            continue;
+        }
+        else if(controlInformation == 0x90) //AFL header
+        {
+            uint8_t aflPos = ciStart + 2;
+            if(ciStart + 1 >= packet.size()) break;
+            uint8_t aflHeaderSize = packet.at(ciStart + 1);
+            ciStart += 2 + aflHeaderSize;
+            if(ciStart >= packet.size()) break;
 
-        _dataOffset = 21;
-        _messageCounter = packet.at(21);
-        _status = packet.at(22);
-        _configuration = (((uint16_t)packet.at(23)) << 8) | packet.at(24);
-        _encryptionMode = _configuration & 0x0F;
-        _payload.clear();
-        _payload.insert(_payload.end(), _packet.begin() + 25, _packet.end() - 2);
-    }
-    else if(isShortTelegram())
-    {
-        uint32_t value = (((uint32_t)packet.at(5)) << 8) | packet.at(4);
-        _manufacturer.clear();
-        _manufacturer.reserve(3);
-        _manufacturer.push_back((char)(((value >> 10) & 0x1F) + 64));
-        _manufacturer.push_back((char)(((value >> 5) & 0x1F) + 64));
-        _manufacturer.push_back((char)((value & 0x1F) + 64));
-        _senderAddress = (((uint32_t)packet.at(9)) << 24) | (((uint32_t)packet.at(8)) << 16) | (((uint32_t)packet.at(7)) << 8) | ((uint32_t)packet.at(6));
-        _medium = packet.at(11);
+            _aflHeader = AflHeader();
+            _aflHeader.fragmentId = packet.at(aflPos++);
+            uint8_t fragmentControlField = packet.at(aflPos++);
+            _aflHeader.moreFragments = fragmentControlField & 0x40;
+            if(_aflHeader.moreFragments)
+            {
+                GD::out.printWarning("Warning AFL with multiple fragments is unsupported.");
+                break;
+            }
+            if(fragmentControlField & 0x20) //Has message control field
+            {
+                _aflHeader.hasMessageControlField = true;
+                _aflHeader.messageControlField = packet.at(aflPos++);
+                _aflHeader.authenticationType = _aflHeader.messageControlField & 0x0F;
+                if(_aflHeader.authenticationType != 5)
+                {
+                    GD::out.printWarning("Only authentication type 5 is supported at the moment.");
+                    break;
+                }
+            }
+            if(fragmentControlField & 0x02) //Has key information field
+            {
+                _aflHeader.hasKeyInformation = true;
+                _aflHeader.keyInformationField = (((uint16_t) packet.at(aflPos + 1)) << 8) | ((uint16_t) packet.at(aflPos));
+                aflPos += 2;
+            }
+            if(fragmentControlField & 0x08) //Has message counter
+            {
+                _aflHeader.hasMessageCounter = true;
+                _aflHeader.messageCounter = (((uint32_t) packet.at(aflPos + 3)) << 24) | (((uint32_t) packet.at(aflPos + 2)) << 16) | (((uint32_t) packet.at(aflPos + 1)) << 8) | ((uint32_t) packet.at(aflPos));
+                aflPos += 4;
+            }
+            if(fragmentControlField & 0x04) //Has MAC
+            {
+                if(_aflHeader.authenticationType != 5)
+                {
+                    GD::out.printWarning("Only authentication type 5 is supported at the moment.");
+                    break;
+                }
+                _aflHeader.mac.insert(_aflHeader.mac.end(), packet.begin() + aflPos, packet.begin() + aflPos + 8);
+                aflPos += 8;
+            }
+            if(fragmentControlField & 0x10) //Has length
+            {
+                _aflHeader.hasMessageLength = true;
+                _aflHeader.messageLength = (((uint16_t) packet.at(aflPos + 1)) << 8) | ((uint16_t) packet.at(aflPos));
+                aflPos += 2;
+            }
+        }
+        else
+        {
+            _controlInformation = controlInformation;
+            if(hasLongTplHeader()) //Address, manufacturer and medium from header take precedence over outer frame
+            {
+                _tpduStart = ciStart;
+                _senderAddress = (((uint32_t) packet.at(ciStart + 4)) << 24) | (((uint32_t) packet.at(ciStart + 3)) << 16) | (((uint32_t) packet.at(ciStart + 2)) << 8) | ((uint32_t) packet.at(ciStart + 1));
+                uint32_t value = (((uint32_t) packet.at(ciStart + 6)) << 8) | packet.at(ciStart + 5);
+                _manufacturer.clear();
+                _manufacturer.reserve(3);
+                _manufacturer.push_back((char) (((value >> 10) & 0x1F) + 64));
+                _manufacturer.push_back((char) (((value >> 5) & 0x1F) + 64));
+                _manufacturer.push_back((char) ((value & 0x1F) + 64));
+                _medium = packet.at(ciStart + 8);
 
-        _dataOffset = 13;
-        _messageCounter = packet.at(13);
-        _status = packet.at(14);
-        _configuration = (((uint16_t)packet.at(15)) << 8) | packet.at(16);
-        _encryptionMode = _configuration & 0x0F;
-        _payload.clear();
-        _payload.insert(_payload.end(), _packet.begin() + 17, _packet.end() - 2);
+                _messageCounter = packet.at(ciStart + 9);
+                _status = packet.at(ciStart + 10);
+                _configuration = (((uint16_t) packet.at(ciStart + 11)) << 8) | packet.at(ciStart + 12);
+                _encryptionMode = _configuration & 0x1F;
+
+                size_t tplPos = 13;
+                if(_encryptionMode == 7)
+                {
+                    _mode7Info = Mode7Info();
+                    _mode7Info.messageCounterInTpl = _configuration & 0x20;
+                    _mode7Info.blockCount = _configuration >> 12;
+
+                    uint8_t configurationExtension = packet.at(tplPos++);
+
+                    _mode7Info.kdf = ((configurationExtension >> 4) & 3);
+                    _mode7Info.keyId = configurationExtension & 0x0F;
+
+                    if(configurationExtension & 0x40) //Has version field
+                    {
+                        _mode7Info.version = packet.at(tplPos++);
+                    }
+
+                    if(_mode7Info.messageCounterInTpl)
+                    {
+                        _mode7Info.tplMessageCounter = (((uint32_t) packet.at(ciStart + tplPos + 3)) << 24) | (((uint32_t) packet.at(ciStart + tplPos + 2)) << 16) | (((uint32_t) packet.at(ciStart + tplPos + 1)) << 8) | ((uint32_t) packet.at(ciStart + tplPos));
+                        tplPos += 4;
+                    }
+                }
+
+                _payload.clear();
+                _payload.insert(_payload.end(), _packet.begin() + ciStart + tplPos, _packet.end() - 2);
+                break; //No more CIs after payload
+            }
+            else if(hasShortTplHeader())
+            {
+                _tpduStart = ciStart;
+                uint32_t value = (((uint32_t) packet.at(5)) << 8) | packet.at(4);
+                _manufacturer.clear();
+                _manufacturer.reserve(3);
+                _manufacturer.push_back((char) (((value >> 10) & 0x1F) + 64));
+                _manufacturer.push_back((char) (((value >> 5) & 0x1F) + 64));
+                _manufacturer.push_back((char) ((value & 0x1F) + 64));
+                _senderAddress = (((uint32_t) packet.at(9)) << 24) | (((uint32_t) packet.at(8)) << 16) | (((uint32_t) packet.at(7)) << 8) | ((uint32_t) packet.at(6));
+                _medium = packet.at(11);
+
+                _messageCounter = packet.at(ciStart + 1);
+                _status = packet.at(ciStart + 2);
+                _configuration = (((uint16_t) packet.at(ciStart + 3)) << 8) | packet.at(ciStart + 4);
+                _encryptionMode = _configuration & 0x1F;
+
+                size_t tplPos = 5;
+                if(_encryptionMode == 7)
+                {
+                    _mode7Info = Mode7Info();
+                    _mode7Info.messageCounterInTpl = _configuration & 0x20;
+                    _mode7Info.blockCount = _configuration >> 12;
+
+                    uint8_t configurationExtension = packet.at(tplPos++);
+
+                    _mode7Info.kdf = ((configurationExtension >> 4) & 3);
+                    _mode7Info.keyId = configurationExtension & 0x0F;
+
+                    if(configurationExtension & 0x40) //Has version field
+                    {
+                        _mode7Info.version = packet.at(tplPos++);
+                    }
+
+                    if(_mode7Info.messageCounterInTpl)
+                    {
+                        _mode7Info.tplMessageCounter = (((uint32_t) packet.at(ciStart + tplPos + 3)) << 24) | (((uint32_t) packet.at(ciStart + tplPos + 2)) << 16) | (((uint32_t) packet.at(ciStart + tplPos + 1)) << 8) | ((uint32_t) packet.at(ciStart + tplPos));
+                        tplPos += 4;
+                    }
+                }
+
+                _payload.clear();
+                _payload.insert(_payload.end(), _packet.begin() + ciStart + tplPos, _packet.end() - 2);
+                break; //No more CIs after payload
+            }
+            else
+            {
+                GD::out.printWarning("Warning: Unknown CI: " + BaseLib::HelperFunctions::getHexString(controlInformation));
+                break;
+            }
+        }
     }
 
     //0: No encryption
     //1: Reserved
     //2: DES encryption with CBC; IV is zero (deprecated)
     //3: DES encryption with CBC; IV is not zero (deprecated)
-    //4: AES encryption with CBC; IV is zero
-    //5: AES encryption with CBC; IV is not zero
-    //6 - 15: Reserved
-    if(_encryptionMode != 0 && _encryptionMode != 4 && _encryptionMode != 5)
+    //4: AES-CBC-128; IV = 0
+    //5: AES-CBC-128; IV != 0
+    //6: Reserved
+    //7: AES-CBC-128; IV=0; KDF
+    //8: AES-CTR-128; CMAC
+    //9: AES-GCM-128
+    //10: AES-CCM-128
+    //11: Reserved
+    //12: Reserved
+    //13: Specific usage
+    //14: Reserved
+    //15: Specific usage
+    //16 - 31: Reserved
+    if(_encryptionMode != 0 && _encryptionMode != 4 && _encryptionMode != 5 && _encryptionMode != 7)
     {
-        GD::out.printWarning("Warning: Can't process packet, because DES encryption mode is not supported.");
+        GD::out.printWarning("Warning: Can't process packet, because encryption mode is not supported.");
         return;
     }
 
@@ -107,9 +251,15 @@ MyPacket::MyPacket(std::vector<uint8_t>& packet) : MyPacket()
             _iv.push_back(_messageCounter);
         }
     }
+    else if(_encryptionMode == 7)
+    {
+        _iv.clear();
+        _iv.resize(16, 0);
+    }
     else _iv.clear();
 
     if(_encryptionMode == 0) parsePayload();
+    _headerValid = true;
 }
 
 MyPacket::~MyPacket()
@@ -133,7 +283,7 @@ std::string MyPacket::getInfoString()
         info +=            "Status:        0x" + BaseLib::HelperFunctions::getHexString(_status) + "\n";
         info +=            "Battery empty: " + std::to_string(batteryEmpty()) + "\n";
         info +=            "Config:        0x" + BaseLib::HelperFunctions::getHexString(_configuration, 4) + "\n";
-        info +=            "Encryption:    " + std::string(_encryptionMode == 4 || _encryptionMode == 5 ? "AES" : (_encryptionMode != 0 ? "unknown" : "none")) + "\n";
+        info +=            "Encryption:    " + std::string(_encryptionMode == 4 || _encryptionMode == 5 || _encryptionMode == 7 ? "AES" : (_encryptionMode != 0 ? "unknown" : "none")) + "\n";
         for(auto& dataRecord : _dataRecords)
         {
             info += "\n ---\n";
@@ -328,14 +478,36 @@ std::string MyPacket::getControlInformationString(uint8_t controlInformation)
     if(controlInformation >= 0xA0 && controlInformation <= 0xB7) return "Manufacturer specific Application Layer";
     switch(controlInformation)
     {
+        case 0x5A:
+            return "Command to device with short TPL header";
+        case 0x5B:
+            return "Command to device with long TPL header";
+        case 0x5C:
+            return "Synchronize action (no TPL header)";
+        case 0x5D:
+            return "Reserved";
+        case 0x5E:
+            return "Reserved";
+        case 0x5F:
+            return "Specific usage";
         case 0x60:
             return "COSEM Data sent by the Readout device to the meter with long Transport Layer";
         case 0x61:
             return "COSEM Data sent by the Readout device to the meter with short Transport Layer";
+        case 0x62:
+            return "Reserved";
+        case 0x63:
+            return "Reserved";
         case 0x64:
             return "Reserved for OBIS-based Data sent by the Readout device to the meter with long Transport Layer";
         case 0x65:
             return "Reserved for OBIS-based Data sent by the Readout device to the meter with short Transport Layer";
+        case 0x66:
+            return "Response regarding the specified application without TPL header";
+        case 0x67:
+            return "Response regarding the specified application with short TPL header";
+        case 0x68:
+            return "Response regarding the specified application with long TPL header";
         case 0x69:
             return "EN 13757-3 Application Layer with Format frame and no Transport Layer";
         case 0x6A:
@@ -362,6 +534,10 @@ std::string MyPacket::getControlInformationString(uint8_t controlInformation)
             return "Alarm from device with short Transport Layer";
         case 0x75:
             return "Alarm from device with long Transport Layer";
+        case 0x76:
+            return "Reserved";
+        case 0x77:
+            return "Reserved";
         case 0x78:
             return "EN 13757-3 Application Layer without Transport Layer (to be defined)";
         case 0x79:
@@ -393,7 +569,39 @@ std::string MyPacket::getControlInformationString(uint8_t controlInformation)
         case 0x8C:
             return "Extended Link Layer I (2 Byte)";
         case 0x8D:
-            return "Extended Link Layer II (8 Byte";
+            return "Extended Link Layer II (8 Byte)";
+        case 0x8E:
+            return "Extended Link Layer III";
+        case 0x8F:
+            return "Extended Link Layer IV";
+        case 0x90:
+            return "AFL header";
+        case 0x91:
+            return "Reserved";
+        case 0x92:
+            return "Reserved";
+        case 0x93:
+            return "Reserved";
+        case 0x94:
+            return "Reserved";
+        case 0x95:
+            return "Reserved";
+        case 0x96:
+            return "Reserved";
+        case 0x97:
+            return "Reserved";
+        case 0x98:
+            return "Reserved";
+        case 0x99:
+            return "Reserved";
+        case 0x9A:
+            return "Reserved";
+        case 0x9B:
+            return "Reserved";
+        case 0x9C:
+            return "Reserved";
+        case 0x9D:
+            return "Reserved";
         default:
             return "Unknown";
     }
@@ -407,7 +615,7 @@ bool MyPacket::isTelegramWithoutMeterData()
            _controlInformation == 0x79;
 }
 
-bool MyPacket::isShortTelegram()
+bool MyPacket::hasShortTplHeader()
 {
     return _controlInformation == 0x61 ||
            _controlInformation == 0x65 ||
@@ -421,7 +629,7 @@ bool MyPacket::isShortTelegram()
            _controlInformation == 0x8A;
 }
 
-bool MyPacket::isLongTelegram()
+bool MyPacket::hasLongTplHeader()
 {
     return _controlInformation == 0x60 ||
            _controlInformation == 0x64 ||
@@ -485,7 +693,6 @@ bool MyPacket::decrypt(std::vector<uint8_t>& key)
     try
     {
         if(_isDecrypted) return true;
-        _isDecrypted = true;
         if(_encryptionMode == 4 || _encryptionMode == 5)
         {
             BaseLib::Security::Gcrypt gcrypt(GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CBC, GCRY_CIPHER_SECURE);
@@ -493,7 +700,10 @@ bool MyPacket::decrypt(std::vector<uint8_t>& key)
             gcrypt.setKey(key);
             std::vector<uint8_t> decrypted;
             gcrypt.decrypt(decrypted, _payload);
-            if(decrypted.at(0) != 0x2F || decrypted.at(1) != 0x2F) return false; //Two "2F" at the beginning are suggested to verify correct decryption
+            if(decrypted.at(0) != 0x2F || decrypted.at(1) != 0x2F)
+            {
+                return false; //Two "2F" at the beginning are required to verify correct decryption
+            }
             _payload = decrypted;
             std::vector<uint8_t> packet;
             packet.reserve(_packet.size());
@@ -501,7 +711,151 @@ bool MyPacket::decrypt(std::vector<uint8_t>& key)
             packet.insert(packet.end(), _payload.begin(), _payload.end());
             _packet = std::move(packet);
             parsePayload();
+            _isDecrypted = true;
         }
+        else if(_encryptionMode == 7)
+        {
+            //{{{ Check MAC
+                if(_aflHeader.mac.empty())
+                {
+                    GD::out.printWarning("Warning: No MAC in packet.");
+                    return false;
+                }
+
+                std::vector<uint8_t> kdfInput;
+                kdfInput.reserve(16);
+                kdfInput.push_back(1); //MAC from device (Kmac)
+                if(_mode7Info.messageCounterInTpl)
+                {
+                    kdfInput.push_back(_mode7Info.tplMessageCounter & 0xFF);
+                    kdfInput.push_back((_mode7Info.tplMessageCounter >> 8) & 0xFF);
+                    kdfInput.push_back((_mode7Info.tplMessageCounter >> 16) & 0xFF);
+                    kdfInput.push_back(_mode7Info.tplMessageCounter >> 24);
+                }
+                else
+                {
+                    kdfInput.push_back(_aflHeader.messageCounter & 0xFF);
+                    kdfInput.push_back((_aflHeader.messageCounter >> 8) & 0xFF);
+                    kdfInput.push_back((_aflHeader.messageCounter >> 16) & 0xFF);
+                    kdfInput.push_back(_aflHeader.messageCounter >> 24);
+                }
+                kdfInput.push_back(_senderAddress & 0xFF);
+                kdfInput.push_back((_senderAddress >> 8) & 0xFF);
+                kdfInput.push_back((_senderAddress >> 16) & 0xFF);
+                kdfInput.push_back(_senderAddress >> 24);
+                kdfInput.resize(16, 7);
+
+                std::vector<uint8_t> iv;
+                std::vector<uint8_t> derivedKey;
+                try
+                {
+                    if(!BaseLib::Security::Mac::cmac(key, iv, kdfInput, derivedKey))
+                    {
+                        GD::out.printWarning("Warning: Could not generate key.");
+                        return false;
+                    }
+                }
+                catch(BaseLib::Security::GcryptException& ex)
+                {
+                    GD::out.printWarning("Warning: Could not generate key: " + ex.what());
+                    return false;
+                }
+
+                std::vector<uint8_t> cmacInput;
+                cmacInput.reserve(1 + 2 + 4 + 2 + ((_packet.size() - _tpduStart) + 1));
+                if(_aflHeader.hasMessageControlField) cmacInput.push_back(_aflHeader.messageControlField);
+                if(_aflHeader.hasKeyInformation)
+                {
+                    cmacInput.push_back(_aflHeader.keyInformationField & 0xFF);
+                    cmacInput.push_back(_aflHeader.keyInformationField >> 8);
+                }
+                if(_aflHeader.hasMessageCounter)
+                {
+                    cmacInput.push_back(_aflHeader.messageCounter & 0xFF);
+                    cmacInput.push_back((_aflHeader.messageCounter >> 8) & 0xFF);
+                    cmacInput.push_back((_aflHeader.messageCounter >> 16) & 0xFF);
+                    cmacInput.push_back(_aflHeader.messageCounter >> 24);
+                }
+                if(_aflHeader.hasMessageLength)
+                {
+                    cmacInput.push_back(_aflHeader.messageLength & 0xFF);
+                    cmacInput.push_back(_aflHeader.messageLength >> 8);
+                }
+                cmacInput.insert(cmacInput.end(), _packet.begin() + _tpduStart, _packet.end() - 2);
+
+                try
+                {
+                    std::vector<uint8_t> cmac;
+                    if(!BaseLib::Security::Mac::cmac(derivedKey, iv, cmacInput, cmac))
+                    {
+                        GD::out.printWarning("Warning: Could not generate key.");
+                        return false;
+                    }
+
+                    cmac.resize(8);
+                    if(cmac != _aflHeader.mac)
+                    {
+                        GD::out.printWarning("Warning: CMAC verification failed.");
+                        return false;
+                    }
+                }
+                catch(BaseLib::Security::GcryptException& ex)
+                {
+                    GD::out.printWarning("Warning: Could not generate key: " + ex.what());
+                    return false;
+                }
+            //}}}
+
+            //{{{ Decrypt
+                kdfInput.at(0) = 0;
+                derivedKey.clear();
+                try
+                {
+                    if(!BaseLib::Security::Mac::cmac(key, iv, kdfInput, derivedKey))
+                    {
+                        GD::out.printWarning("Warning: Could not generate key.");
+                        return false;
+                    }
+                }
+                catch(BaseLib::Security::GcryptException& ex)
+                {
+                    GD::out.printWarning("Warning: Could not generate key: " + ex.what());
+                    return false;
+                }
+
+                BaseLib::Security::Gcrypt gcrypt(GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CBC, GCRY_CIPHER_SECURE);
+                gcrypt.setIv(_iv);
+                gcrypt.setKey(derivedKey);
+                std::vector<uint8_t> encrypted;
+                encrypted.insert(encrypted.end(), _payload.begin(), _payload.begin() + (_mode7Info.blockCount * 16));
+                std::vector<uint8_t> decrypted;
+                gcrypt.decrypt(decrypted, encrypted);
+                if(decrypted.at(0) != 0x2F || decrypted.at(1) != 0x2F)
+                {
+                    return false; //Two "2F" at the beginning are required to verify correct decryption
+                }
+                std::vector<uint8_t> unencryptedData;
+                if(encrypted.size() < _payload.size()) unencryptedData.insert(unencryptedData.end(), _payload.begin() + encrypted.size(), _payload.end());
+                _payload.clear();
+                _payload.reserve(decrypted.size() + unencryptedData.size());
+                _payload.insert(_payload.end(), decrypted.begin(), decrypted.end());
+                _payload.insert(_payload.end(), unencryptedData.begin(), unencryptedData.end());
+                std::vector<uint8_t> packet;
+                packet.reserve(_packet.size());
+                packet.insert(packet.end(), _packet.begin(), _packet.end() - _payload.size());
+                packet.insert(packet.end(), _payload.begin(), _payload.end());
+                _packet = std::move(packet);
+            //}}}
+
+            parsePayload();
+            _isDecrypted = true;
+        }
+        else if(_encryptionMode != 0)
+        {
+            GD::out.printWarning("Warning: Encryption mode " + std::to_string(_encryptionMode) + " is currently not supported.");
+            return false;
+        }
+        _isDecrypted = true;
         return true;
     }
     catch(const std::exception& ex)
@@ -578,6 +932,8 @@ void MyPacket::parsePayload()
         uint32_t dataPos = 4;
         for(uint32_t pos = isFormatTelegram() ? 3 : 0; pos < _payload.size();)
         {
+            while(_payload.at(pos) == 0x2F) pos++; //Ignore padding byte. Can be within the packet in case unencrypted data follows encrypted data
+
             DataRecord dataRecord;
 
             //{{{ Get DIF
@@ -615,7 +971,7 @@ void MyPacket::parsePayload()
             //}}}
 
             //{{{ Get VIFs
-            dataRecord.vifs.reserve(2);
+            dataRecord.vifs.reserve(11);
             dataRecord.vifs.push_back(_payload.at(pos++));
 
                 //{{{ Fixes

@@ -478,8 +478,9 @@ void Amber::processPacket(std::vector<uint8_t>& data)
 
         if(data.at(1) == CMD_DATA_IND)
         {
-            PMyPacket packet(new MyPacket(data));
-            raisePacketReceived(packet);
+            PMyPacket packet = std::make_shared<MyPacket>(data);
+            if(packet->headerValid()) raisePacketReceived(packet);
+            else _out.printWarning("Warning: Could not parse packet: " + BaseLib::HelperFunctions::getHexString(data));
         }
         else _out.printWarning("Warning: Not processing packet: " + BaseLib::HelperFunctions::getHexString(data));
 	}

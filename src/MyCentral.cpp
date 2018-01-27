@@ -243,7 +243,7 @@ bool MyCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLib:
             if(deviceIterator != _devicesToPair.end())
             {
                 std::vector<uint8_t> key = _bl->hf.getUBinary(deviceIterator->second);
-                myPacket->decrypt(key);
+                if(!myPacket->decrypt(key)) return false;
                 if(myPacket->isEncrypted() && _bl->debugLevel >= 4) std::cout << BaseLib::HelperFunctions::getTimeString(myPacket->timeReceived()) << " Decrypted M-Bus packet: " << BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) << " - Sender address: 0x" << BaseLib::HelperFunctions::getHexString(myPacket->senderAddress(), 8) << std::endl;
                 pairDevice(myPacket, key);
 				peer = getPeer(myPacket->senderAddress());
@@ -333,56 +333,73 @@ void MyCentral::pairDevice(PMyPacket packet, std::vector<uint8_t>& key)
         std::lock_guard<std::mutex> pairGuard(_pairMutex);
         GD::out.printInfo("Info: Pairing device 0x" + BaseLib::HelperFunctions::getHexString(packet->senderAddress(), 8) + "...");
 
-        uint64_t peerToDelete = 0;
+        bool newPeer = true;
+        auto peer = getPeer(packet->senderAddress());
+        std::unique_lock<std::mutex> lockGuard(_peersMutex);
+        if(peer)
         {
-            std::lock_guard<std::mutex> peersGuard(_peersMutex);
-            auto peersIterator = _peers.find(packet->senderAddress());
-            if(peersIterator != _peers.end())
-            {
-                peerToDelete = peersIterator->second->getID();
-            }
+            newPeer = false;
+            if(_peers.find(peer->getAddress()) != _peers.end()) _peers.erase(peer->getAddress());
+            if(_peersBySerial.find(peer->getSerialNumber()) != _peersBySerial.end()) _peersBySerial.erase(peer->getSerialNumber());
+            if(_peersById.find(peer->getID()) != _peersById.end()) _peersById.erase(peer->getID());
         }
-        if(peerToDelete != 0)
-        {
-            GD::out.printInfo("Info: Deleting old peer.");
-            deletePeer(peerToDelete);
-        }
+        lockGuard.unlock();
 
         auto peerInfo = _descriptionCreator.createDescription(packet);
         if(peerInfo.serialNumber.empty()) return; //Error
         GD::family->reloadRpcDevices();
 
-        PMyPeer peer = createPeer(peerInfo.type, peerInfo.address, peerInfo.serialNumber, true);
         if(!peer)
         {
-            GD::out.printError("Error: Could not add device with type " + BaseLib::HelperFunctions::getHexString(peerInfo.type) + ". No matching XML file was found.");
-            return;
+            peer = createPeer(peerInfo.type, peerInfo.address, peerInfo.serialNumber, true);
+            if(!peer)
+            {
+                GD::out.printError("Error: Could not add device with type " + BaseLib::HelperFunctions::getHexString(peerInfo.type) + ". No matching XML file was found.");
+                return;
+            }
+
+            peer->initializeCentralConfig();
+        }
+        else
+        {
+            peer->setRpcDevice(GD::family->getRpcDevices()->find(peerInfo.type, 0x10, -1));
+            if(!peer->getRpcDevice())
+            {
+                GD::out.printError("Error: RPC device could not be found anymore.");
+                return;
+            }
         }
 
-        if(peerToDelete != 0 && peerToDelete != peer->getID()) peer->setId(nullptr, peerToDelete);
         peer->setAesKey(key);
         peer->setControlInformation(packet->getControlInformation());
         peer->setDataRecordCount(packet->dataRecordCount());
         peer->setFormatCrc(packet->getFormatCrc());
-        peer->initializeCentralConfig();
 
+        lockGuard.lock();
+        _peersBySerial[peer->getSerialNumber()] = peer;
+        _peersById[peer->getID()] = peer;
+        _peers[peer->getAddress()] = peer;
+        lockGuard.unlock();
+
+        if(newPeer)
         {
-            std::lock_guard<std::mutex> peersGuard(_peersMutex);
-            _peersBySerial[peer->getSerialNumber()] = peer;
-            _peersById[peer->getID()] = peer;
-            _peers[peer->getAddress()] = peer;
+            GD::out.printInfo("Info: Device successfully added. Peer ID is: " + std::to_string(peer->getID()));
+
+            PVariable deviceDescriptions(new Variable(VariableType::tArray));
+            std::shared_ptr<std::vector<PVariable>> descriptions = peer->getDeviceDescriptions(nullptr, true, std::map<std::string, bool>());
+            if(!descriptions) return;
+            for(std::vector<PVariable>::iterator j = descriptions->begin(); j != descriptions->end(); ++j)
+            {
+                deviceDescriptions->arrayValue->push_back(*j);
+            }
+            raiseRPCNewDevices(deviceDescriptions);
         }
-
-        GD::out.printInfo("Info: Device successfully added. Peer ID is: " + std::to_string(peer->getID()));
-
-        PVariable deviceDescriptions(new Variable(VariableType::tArray));
-        std::shared_ptr<std::vector<PVariable>> descriptions = peer->getDeviceDescriptions(nullptr, true, std::map<std::string, bool>());
-        if(!descriptions) return;
-        for(std::vector<PVariable>::iterator j = descriptions->begin(); j != descriptions->end(); ++j)
+        else
         {
-            deviceDescriptions->arrayValue->push_back(*j);
+            GD::out.printInfo("Info: Peer " + std::to_string(peer->getID()) + " successfully updated.");
+
+            raiseRPCUpdateDevice(peer->getID(), 0, peer->getSerialNumber() + ":" + std::to_string(0), 0);
         }
-        raiseRPCNewDevices(deviceDescriptions);
 	}
 	catch(const std::exception& ex)
 	{
@@ -867,6 +884,14 @@ std::string MyCentral::handleCliCommand(std::string command)
 			packet = MyPacket(data);
 			stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
 			stringStream << packet.getInfoString() << std::endl << std::endl;
+
+            //C1 short format with security mode 7
+            data = _bl->hf.getUBinary("FF037246C5143803607403078C0013900F002C250D0000004B5184889B76884D6B38036074C51400071300400710E1E27070E1D6452826C8DD482AA0419872968AB3FB1CD18A91F80CE4F338E78BE8ED2DD0FE29EC20B8479005E378B875D596F85804689FA938582548407F4BB303FD0C02FD0B1250");
+            packet = MyPacket(data);
+            stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
+            std::vector<uint8_t> key = _bl->hf.getUBinary("00112233445566778899AABBCCDDEEFF");
+            packet.decrypt(key);
+            stringStream << packet.getInfoString() << std::endl << std::endl;
 
 			return stringStream.str();
         }

@@ -33,13 +33,45 @@ class MyPacket : public BaseLib::Systems::Packet
             int32_t dataSize = -1;
         };
 
+        struct AflHeader
+        {
+            bool hasMessageControlField = false;
+            bool hasKeyInformation = false;
+            bool hasMessageCounter = false;
+            bool hasMessageLength = false;
+
+            uint8_t messageControlField = 0;
+            uint8_t fragmentId = 0;
+            bool moreFragments = false;
+            uint8_t authenticationType = 0;
+            uint16_t keyInformationField = 0;
+            uint32_t messageCounter = 0;
+            std::vector<uint8_t> mac;
+            uint16_t messageLength = 0;
+        };
+
+        struct Mode7Info
+        {
+            bool messageCounterInTpl = false;
+            uint32_t tplMessageCounter = 0;
+            uint8_t blockCount = 0;
+            uint8_t version = 0;
+            uint8_t kdf = 0;
+            uint8_t keyId = 0;
+        };
+
         MyPacket();
         MyPacket(std::vector<uint8_t>& packet);
         virtual ~MyPacket();
 
         std::string getInfoString();
 
-        bool batteryEmpty() { return _status & 4; }
+        bool batteryEmpty() { return _status & 4; } //See EN 13757-7 section 7.5.6
+        bool permanentError() { return _status & 8; } //See EN 13757-7 section 7.5.6
+        bool temporaryError() { return _status & 0x10; } //See EN 13757-7 section 7.5.6
+        bool busyError() { return (_status & 3) == 1; } //See EN 13757-7 section 7.5.6
+        bool applicationError() { return (_status & 3) == 2; } //See EN 13757-7 section 7.5.6
+        bool alarmError() { return (_status & 3) == 3; } //See EN 13757-7 section 7.5.6
 
         int32_t getRssi() { return _rssi; }
         uint8_t getControl() { return _control; }
@@ -51,16 +83,18 @@ class MyPacket : public BaseLib::Systems::Packet
         uint8_t getStatus() { return _status; }
         uint16_t getConfiguration() { return _configuration; }
         uint8_t getEncryptionMode() { return _encryptionMode; }
+        AflHeader getAflHeader() { return _aflHeader; }
         uint16_t getFormatCrc() { return _formatCrc; }
         std::vector<uint8_t> getPayload() { return _payload; }
         std::list<DataRecord> getDataRecords() { return _dataRecords; }
         int32_t dataRecordCount() { return (int32_t)_dataRecords.size(); }
 
+        bool headerValid() { return _headerValid; }
         bool dataValid() { return _dataValid; }
         bool isEncrypted() { return _encryptionMode != 0; }
         bool isTelegramWithoutMeterData();
-        bool isShortTelegram();
-        bool isLongTelegram();
+        bool hasShortTplHeader();
+        bool hasLongTplHeader();
         bool isFormatTelegram();
         bool isCompactDataTelegram();
         bool isDataTelegram();
@@ -86,11 +120,14 @@ class MyPacket : public BaseLib::Systems::Packet
         uint8_t _status = 0;
         uint16_t _configuration = 0;
         uint8_t _encryptionMode = 0;
+        Mode7Info _mode7Info;
+        AflHeader _aflHeader;
         uint16_t _formatCrc = 0;
+        uint8_t _tpduStart = 0;
         std::vector<uint8_t> _payload;
-        int32_t _dataOffset = 0;
         std::list<DataRecord> _dataRecords;
         bool _isDecrypted = false;
+        bool _headerValid = false;
         bool _dataValid = false;
 
         std::vector<uint8_t> _iv;
