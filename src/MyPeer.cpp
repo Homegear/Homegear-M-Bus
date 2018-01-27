@@ -593,7 +593,6 @@ void MyPeer::packetReceived(PMyPacket& packet)
         std::shared_ptr<MyCentral> central = std::dynamic_pointer_cast<MyCentral>(getCentral());
         if(!central) return;
         setLastPacketReceived();
-        if(_lastPacket && BaseLib::HelperFunctions::getTime() - _lastPacket->timeReceived() < 1000 && _lastPacket->getBinary() == packet->getBinary()) return;
         setRssiDevice(packet->getRssi() * -1);
         serviceMessages->endUnreach();
 

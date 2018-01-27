@@ -95,8 +95,7 @@ protected:
 	//End
 
 	bool _shuttingDown = false;
-
-	PMyPacket _lastPacket;
+    
 	uint32_t _lastRssiDevice = 0;
 	VifConverter _vifConverter;
 
