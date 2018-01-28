@@ -330,6 +330,9 @@ void MyPeer::loadVariables(BaseLib::Systems::ICentral* central, std::shared_ptr<
             case 25:
                 _encryptionMode = row->second.at(3)->intValue;
                 break;
+            case 26:
+                _lastTime = row->second.at(3)->intValue;
+                break;
 			}
 		}
 	}
@@ -358,6 +361,7 @@ void MyPeer::saveVariables()
         saveVariable(23, _dataRecordCount);
         saveVariable(24, _formatCrc);
         saveVariable(25, _encryptionMode);
+        saveVariable(26, _lastTime);
 	}
 	catch(const std::exception& ex)
     {
@@ -658,6 +662,12 @@ void MyPeer::packetReceived(PMyPacket& packet)
                                 serviceMessages->set("POSSIBLE_HACKING_ATTEMPT", true);
                                 GD::out.printWarning("Warning: Possible hacking attempt. Date in packet deviates more than two days from current date.");
                             }
+                            else if(value->integerValue < _lastTime)
+                            {
+                                serviceMessages->set("POSSIBLE_HACKING_ATTEMPT", true);
+                                GD::out.printWarning("Warning: Possible hacking attempt. Date in packet is older than in last packet.");
+                            }
+                            else _lastTime = value->integerValue;
                         }
 
                         valueKeys[*j]->push_back(i->first);

@@ -39,6 +39,7 @@ public:
 	void setFormatCrc(int32_t value) { _formatCrc = value; saveVariable(24, (int32_t)value); }
 	int32_t getEncryptionMode() { return _encryptionMode; }
 	void setEncryptionMode(int32_t value) { _encryptionMode = value; saveVariable(25, (int32_t)value); }
+    void setLastTime(int32_t value) { _lastTime = value; saveVariable(26, (int32_t)value); }
 	//}}}
 
 	bool expectsEncryption() { return !_aesKey.empty(); }
@@ -92,10 +93,11 @@ protected:
     int32_t _dataRecordCount = -1;
 	uint16_t _formatCrc = 0;
 	uint8_t _encryptionMode = 0;
+    int32_t _lastTime = 0;
 	//End
 
 	bool _shuttingDown = false;
-    
+
 	uint32_t _lastRssiDevice = 0;
 	VifConverter _vifConverter;
 
