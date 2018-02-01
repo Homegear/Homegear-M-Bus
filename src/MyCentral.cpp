@@ -1271,27 +1271,27 @@ std::shared_ptr<Variable> MyCentral::setInstallMode(BaseLib::PRpcClientInfo clie
 		std::lock_guard<std::mutex> pairingModeGuard(_pairingModeThreadMutex);
 		if(_disposing) return Variable::createError(-32500, "Central is disposing.");
 
-		if(on && metadata)
-		{
-			/*
-			 {
-			   "devices": [
-			     {
-			       "address": 64656081,
-			       "key": "00112233445566778899AABBCCDDEEFF" [optional]
-			     },
-			     {
-			       "address": 64656082,
-			       "key": "00112233445566778899AABBCCDDEEFF" [optional]
-			     },
-			     .
-			     .
-			     .
-			   ]
-			 }
-			*/
-            std::lock_guard<std::mutex> devicesToPairGuard(_devicesToPairMutex);
-            _devicesToPair.clear();
+        /*
+         {
+           "devices": [
+             {
+               "address": 64656081,
+               "key": "00112233445566778899AABBCCDDEEFF" [optional]
+             },
+             {
+               "address": 64656082,
+               "key": "00112233445566778899AABBCCDDEEFF" [optional]
+             },
+             .
+             .
+             .
+           ]
+         }
+        */
+        std::lock_guard<std::mutex> devicesToPairGuard(_devicesToPairMutex);
+        _devicesToPair.clear();
+        if(on && metadata)
+        {
             auto devicesIterator = metadata->structValue->find("devices");
             if(devicesIterator != metadata->structValue->end())
             {
@@ -1306,24 +1306,24 @@ std::shared_ptr<Variable> MyCentral::setInstallMode(BaseLib::PRpcClientInfo clie
                     _devicesToPair.emplace(address, key);
                 }
             }
+        }
 
-            BaseLib::PVariable devicesToPair = std::make_shared<BaseLib::Variable>(BaseLib::VariableType::tArray);
-            devicesToPair->arrayValue->reserve(_devicesToPair.size());
-            for(auto& device : _devicesToPair)
-            {
-                BaseLib::PVariable element = std::make_shared<BaseLib::Variable>(BaseLib::VariableType::tArray);
-                element->arrayValue->reserve(2);
-                element->arrayValue->push_back(std::make_shared<BaseLib::Variable>(device.first));
-                element->arrayValue->push_back(std::make_shared<BaseLib::Variable>(device.second));
-                devicesToPair->arrayValue->push_back(element);
-            }
+        BaseLib::PVariable devicesToPair = std::make_shared<BaseLib::Variable>(BaseLib::VariableType::tArray);
+        devicesToPair->arrayValue->reserve(_devicesToPair.size());
+        for(auto& device : _devicesToPair)
+        {
+            BaseLib::PVariable element = std::make_shared<BaseLib::Variable>(BaseLib::VariableType::tArray);
+            element->arrayValue->reserve(2);
+            element->arrayValue->push_back(std::make_shared<BaseLib::Variable>(device.first));
+            element->arrayValue->push_back(std::make_shared<BaseLib::Variable>(device.second));
+            devicesToPair->arrayValue->push_back(element);
+        }
 
-            BaseLib::Rpc::RpcEncoder rpcEncoder(_bl);
-            std::vector<char> serializedData;
-            rpcEncoder.encodeResponse(devicesToPair, serializedData);
-            std::string key = "devicesToPair";
-            GD::family->setFamilySetting(key, serializedData);
-		}
+        BaseLib::Rpc::RpcEncoder rpcEncoder(_bl);
+        std::vector<char> serializedData;
+        rpcEncoder.encodeResponse(devicesToPair, serializedData);
+        std::string key = "devicesToPair";
+        GD::family->setFamilySetting(key, serializedData);
 
 		_stopPairingModeThread = true;
 		_bl->threadManager.join(_pairingModeThread);
