@@ -931,9 +931,14 @@ void MyPacket::parsePayload()
         //Skip first three for format packets. The format packet starts with length + 2 unknown bytes.
         //Each compact data packet starts with these 2 unknown bytes + 2 additional random unknown bytes
         uint32_t dataPos = 4;
+        uint32_t nopCount = 0;
         for(uint32_t pos = isFormatTelegram() ? 3 : 0; pos < _payload.size();)
         {
-            while(_payload.at(pos) == 0x2F) pos++; //Ignore padding byte. Can be within the packet in case unencrypted data follows encrypted data
+            while(_payload.at(pos) == 0x2F)
+            {
+                nopCount++;
+                pos++; //Ignore padding byte. Can be within the packet in case unencrypted data follows encrypted data
+            }
 
             DataRecord dataRecord;
 
@@ -1020,7 +1025,11 @@ void MyPacket::parsePayload()
 
         if(isFormatTelegram())
         {
-            if(_payload.size() - 1 != _payload.at(0)) return; //Wrong length byte
+            if(_payload.size() - nopCount - 1 != _payload.at(0))
+            {
+                GD::out.printError("Error: Payload has wrong length (expected: " + std::to_string(_payload.at(0)) + ", got " + std::to_string(_payload.size() - nopCount - 1) + "): " + BaseLib::HelperFunctions::getHexString(_payload));
+                return; //Wrong length byte
+            }
             uint16_t crc16 = _crc16.calculate(_payload, 3);
             if((crc16 >> 8) != _payload.at(2) || (crc16 & 0xFF) != _payload.at(1))
             {
