@@ -921,6 +921,7 @@ void MyPacket::parsePayload()
         if(isCompactDataTelegram())
         {
             _formatCrc = (((uint16_t)_payload.at(1)) << 8) | _payload.at(0);
+            _dataValid = true;
             return; //Not parseable
         }
         else if(isFormatTelegram())
