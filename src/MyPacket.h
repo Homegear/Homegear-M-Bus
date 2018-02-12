@@ -134,7 +134,7 @@ class MyPacket : public BaseLib::Systems::Packet
 
         Crc16 _crc16;
 
-        void strip2F();
+        void strip2F(std::vector<uint8_t>& data);
         void parsePayload();
         uint32_t getDataSize(uint8_t dif, uint8_t firstDataByte);
 };

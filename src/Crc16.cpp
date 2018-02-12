@@ -62,8 +62,6 @@ uint16_t Crc16::calculate(const std::vector<uint8_t>& data, int32_t offset)
 	uint16_t crc = 0x0000;
 	for(uint32_t i = offset; i < data.size(); i++)
 	{
-        while(i < data.size() && data[i] == 0x2F) i++;
-        if(i >= data.size()) break;
 		crc = (crc << 8) ^ _crcTable[((crc >> 8) & 0xff) ^ data[i]];
 	}
 

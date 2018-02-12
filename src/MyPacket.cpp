@@ -258,7 +258,11 @@ MyPacket::MyPacket(std::vector<uint8_t>& packet) : MyPacket()
     }
     else _iv.clear();
 
-    if(_encryptionMode == 0) parsePayload();
+    if(_encryptionMode == 0)
+    {
+        strip2F(_payload);
+        parsePayload();
+    }
     _headerValid = true;
 }
 
@@ -705,6 +709,7 @@ bool MyPacket::decrypt(std::vector<uint8_t>& key)
                 return false; //Two "2F" at the beginning are required to verify correct decryption
             }
             _payload = decrypted;
+            strip2F(_payload);
             std::vector<uint8_t> packet;
             packet.reserve(_packet.size());
             packet.insert(packet.end(), _packet.begin(), _packet.end() - _payload.size());
@@ -836,6 +841,8 @@ bool MyPacket::decrypt(std::vector<uint8_t>& key)
                 }
                 std::vector<uint8_t> unencryptedData;
                 if(encrypted.size() < _payload.size()) unencryptedData.insert(unencryptedData.end(), _payload.begin() + encrypted.size(), _payload.end());
+                strip2F(decrypted);
+                strip2F(unencryptedData);
                 _payload.clear();
                 _payload.reserve(decrypted.size() + unencryptedData.size());
                 _payload.insert(_payload.end(), decrypted.begin(), decrypted.end());
@@ -874,29 +881,29 @@ bool MyPacket::decrypt(std::vector<uint8_t>& key)
     return false;
 }
 
-void MyPacket::strip2F()
+void MyPacket::strip2F(std::vector<uint8_t>& data)
 {
     try
     {
-        if(_payload.empty()) return;
+        if(data.empty()) return;
         uint32_t startPos = 0;
-        uint32_t endPos = _payload.size() - 1;
-        for(auto& byte : _payload)
+        uint32_t endPos = data.size() - 1;
+        for(auto& byte : data)
         {
             if(byte != 0x2F) break;
             startPos++;
         }
 
-        for(uint32_t i = _payload.size() - 1; i >= 0; i--)
+        for(uint32_t i = data.size() - 1; i >= 0; i--)
         {
-            if(_payload[i] != 0x2F) break;
+            if(data[i] != 0x2F) break;
             endPos--;
         }
 
         if(startPos >= endPos) return;
 
-        std::vector<uint8_t> strippedPayload(_payload.begin() + startPos, _payload.begin() + endPos + 1);
-        _payload = std::move(strippedPayload);
+        std::vector<uint8_t> strippedPayload(data.begin() + startPos, data.begin() + endPos + 1);
+        data = std::move(strippedPayload);
     }
     catch(const std::exception& ex)
     {
@@ -917,7 +924,6 @@ void MyPacket::parsePayload()
     try
     {
         _dataRecords.clear();
-        strip2F();
         if(isCompactDataTelegram())
         {
             _formatCrc = (((uint16_t)_payload.at(1)) << 8) | _payload.at(0);
