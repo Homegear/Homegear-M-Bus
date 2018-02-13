@@ -19,7 +19,7 @@ public:
 	virtual bool init();
 	virtual void dispose();
 
-	virtual bool hasPhysicalInterface() { return false; }
+	virtual bool hasPhysicalInterface() { return true; }
 	virtual PVariable getPairingInfo();
 	void reloadRpcDevices();
 protected:
