@@ -420,8 +420,18 @@ void MyCentral::pairDevice(PMyPacket packet, std::vector<uint8_t>& key)
             if(_peers.find(peer->getAddress()) != _peers.end()) _peers.erase(peer->getAddress());
             if(_peersBySerial.find(peer->getSerialNumber()) != _peersBySerial.end()) _peersBySerial.erase(peer->getSerialNumber());
             if(_peersById.find(peer->getID()) != _peersById.end()) _peersById.erase(peer->getID());
+            lockGuard.unlock();
+
+            int32_t i = 0;
+            while(peer.use_count() > 1 && i < 600)
+            {
+                if(_currentPeer && _currentPeer->getID() == peer->getID()) _currentPeer.reset();
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                i++;
+            }
+            if(i == 600) GD::out.printError("Error: Peer deletion took too long.");
         }
-        lockGuard.unlock();
+        else lockGuard.unlock();
 
         auto peerInfo = _descriptionCreator.createDescription(packet);
         if(peerInfo.serialNumber.empty()) return; //Error
