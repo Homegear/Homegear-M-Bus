@@ -86,6 +86,26 @@ void MyPeer::dispose()
 	Peer::dispose();
 }
 
+void MyPeer::worker()
+{
+	try
+	{
+		if(!serviceMessages->getUnreach()) serviceMessages->checkUnreach(_rpcDevice->timeout, getLastPacketReceived());
+	}
+	catch(const std::exception& ex)
+	{
+		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+	}
+	catch(BaseLib::Exception& ex)
+	{
+		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+	}
+	catch(...)
+	{
+		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
+	}
+}
+
 void MyPeer::homegearStarted()
 {
 	try
@@ -307,6 +327,12 @@ void MyPeer::loadVariables(BaseLib::Systems::ICentral* central, std::shared_ptr<
             case 24:
                 _formatCrc = row->second.at(3)->intValue;
                 break;
+            case 25:
+                _encryptionMode = row->second.at(3)->intValue;
+                break;
+            case 26:
+                _lastTime = row->second.at(3)->intValue;
+                break;
 			}
 		}
 	}
@@ -334,6 +360,8 @@ void MyPeer::saveVariables()
 		saveVariable(22, _controlInformation);
         saveVariable(23, _dataRecordCount);
         saveVariable(24, _formatCrc);
+        saveVariable(25, _encryptionMode);
+        saveVariable(26, _lastTime);
 	}
 	catch(const std::exception& ex)
     {
@@ -561,10 +589,14 @@ void MyPeer::packetReceived(PMyPacket& packet)
             GD::out.printWarning("Warning: Ignoring packet with wrong format frame CRC.");
             return;
         }
+        if(getEncryptionMode() != packet->getEncryptionMode())
+        {
+            GD::out.printWarning("Warning: Ignoring packet with wrong encryption mode.");
+            return;
+        }
         std::shared_ptr<MyCentral> central = std::dynamic_pointer_cast<MyCentral>(getCentral());
         if(!central) return;
         setLastPacketReceived();
-        if(_lastPacket && BaseLib::HelperFunctions::getTime() - _lastPacket->timeReceived() < 1000 && _lastPacket->getBinary() == packet->getBinary()) return;
         setRssiDevice(packet->getRssi() * -1);
         serviceMessages->endUnreach();
 
@@ -630,6 +662,12 @@ void MyPeer::packetReceived(PMyPacket& packet)
                                 serviceMessages->set("POSSIBLE_HACKING_ATTEMPT", true);
                                 GD::out.printWarning("Warning: Possible hacking attempt. Date in packet deviates more than two days from current date.");
                             }
+                            else if(value->integerValue < _lastTime)
+                            {
+                                serviceMessages->set("POSSIBLE_HACKING_ATTEMPT", true);
+                                GD::out.printWarning("Warning: Possible hacking attempt. Date in packet is older than in last packet.");
+                            }
+                            else _lastTime = value->integerValue;
                         }
 
                         valueKeys[*j]->push_back(i->first);

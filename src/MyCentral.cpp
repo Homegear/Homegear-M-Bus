@@ -32,6 +32,10 @@ void MyCentral::dispose(bool wait)
 			_bl->threadManager.join(_pairingModeThread);
 		}
 
+        _stopWorkerThread = true;
+        GD::out.printDebug("Debug: Waiting for worker thread of device " + std::to_string(_deviceId) + "...");
+        GD::bl->threadManager.join(_workerThread);
+
 		GD::out.printDebug("Removing device " + std::to_string(_deviceId) + " from physical device's event queue...");
 		for(std::map<std::string, std::shared_ptr<IMBusInterface>>::iterator i = GD::physicalInterfaces.begin(); i != GD::physicalInterfaces.end(); ++i)
 		{
@@ -61,12 +65,15 @@ void MyCentral::init()
 		_initialized = true;
 		_pairing = false;
 		_stopPairingModeThread = false;
+        _stopWorkerThread = false;
 		_timeLeftInPairingMode = 0;
 
 		for(std::map<std::string, std::shared_ptr<IMBusInterface>>::iterator i = GD::physicalInterfaces.begin(); i != GD::physicalInterfaces.end(); ++i)
 		{
 			_physicalInterfaceEventhandlers[i->first] = i->second->addEventHandler((BaseLib::Systems::IPhysicalInterface::IPhysicalInterfaceEventSink*)this);
 		}
+
+        GD::bl->threadManager.start(_workerThread, true, _bl->settings.workerThreadPriority(), _bl->settings.workerThreadPolicy(), &MyCentral::worker, this);
 	}
 	catch(const std::exception& ex)
 	{
@@ -80,6 +87,71 @@ void MyCentral::init()
 	{
 		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
+}
+
+void MyCentral::worker()
+{
+    try
+    {
+        std::chrono::milliseconds sleepingTime(1000);
+        uint64_t lastPeer = 0;
+
+        while(!_stopWorkerThread && !GD::bl->shuttingDown)
+        {
+            try
+            {
+                std::this_thread::sleep_for(sleepingTime);
+                if(_stopWorkerThread || GD::bl->shuttingDown) return;
+
+                std::shared_ptr<MyPeer> peer;
+
+                {
+                    std::lock_guard<std::mutex> peersGuard(_peersMutex);
+                    if(!_peersById.empty())
+                    {
+                        if(!_peersById.empty())
+                        {
+                            std::map<uint64_t, std::shared_ptr<BaseLib::Systems::Peer>>::iterator nextPeer = _peersById.find(lastPeer);
+                            if(nextPeer != _peersById.end())
+                            {
+                                nextPeer++;
+                                if(nextPeer == _peersById.end()) nextPeer = _peersById.begin();
+                            }
+                            else nextPeer = _peersById.begin();
+                            lastPeer = nextPeer->first;
+                            peer = std::dynamic_pointer_cast<MyPeer>(nextPeer->second);
+                        }
+                    }
+                }
+
+                if(peer && !peer->deleting) peer->worker();
+            }
+            catch(const std::exception& ex)
+            {
+                GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+            }
+            catch(BaseLib::Exception& ex)
+            {
+                GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+            }
+            catch(...)
+            {
+                GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
+            }
+        }
+    }
+    catch(const std::exception& ex)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    }
+    catch(BaseLib::Exception& ex)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    }
+    catch(...)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
+    }
 }
 
 void MyCentral::loadPeers()
@@ -243,7 +315,7 @@ bool MyCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLib:
             if(deviceIterator != _devicesToPair.end())
             {
                 std::vector<uint8_t> key = _bl->hf.getUBinary(deviceIterator->second);
-                myPacket->decrypt(key);
+                if(!myPacket->decrypt(key) || !myPacket->dataValid()) return false;
                 if(myPacket->isEncrypted() && _bl->debugLevel >= 4) std::cout << BaseLib::HelperFunctions::getTimeString(myPacket->timeReceived()) << " Decrypted M-Bus packet: " << BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) << " - Sender address: 0x" << BaseLib::HelperFunctions::getHexString(myPacket->senderAddress(), 8) << std::endl;
                 pairDevice(myPacket, key);
 				peer = getPeer(myPacket->senderAddress());
@@ -267,16 +339,16 @@ bool MyCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLib:
 			else return false;
 		}
 
-        if(peer->expectsEncryption() && !myPacket->isEncrypted())
+        if(peer->getEncryptionMode() != myPacket->getEncryptionMode())
         {
-            _bl->out.printWarning("Warning: Unencrypted packet received for peer " + std::to_string(peer->getID()) + " dropping it.");
+            _bl->out.printWarning("Warning: Encryption mode of peer " + std::to_string(peer->getID()) + " differs from encryption mode of packet. Dropping it.");
             return false;
         }
 
         if(myPacket->isEncrypted())
         {
             std::vector<uint8_t> aesKey = peer->getAesKey();
-            if(!myPacket->decrypt(aesKey)) return false;
+            if(!myPacket->decrypt(aesKey) || !myPacket->dataValid()) return false;
             if(_bl->debugLevel >= 4) std::cout << BaseLib::HelperFunctions::getTimeString(myPacket->timeReceived()) << " Decrypted M-Bus packet: " << BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) << " - Sender address: 0x" << BaseLib::HelperFunctions::getHexString(myPacket->senderAddress(), 8) << std::endl;
             if(_bl->debugLevel >= 5) std::cout << "Extended packet info:" << std::endl << myPacket->getInfoString() << std::endl;
         }
@@ -333,56 +405,90 @@ void MyCentral::pairDevice(PMyPacket packet, std::vector<uint8_t>& key)
         std::lock_guard<std::mutex> pairGuard(_pairMutex);
         GD::out.printInfo("Info: Pairing device 0x" + BaseLib::HelperFunctions::getHexString(packet->senderAddress(), 8) + "...");
 
-        uint64_t peerToDelete = 0;
+        bool newPeer = true;
+        auto peer = getPeer(packet->senderAddress());
+        std::unique_lock<std::mutex> lockGuard(_peersMutex);
+        if(peer)
         {
-            std::lock_guard<std::mutex> peersGuard(_peersMutex);
-            auto peersIterator = _peers.find(packet->senderAddress());
-            if(peersIterator != _peers.end())
+            if(peer->getEncryptionMode() != packet->getEncryptionMode())
             {
-                peerToDelete = peersIterator->second->getID();
+                _bl->out.printWarning("Warning: Encryption mode of peer " + std::to_string(peer->getID()) + " differs from encryption mode of packet. Not updating peer.");
+                return;
             }
+
+            newPeer = false;
+            if(_peers.find(peer->getAddress()) != _peers.end()) _peers.erase(peer->getAddress());
+            if(_peersBySerial.find(peer->getSerialNumber()) != _peersBySerial.end()) _peersBySerial.erase(peer->getSerialNumber());
+            if(_peersById.find(peer->getID()) != _peersById.end()) _peersById.erase(peer->getID());
+            lockGuard.unlock();
+
+            int32_t i = 0;
+            while(peer.use_count() > 1 && i < 600)
+            {
+                if(_currentPeer && _currentPeer->getID() == peer->getID()) _currentPeer.reset();
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                i++;
+            }
+            if(i == 600) GD::out.printError("Error: Peer deletion took too long.");
         }
-        if(peerToDelete != 0)
-        {
-            GD::out.printInfo("Info: Deleting old peer.");
-            deletePeer(peerToDelete);
-        }
+        else lockGuard.unlock();
 
         auto peerInfo = _descriptionCreator.createDescription(packet);
         if(peerInfo.serialNumber.empty()) return; //Error
         GD::family->reloadRpcDevices();
 
-        PMyPeer peer = createPeer(peerInfo.type, peerInfo.address, peerInfo.serialNumber, true);
         if(!peer)
         {
-            GD::out.printError("Error: Could not add device with type " + BaseLib::HelperFunctions::getHexString(peerInfo.type) + ". No matching XML file was found.");
-            return;
+            peer = createPeer(peerInfo.type, peerInfo.address, peerInfo.serialNumber, true);
+            if(!peer)
+            {
+                GD::out.printError("Error: Could not add device with type " + BaseLib::HelperFunctions::getHexString(peerInfo.type) + ". No matching XML file was found.");
+                return;
+            }
+
+            peer->initializeCentralConfig();
+        }
+        else
+        {
+            peer->setRpcDevice(GD::family->getRpcDevices()->find(peerInfo.type, 0x10, -1));
+            if(!peer->getRpcDevice())
+            {
+                GD::out.printError("Error: RPC device could not be found anymore.");
+                return;
+            }
         }
 
-        if(peerToDelete != 0 && peerToDelete != peer->getID()) peer->setId(nullptr, peerToDelete);
         peer->setAesKey(key);
         peer->setControlInformation(packet->getControlInformation());
         peer->setDataRecordCount(packet->dataRecordCount());
         peer->setFormatCrc(packet->getFormatCrc());
-        peer->initializeCentralConfig();
+        peer->setEncryptionMode(packet->getEncryptionMode());
 
+        lockGuard.lock();
+        _peersBySerial[peer->getSerialNumber()] = peer;
+        _peersById[peer->getID()] = peer;
+        _peers[peer->getAddress()] = peer;
+        lockGuard.unlock();
+
+        if(newPeer)
         {
-            std::lock_guard<std::mutex> peersGuard(_peersMutex);
-            _peersBySerial[peer->getSerialNumber()] = peer;
-            _peersById[peer->getID()] = peer;
-            _peers[peer->getAddress()] = peer;
+            GD::out.printInfo("Info: Device successfully added. Peer ID is: " + std::to_string(peer->getID()));
+
+            PVariable deviceDescriptions(new Variable(VariableType::tArray));
+            std::shared_ptr<std::vector<PVariable>> descriptions = peer->getDeviceDescriptions(nullptr, true, std::map<std::string, bool>());
+            if(!descriptions) return;
+            for(std::vector<PVariable>::iterator j = descriptions->begin(); j != descriptions->end(); ++j)
+            {
+                deviceDescriptions->arrayValue->push_back(*j);
+            }
+            raiseRPCNewDevices(deviceDescriptions);
         }
-
-        GD::out.printInfo("Info: Device successfully added. Peer ID is: " + std::to_string(peer->getID()));
-
-        PVariable deviceDescriptions(new Variable(VariableType::tArray));
-        std::shared_ptr<std::vector<PVariable>> descriptions = peer->getDeviceDescriptions(nullptr, true, std::map<std::string, bool>());
-        if(!descriptions) return;
-        for(std::vector<PVariable>::iterator j = descriptions->begin(); j != descriptions->end(); ++j)
+        else
         {
-            deviceDescriptions->arrayValue->push_back(*j);
+            GD::out.printInfo("Info: Peer " + std::to_string(peer->getID()) + " successfully updated.");
+
+            raiseRPCUpdateDevice(peer->getID(), 0, peer->getSerialNumber() + ":" + std::to_string(0), 0);
         }
-        raiseRPCNewDevices(deviceDescriptions);
 	}
 	catch(const std::exception& ex)
 	{
@@ -396,18 +502,6 @@ void MyCentral::pairDevice(PMyPacket packet, std::vector<uint8_t>& key)
 	{
 		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
-}
-
-std::string MyCentral::getFreeSerialNumber(int32_t address)
-{
-	std::string serial;
-	int32_t i = 0;
-	do
-	{
-		serial = "EOD" + BaseLib::HelperFunctions::getHexString(address + i, 8);
-		i++;
-	} while(peerExists(serial));
-	return serial;
 }
 
 void MyCentral::savePeers(bool full)
@@ -485,17 +579,14 @@ void MyCentral::deletePeer(uint64_t id)
 	}
 	catch(const std::exception& ex)
     {
-		_peersMutex.unlock();
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
     catch(BaseLib::Exception& ex)
     {
-    	_peersMutex.unlock();
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
     catch(...)
     {
-    	_peersMutex.unlock();
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
     }
 }
@@ -868,6 +959,14 @@ std::string MyCentral::handleCliCommand(std::string command)
 			stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
 			stringStream << packet.getInfoString() << std::endl << std::endl;
 
+            //C1 short format with security mode 7
+            data = _bl->hf.getUBinary("FF037246C5143803607403078C0013900F002C250D0000004B5184889B76884D6B38036074C51400071300400710E1E27070E1D6452826C8DD482AA0419872968AB3FB1CD18A91F80CE4F338E78BE8ED2DD0FE29EC20B8479005E378B875D596F85804689FA938582548407F4BB303FD0C02FD0B1250");
+            packet = MyPacket(data);
+            stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
+            std::vector<uint8_t> key = _bl->hf.getUBinary("00112233445566778899AABBCCDDEEFF");
+            packet.decrypt(key);
+            stringStream << packet.getInfoString() << std::endl << std::endl;
+
 			return stringStream.str();
         }
         else if(BaseLib::HelperFunctions::checkCliCommand(command, "receive", "", "", 1, arguments, showHelp))
@@ -1179,27 +1278,27 @@ std::shared_ptr<Variable> MyCentral::setInstallMode(BaseLib::PRpcClientInfo clie
 		std::lock_guard<std::mutex> pairingModeGuard(_pairingModeThreadMutex);
 		if(_disposing) return Variable::createError(-32500, "Central is disposing.");
 
-		if(on && metadata)
-		{
-			/*
-			 {
-			   "devices": [
-			     {
-			       "address": 64656081,
-			       "key": "00112233445566778899AABBCCDDEEFF" [optional]
-			     },
-			     {
-			       "address": 64656082,
-			       "key": "00112233445566778899AABBCCDDEEFF" [optional]
-			     },
-			     .
-			     .
-			     .
-			   ]
-			 }
-			*/
-            std::lock_guard<std::mutex> devicesToPairGuard(_devicesToPairMutex);
-            _devicesToPair.clear();
+        /*
+         {
+           "devices": [
+             {
+               "address": 64656081,
+               "key": "00112233445566778899AABBCCDDEEFF" [optional]
+             },
+             {
+               "address": 64656082,
+               "key": "00112233445566778899AABBCCDDEEFF" [optional]
+             },
+             .
+             .
+             .
+           ]
+         }
+        */
+        std::lock_guard<std::mutex> devicesToPairGuard(_devicesToPairMutex);
+        _devicesToPair.clear();
+        if(on && metadata)
+        {
             auto devicesIterator = metadata->structValue->find("devices");
             if(devicesIterator != metadata->structValue->end())
             {
@@ -1214,24 +1313,24 @@ std::shared_ptr<Variable> MyCentral::setInstallMode(BaseLib::PRpcClientInfo clie
                     _devicesToPair.emplace(address, key);
                 }
             }
+        }
 
-            BaseLib::PVariable devicesToPair = std::make_shared<BaseLib::Variable>(BaseLib::VariableType::tArray);
-            devicesToPair->arrayValue->reserve(_devicesToPair.size());
-            for(auto& device : _devicesToPair)
-            {
-                BaseLib::PVariable element = std::make_shared<BaseLib::Variable>(BaseLib::VariableType::tArray);
-                element->arrayValue->reserve(2);
-                element->arrayValue->push_back(std::make_shared<BaseLib::Variable>(device.first));
-                element->arrayValue->push_back(std::make_shared<BaseLib::Variable>(device.second));
-                devicesToPair->arrayValue->push_back(element);
-            }
+        BaseLib::PVariable devicesToPair = std::make_shared<BaseLib::Variable>(BaseLib::VariableType::tArray);
+        devicesToPair->arrayValue->reserve(_devicesToPair.size());
+        for(auto& device : _devicesToPair)
+        {
+            BaseLib::PVariable element = std::make_shared<BaseLib::Variable>(BaseLib::VariableType::tArray);
+            element->arrayValue->reserve(2);
+            element->arrayValue->push_back(std::make_shared<BaseLib::Variable>(device.first));
+            element->arrayValue->push_back(std::make_shared<BaseLib::Variable>(device.second));
+            devicesToPair->arrayValue->push_back(element);
+        }
 
-            BaseLib::Rpc::RpcEncoder rpcEncoder(_bl);
-            std::vector<char> serializedData;
-            rpcEncoder.encodeResponse(devicesToPair, serializedData);
-            std::string key = "devicesToPair";
-            GD::family->setFamilySetting(key, serializedData);
-		}
+        BaseLib::Rpc::RpcEncoder rpcEncoder(_bl);
+        std::vector<char> serializedData;
+        rpcEncoder.encodeResponse(devicesToPair, serializedData);
+        std::string key = "devicesToPair";
+        GD::family->setFamilySetting(key, serializedData);
 
 		_stopPairingModeThread = true;
 		_bl->threadManager.join(_pairingModeThread);

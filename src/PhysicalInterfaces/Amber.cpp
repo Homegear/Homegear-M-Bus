@@ -22,6 +22,46 @@ Amber::Amber(std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> settin
 	signal(SIGPIPE, SIG_IGN);
 
     if(_settings->baudrate == -1) _settings->baudrate = 9600;
+
+    std::string settingName = "securitymodewhitelist";
+    auto setting = GD::family->getFamilySetting(settingName);
+    if(setting)
+    {
+        auto elements = BaseLib::HelperFunctions::splitAll(setting->stringValue, ',');
+        for(auto& element : elements)
+        {
+            BaseLib::HelperFunctions::trim(element);
+            int32_t mode = BaseLib::Math::getNumber(element);
+            _securityModeWhitelist.emplace(mode);
+            GD::out.printInfo("Info: Adding mode " + std::to_string(mode) + " to security mode whitelist");
+        }
+    }
+
+    //0: No encryption
+    //1: Reserved
+    //2: DES encryption with CBC; IV is zero (deprecated)
+    //3: DES encryption with CBC; IV is not zero (deprecated)
+    //4: AES-CBC-128; IV = 0
+    //5: AES-CBC-128; IV != 0
+    //6: Reserved
+    //7: AES-CBC-128; IV=0; KDF
+    //8: AES-CTR-128; CMAC
+    //9: AES-GCM-128
+    //10: AES-CCM-128
+    //11: Reserved
+    //12: Reserved
+    //13: Specific usage
+    //14: Reserved
+    //15: Specific usage
+    //16 - 31: Reserved
+    if(_securityModeWhitelist.find(0) != _securityModeWhitelist.end() ||
+       _securityModeWhitelist.find(2) != _securityModeWhitelist.end() ||
+       _securityModeWhitelist.find(3) != _securityModeWhitelist.end() ||
+       _securityModeWhitelist.find(4) != _securityModeWhitelist.end() ||
+       _securityModeWhitelist.find(5) != _securityModeWhitelist.end())
+    {
+        GD::out.printWarning("Warning: Your security mode whitelist contains insecure security modes. This is a potential risk.");
+    }
 }
 
 Amber::~Amber()
@@ -478,8 +518,16 @@ void Amber::processPacket(std::vector<uint8_t>& data)
 
         if(data.at(1) == CMD_DATA_IND)
         {
-            PMyPacket packet(new MyPacket(data));
-            raisePacketReceived(packet);
+            PMyPacket packet = std::make_shared<MyPacket>(data);
+            if(packet->headerValid())
+            {
+                if(_securityModeWhitelist.find(packet->getEncryptionMode()) != _securityModeWhitelist.end())
+                {
+                    raisePacketReceived(packet);
+                }
+                else _out.printWarning("Warning: Dropping packet, because security mode " + std::to_string(packet->getEncryptionMode()) + " is not in whitelist: " + BaseLib::HelperFunctions::getHexString(data));
+            }
+            else _out.printWarning("Warning: Could not parse packet: " + BaseLib::HelperFunctions::getHexString(data));
         }
         else _out.printWarning("Warning: Not processing packet: " + BaseLib::HelperFunctions::getHexString(data));
 	}

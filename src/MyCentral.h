@@ -55,8 +55,11 @@ protected:
 	std::mutex _pairMutex;
 	DescriptionCreator _descriptionCreator;
 
-	std::string getFreeSerialNumber(int32_t address);
+    std::atomic_bool _stopWorkerThread;
+    std::thread _workerThread;
+
 	virtual void init();
+    virtual void worker();
 	virtual void loadPeers();
 	virtual void savePeers(bool full);
 	virtual void loadVariables() {}
