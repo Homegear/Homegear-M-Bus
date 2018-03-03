@@ -481,7 +481,8 @@ void MyCentral::pairDevice(PMyPacket packet, std::vector<uint8_t>& key)
             {
                 deviceDescriptions->arrayValue->push_back(*j);
             }
-            raiseRPCNewDevices(deviceDescriptions);
+            std::vector<uint64_t> newIds{ peer->getID() };
+            raiseRPCNewDevices(newIds, deviceDescriptions);
         }
         else
         {
@@ -550,7 +551,8 @@ void MyCentral::deletePeer(uint64_t id)
 			channels->arrayValue->push_back(PVariable(new Variable(i->first)));
 		}
 
-		raiseRPCDeleteDevices(deviceAddresses, deviceInfo);
+        std::vector<uint64_t> deletedIds{ id };
+		raiseRPCDeleteDevices(deletedIds, deviceAddresses, deviceInfo);
 
         {
             std::lock_guard<std::mutex> peersGuard(_peersMutex);
