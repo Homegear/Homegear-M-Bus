@@ -445,8 +445,6 @@ void MyCentral::pairDevice(PMyPacket packet, std::vector<uint8_t>& key)
                 GD::out.printError("Error: Could not add device with type " + BaseLib::HelperFunctions::getHexString(peerInfo.type) + ". No matching XML file was found.");
                 return;
             }
-
-            peer->initializeCentralConfig();
         }
         else
         {
@@ -457,6 +455,8 @@ void MyCentral::pairDevice(PMyPacket packet, std::vector<uint8_t>& key)
                 return;
             }
         }
+
+        peer->initializeCentralConfig();
 
         peer->setAesKey(key);
         peer->setControlInformation(packet->getControlInformation());
