@@ -437,8 +437,10 @@ void MyPeer::setRssiDevice(uint8_t rssi)
 			std::shared_ptr<std::vector<PVariable>> rpcValues(new std::vector<PVariable>());
 			rpcValues->push_back(parameter.rpcParameter->convertFromPacket(parameterData));
 
-			raiseEvent(_peerID, 0, valueKeys, rpcValues);
-			raiseRPCEvent(_peerID, 0, _serialNumber + ":0", valueKeys, rpcValues);
+            std::string eventSource = "device-" + std::to_string(_peerID);
+            std::string address = _serialNumber + ":0";
+            raiseEvent(eventSource, _peerID, 0, valueKeys, rpcValues);
+            raiseRPCEvent(eventSource, _peerID, 0, address, valueKeys, rpcValues);
 		}
 	}
 	catch(const std::exception& ex)
@@ -679,12 +681,13 @@ void MyPeer::packetReceived(PMyPacket& packet)
 
         if(!rpcValues.empty())
         {
-            for(std::map<uint32_t, std::shared_ptr<std::vector<std::string>>>::const_iterator j = valueKeys.begin(); j != valueKeys.end(); ++j)
+            for(std::map<uint32_t, std::shared_ptr<std::vector<std::string>>>::iterator j = valueKeys.begin(); j != valueKeys.end(); ++j)
             {
                 if(j->second->empty()) continue;
+                std::string eventSource = "device-" + std::to_string(_peerID);
                 std::string address(_serialNumber + ":" + std::to_string(j->first));
-                raiseEvent(_peerID, j->first, j->second, rpcValues.at(j->first));
-                raiseRPCEvent(_peerID, j->first, address, j->second, rpcValues.at(j->first));
+                raiseEvent(eventSource, _peerID, j->first, j->second, rpcValues.at(j->first));
+                raiseRPCEvent(eventSource, _peerID, j->first, address, j->second, rpcValues.at(j->first));
             }
         }
 	}
