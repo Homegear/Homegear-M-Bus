@@ -599,7 +599,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMyPacket pac
         std::shared_ptr<HomegearDevice> device = std::make_shared<HomegearDevice>(GD::bl);
         device->version = 1;
         device->timeout = 86400;
-        PSupportedDevice supportedDevice = std::make_shared<SupportedDevice>(GD::bl, device.get());
+        PSupportedDevice supportedDevice = std::make_shared<SupportedDevice>(GD::bl);
         supportedDevice->id = id;
         supportedDevice->description = packet->getMediumString(packet->getMedium());
         supportedDevice->typeNumber = (uint32_t)packet->senderAddress();
@@ -623,7 +623,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMyPacket pac
         auto dataRecords = packet->getDataRecords();
         for(auto& dataRecord : dataRecords)
         {
-            PParameter parameter = std::make_shared<Parameter>(GD::bl, function->variables.get());
+            PParameter parameter = std::make_shared<Parameter>(GD::bl, function->variables);
             parameter->readable = true;
             parameter->writeable = false;
 
@@ -718,7 +718,7 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice& device)
     function->variablesId = "mbus_maintenance_values";
     device->functions[function->channel] = function;
 
-    PParameter parameter(new Parameter(GD::bl, function->variables.get()));
+    PParameter parameter(new Parameter(GD::bl, function->variables));
     parameter->id = "UNREACH";
     function->variables->parametersOrdered.push_back(parameter);
     function->variables->parameters[parameter->id] = parameter;
@@ -729,7 +729,7 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice& device)
     parameter->physical->groupId = parameter->id;
     parameter->physical->operationType = IPhysical::OperationType::internal;
 
-    parameter.reset(new Parameter(GD::bl, function->variables.get()));
+    parameter.reset(new Parameter(GD::bl, function->variables));
     parameter->id = "STICKY_UNREACH";
     function->variables->parametersOrdered.push_back(parameter);
     function->variables->parameters[parameter->id] = parameter;
@@ -740,7 +740,7 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice& device)
     parameter->physical->groupId = parameter->id;
     parameter->physical->operationType = IPhysical::OperationType::internal;
 
-    parameter.reset(new Parameter(GD::bl, function->variables.get()));
+    parameter.reset(new Parameter(GD::bl, function->variables));
     parameter->id = "POSSIBLE_HACKING_ATTEMPT";
     function->variables->parametersOrdered.push_back(parameter);
     function->variables->parameters[parameter->id] = parameter;
