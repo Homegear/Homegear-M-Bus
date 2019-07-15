@@ -47,7 +47,7 @@ void IMBusInterface::getResponse(std::vector<uint8_t>& requestPacket, std::vecto
         }
         catch(BaseLib::SocketOperationException ex)
         {
-            _out.printError("Error sending packet: " + ex.what());
+            _out.printError("Error sending packet: " + std::string(ex.what()));
             return;
         }
 
