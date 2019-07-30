@@ -762,7 +762,7 @@ bool MyPacket::decrypt(std::vector<uint8_t>& key)
                 }
                 catch(BaseLib::Security::GcryptException& ex)
                 {
-                    GD::out.printWarning("Warning: Could not generate key: " + ex.what());
+                    GD::out.printWarning("Warning: Could not generate key: " + std::string(ex.what()));
                     return false;
                 }
 
@@ -806,7 +806,7 @@ bool MyPacket::decrypt(std::vector<uint8_t>& key)
                 }
                 catch(BaseLib::Security::GcryptException& ex)
                 {
-                    GD::out.printWarning("Warning: Could not generate key: " + ex.what());
+                    GD::out.printWarning("Warning: Could not generate key: " + std::string(ex.what()));
                     return false;
                 }
             //}}}
@@ -824,7 +824,7 @@ bool MyPacket::decrypt(std::vector<uint8_t>& key)
                 }
                 catch(BaseLib::Security::GcryptException& ex)
                 {
-                    GD::out.printWarning("Warning: Could not generate key: " + ex.what());
+                    GD::out.printWarning("Warning: Could not generate key: " + std::string(ex.what()));
                     return false;
                 }
 

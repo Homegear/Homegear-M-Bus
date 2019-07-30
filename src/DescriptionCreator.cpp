@@ -599,7 +599,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMyPacket pac
         std::shared_ptr<HomegearDevice> device = std::make_shared<HomegearDevice>(GD::bl);
         device->version = 1;
         device->timeout = 86400;
-        PSupportedDevice supportedDevice = std::make_shared<SupportedDevice>(GD::bl, device.get());
+        PSupportedDevice supportedDevice = std::make_shared<SupportedDevice>(GD::bl);
         supportedDevice->id = id;
         supportedDevice->description = packet->getMediumString(packet->getMedium());
         supportedDevice->typeNumber = (uint32_t)packet->senderAddress();
@@ -623,7 +623,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMyPacket pac
         auto dataRecords = packet->getDataRecords();
         for(auto& dataRecord : dataRecords)
         {
-            PParameter parameter = std::make_shared<Parameter>(GD::bl, function->variables.get());
+            PParameter parameter = std::make_shared<Parameter>(GD::bl, function->variables);
             parameter->readable = true;
             parameter->writeable = false;
 
@@ -679,20 +679,20 @@ void DescriptionCreator::createDirectories()
         if(!BaseLib::Io::directoryExists(path1)) BaseLib::Io::createDirectory(path1, GD::bl->settings.dataPathPermissions());
         if(localUserId != 0 || localGroupId != 0)
         {
-            if(chown(path1.c_str(), localUserId, localGroupId) == -1) std::cerr << "Could not set owner on " << path1 << std::endl;
-            if(chmod(path1.c_str(), GD::bl->settings.dataPathPermissions()) == -1) std::cerr << "Could not set permissions on " << path1 << std::endl;
+            if(chown(path1.c_str(), localUserId, localGroupId) == -1) GD::out.printWarning("Could not set owner on " + path1);
+            if(chmod(path1.c_str(), GD::bl->settings.dataPathPermissions()) == -1) GD::out.printWarning("Could not set permissions on " + path1);
         }
         if(!BaseLib::Io::directoryExists(path2)) BaseLib::Io::createDirectory(path2, GD::bl->settings.dataPathPermissions());
         if(localUserId != 0 || localGroupId != 0)
         {
-            if(chown(path2.c_str(), localUserId, localGroupId) == -1) std::cerr << "Could not set owner on " << path2 << std::endl;
-            if(chmod(path2.c_str(), GD::bl->settings.dataPathPermissions()) == -1) std::cerr << "Could not set permissions on " << path2 << std::endl;
+            if(chown(path2.c_str(), localUserId, localGroupId) == -1) GD::out.printWarning("Could not set owner on " + path2);
+            if(chmod(path2.c_str(), GD::bl->settings.dataPathPermissions()) == -1) GD::out.printWarning("Could not set permissions on " + path2);
         }
         if(!BaseLib::Io::directoryExists(_xmlPath)) BaseLib::Io::createDirectory(_xmlPath, GD::bl->settings.dataPathPermissions());
         if(localUserId != 0 || localGroupId != 0)
         {
-            if(chown(_xmlPath.c_str(), localUserId, localGroupId) == -1) std::cerr << "Could not set owner on " << _xmlPath << std::endl;
-            if(chmod(_xmlPath.c_str(), GD::bl->settings.dataPathPermissions()) == -1) std::cerr << "Could not set permissions on " << _xmlPath << std::endl;
+            if(chown(_xmlPath.c_str(), localUserId, localGroupId) == -1) GD::out.printWarning("Could not set owner on " + _xmlPath);
+            if(chmod(_xmlPath.c_str(), GD::bl->settings.dataPathPermissions()) == -1) GD::out.printWarning("Could not set permissions on " + _xmlPath);
         }
     }
     catch(const std::exception& ex)
@@ -718,7 +718,7 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice& device)
     function->variablesId = "mbus_maintenance_values";
     device->functions[function->channel] = function;
 
-    PParameter parameter(new Parameter(GD::bl, function->variables.get()));
+    PParameter parameter(new Parameter(GD::bl, function->variables));
     parameter->id = "UNREACH";
     function->variables->parametersOrdered.push_back(parameter);
     function->variables->parameters[parameter->id] = parameter;
@@ -729,7 +729,7 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice& device)
     parameter->physical->groupId = parameter->id;
     parameter->physical->operationType = IPhysical::OperationType::internal;
 
-    parameter.reset(new Parameter(GD::bl, function->variables.get()));
+    parameter.reset(new Parameter(GD::bl, function->variables));
     parameter->id = "STICKY_UNREACH";
     function->variables->parametersOrdered.push_back(parameter);
     function->variables->parameters[parameter->id] = parameter;
@@ -740,7 +740,7 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice& device)
     parameter->physical->groupId = parameter->id;
     parameter->physical->operationType = IPhysical::OperationType::internal;
 
-    parameter.reset(new Parameter(GD::bl, function->variables.get()));
+    parameter.reset(new Parameter(GD::bl, function->variables));
     parameter->id = "POSSIBLE_HACKING_ATTEMPT";
     function->variables->parametersOrdered.push_back(parameter);
     function->variables->parameters[parameter->id] = parameter;
