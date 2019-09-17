@@ -303,6 +303,19 @@ void Hgdc::processPacket(int64_t familyId, const std::string& serialNumber, cons
             return;
         }
 
+        uint8_t crc8 = 0;
+        for(uint32_t i = 0; i < data.size() - 1; i++)
+        {
+            crc8 = crc8 ^ (uint8_t)data[i];
+        }
+        if(crc8 != data.back())
+        {
+            _out.printError("Error: CRC failed for packet: " + BaseLib::HelperFunctions::getHexString(data));
+            return;
+        }
+
+        _lastPacketReceived = BaseLib::HelperFunctions::getTime();
+
         uint8_t packetType = data[1];
 
         std::unique_lock<std::mutex> requestsGuard(_requestsMutex);
@@ -320,8 +333,6 @@ void Hgdc::processPacket(int64_t familyId, const std::string& serialNumber, cons
             return;
         }
         else requestsGuard.unlock();
-
-        _lastPacketReceived = BaseLib::HelperFunctions::getTime();
 
         if(data.at(1) == CMD_DATA_IND)
         {
