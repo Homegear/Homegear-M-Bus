@@ -1,16 +1,16 @@
 /* Copyright 2013-2019 Homegear GmbH */
 
-#include "MyPeer.h"
+#include "MbusPeer.h"
 
 #include "GD.h"
-#include "MyPacket.h"
-#include "MyCentral.h"
+#include "MbusPacket.h"
+#include "MbusCentral.h"
 
 #include <iomanip>
 
-namespace MyFamily
+namespace Mbus
 {
-std::shared_ptr<BaseLib::Systems::ICentral> MyPeer::getCentral()
+std::shared_ptr<BaseLib::Systems::ICentral> MbusPeer::getCentral()
 {
 	try
 	{
@@ -22,28 +22,20 @@ std::shared_ptr<BaseLib::Systems::ICentral> MyPeer::getCentral()
 	{
 		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
 	}
-	catch(BaseLib::Exception& ex)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-	}
-	catch(...)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-	}
 	return std::shared_ptr<BaseLib::Systems::ICentral>();
 }
 
-MyPeer::MyPeer(uint32_t parentID, IPeerEventSink* eventHandler) : BaseLib::Systems::Peer(GD::bl, parentID, eventHandler)
+MbusPeer::MbusPeer(uint32_t parentID, IPeerEventSink* eventHandler) : BaseLib::Systems::Peer(GD::bl, parentID, eventHandler)
 {
 	init();
 }
 
-MyPeer::MyPeer(int32_t id, int32_t address, std::string serialNumber, uint32_t parentID, IPeerEventSink* eventHandler) : BaseLib::Systems::Peer(GD::bl, id, address, serialNumber, parentID, eventHandler)
+MbusPeer::MbusPeer(int32_t id, int32_t address, std::string serialNumber, uint32_t parentID, IPeerEventSink* eventHandler) : BaseLib::Systems::Peer(GD::bl, id, address, serialNumber, parentID, eventHandler)
 {
 	init();
 }
 
-MyPeer::~MyPeer()
+MbusPeer::~MbusPeer()
 {
 	try
 	{
@@ -53,17 +45,9 @@ MyPeer::~MyPeer()
 	{
 		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
 	}
-	catch(BaseLib::Exception& ex)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-	}
-	catch(...)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-	}
 }
 
-void MyPeer::init()
+void MbusPeer::init()
 {
 	try
 	{
@@ -72,23 +56,15 @@ void MyPeer::init()
 	{
 		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
 	}
-	catch(BaseLib::Exception& ex)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-	}
-	catch(...)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-	}
 }
 
-void MyPeer::dispose()
+void MbusPeer::dispose()
 {
 	if(_disposing) return;
 	Peer::dispose();
 }
 
-void MyPeer::worker()
+void MbusPeer::worker()
 {
 	try
 	{
@@ -98,17 +74,9 @@ void MyPeer::worker()
 	{
 		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
 	}
-	catch(BaseLib::Exception& ex)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-	}
-	catch(...)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-	}
 }
 
-void MyPeer::homegearStarted()
+void MbusPeer::homegearStarted()
 {
 	try
 	{
@@ -118,17 +86,9 @@ void MyPeer::homegearStarted()
 	{
 		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
 	}
-	catch(BaseLib::Exception& ex)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-	}
-	catch(...)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-	}
 }
 
-void MyPeer::homegearShuttingDown()
+void MbusPeer::homegearShuttingDown()
 {
 	try
 	{
@@ -139,17 +99,9 @@ void MyPeer::homegearShuttingDown()
 	{
 		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
 	}
-	catch(BaseLib::Exception& ex)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-	}
-	catch(...)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-	}
 }
 
-std::string MyPeer::handleCliCommand(std::string command)
+std::string MbusPeer::handleCliCommand(std::string command)
 {
 	try
 	{
@@ -227,18 +179,10 @@ std::string MyPeer::handleCliCommand(std::string command)
     {
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
     return "Error executing command. See log file for more details.\n";
 }
 
-std::string MyPeer::printConfig()
+std::string MbusPeer::printConfig()
 {
 	try
 	{
@@ -291,18 +235,10 @@ std::string MyPeer::printConfig()
     {
     	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-    	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-    	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
     return "";
 }
 
-void MyPeer::loadVariables(BaseLib::Systems::ICentral* central, std::shared_ptr<BaseLib::Database::DataTable>& rows)
+void MbusPeer::loadVariables(BaseLib::Systems::ICentral* central, std::shared_ptr<BaseLib::Database::DataTable>& rows)
 {
 	try
 	{
@@ -342,17 +278,9 @@ void MyPeer::loadVariables(BaseLib::Systems::ICentral* central, std::shared_ptr<
     {
     	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-    	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-    	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
 }
 
-void MyPeer::saveVariables()
+void MbusPeer::saveVariables()
 {
 	try
 	{
@@ -369,17 +297,9 @@ void MyPeer::saveVariables()
     {
     	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-    	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-    	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
 }
 
-bool MyPeer::load(BaseLib::Systems::ICentral* central)
+bool MbusPeer::load(BaseLib::Systems::ICentral* central)
 {
 	try
 	{
@@ -405,18 +325,10 @@ bool MyPeer::load(BaseLib::Systems::ICentral* central)
     {
     	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-    	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-    	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
     return false;
 }
 
-void MyPeer::setRssiDevice(uint8_t rssi)
+void MbusPeer::setRssiDevice(uint8_t rssi)
 {
 	try
 	{
@@ -449,17 +361,9 @@ void MyPeer::setRssiDevice(uint8_t rssi)
     {
     	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-    	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-    	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
 }
 
-void MyPeer::getValuesFromPacket(PMyPacket packet, std::vector<FrameValues>& frameValues)
+void MbusPeer::getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues>& frameValues)
 {
 	try
 	{
@@ -572,17 +476,9 @@ void MyPeer::getValuesFromPacket(PMyPacket packet, std::vector<FrameValues>& fra
 	{
 		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
 	}
-	catch(BaseLib::Exception& ex)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-	}
-	catch(...)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-	}
 }
 
-void MyPeer::packetReceived(PMyPacket& packet)
+void MbusPeer::packetReceived(PMbusPacket& packet)
 {
 	try
 	{
@@ -598,7 +494,7 @@ void MyPeer::packetReceived(PMyPacket& packet)
             GD::out.printWarning("Warning: Ignoring packet with wrong encryption mode.");
             return;
         }
-        std::shared_ptr<MyCentral> central = std::dynamic_pointer_cast<MyCentral>(getCentral());
+        std::shared_ptr<MbusCentral> central = std::dynamic_pointer_cast<MbusCentral>(getCentral());
         if(!central) return;
         setLastPacketReceived();
         setRssiDevice(packet->getRssi() * -1);
@@ -697,17 +593,9 @@ void MyPeer::packetReceived(PMyPacket& packet)
     {
     	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-    	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-    	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
 }
 
-PParameterGroup MyPeer::getParameterSet(int32_t channel, ParameterGroup::Type::Enum type)
+PParameterGroup MbusPeer::getParameterSet(int32_t channel, ParameterGroup::Type::Enum type)
 {
 	try
 	{
@@ -720,18 +608,10 @@ PParameterGroup MyPeer::getParameterSet(int32_t channel, ParameterGroup::Type::E
 	{
 		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
 	}
-	catch(BaseLib::Exception& ex)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-	}
-	catch(...)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-	}
 	return PParameterGroup();
 }
 
-bool MyPeer::getAllValuesHook2(PRpcClientInfo clientInfo, PParameter parameter, uint32_t channel, PVariable parameters)
+bool MbusPeer::getAllValuesHook2(PRpcClientInfo clientInfo, PParameter parameter, uint32_t channel, PVariable parameters)
 {
 	try
 	{
@@ -749,18 +629,10 @@ bool MyPeer::getAllValuesHook2(PRpcClientInfo clientInfo, PParameter parameter, 
     {
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
     return false;
 }
 
-bool MyPeer::getParamsetHook2(PRpcClientInfo clientInfo, PParameter parameter, uint32_t channel, PVariable parameters)
+bool MbusPeer::getParamsetHook2(PRpcClientInfo clientInfo, PParameter parameter, uint32_t channel, PVariable parameters)
 {
 	try
 	{
@@ -778,18 +650,10 @@ bool MyPeer::getParamsetHook2(PRpcClientInfo clientInfo, PParameter parameter, u
     {
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
     return false;
 }
 
-bool MyPeer::convertFromPacketHook(PParameter parameter, std::vector<uint8_t>& data, PVariable& result)
+bool MbusPeer::convertFromPacketHook(PParameter parameter, std::vector<uint8_t>& data, PVariable& result)
 {
     try
     {
@@ -807,18 +671,10 @@ bool MyPeer::convertFromPacketHook(PParameter parameter, std::vector<uint8_t>& d
     {
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
     return true;
 }
 
-PVariable MyPeer::putParamset(BaseLib::PRpcClientInfo clientInfo, int32_t channel, ParameterGroup::Type::Enum type, uint64_t remoteID, int32_t remoteChannel, PVariable variables, bool checkAcls, bool onlyPushing)
+PVariable MbusPeer::putParamset(BaseLib::PRpcClientInfo clientInfo, int32_t channel, ParameterGroup::Type::Enum type, uint64_t remoteID, int32_t remoteChannel, PVariable variables, bool checkAcls, bool onlyPushing)
 {
 	try
 	{
@@ -877,18 +733,10 @@ PVariable MyPeer::putParamset(BaseLib::PRpcClientInfo clientInfo, int32_t channe
     {
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
     return Variable::createError(-32500, "Unknown application error.");
 }
 
-PVariable MyPeer::setValue(BaseLib::PRpcClientInfo clientInfo, uint32_t channel, std::string valueKey, PVariable value, bool wait)
+PVariable MbusPeer::setValue(BaseLib::PRpcClientInfo clientInfo, uint32_t channel, std::string valueKey, PVariable value, bool wait)
 {
 	try
 	{
@@ -901,14 +749,6 @@ PVariable MyPeer::setValue(BaseLib::PRpcClientInfo clientInfo, uint32_t channel,
 	catch(const std::exception& ex)
     {
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(BaseLib::Exception& ex)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
     }
     return Variable::createError(-32500, "Unknown application error. See error log for more details.");
 }

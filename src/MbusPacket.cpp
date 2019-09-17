@@ -1,12 +1,12 @@
 /* Copyright 2013-2019 Homegear GmbH */
 
-#include "MyPacket.h"
+#include "MbusPacket.h"
 
 #include "GD.h"
 
-namespace MyFamily
+namespace Mbus
 {
-MyPacket::MyPacket()
+MbusPacket::MbusPacket()
 {
     _difSizeMap[0] = 0;
     _difSizeMap[1] = 1;
@@ -26,7 +26,7 @@ MyPacket::MyPacket()
     _difSizeMap[15] = 0;
 }
 
-MyPacket::MyPacket(std::vector<uint8_t>& packet) : MyPacket()
+MbusPacket::MbusPacket(const std::vector<uint8_t>& packet) : MbusPacket()
 {
     _packet = packet;
 	_timeReceived = BaseLib::HelperFunctions::getTime();
@@ -266,12 +266,12 @@ MyPacket::MyPacket(std::vector<uint8_t>& packet) : MyPacket()
     _headerValid = true;
 }
 
-MyPacket::~MyPacket()
+MbusPacket::~MbusPacket()
 {
 	_packet.clear();
 }
 
-std::string MyPacket::getInfoString()
+std::string MbusPacket::getInfoString()
 {
     try
     {
@@ -308,18 +308,10 @@ std::string MyPacket::getInfoString()
     {
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
     return "";
 }
 
-std::vector<uint8_t> MyPacket::getBinary()
+std::vector<uint8_t> MbusPacket::getBinary()
 {
 	try
 	{
@@ -329,18 +321,10 @@ std::vector<uint8_t> MyPacket::getBinary()
     {
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
     return std::vector<uint8_t>();
 }
 
-std::string MyPacket::getMediumString(uint8_t medium)
+std::string MbusPacket::getMediumString(uint8_t medium)
 {
     switch(medium)
     {
@@ -477,7 +461,7 @@ std::string MyPacket::getMediumString(uint8_t medium)
     }
 }
 
-std::string MyPacket::getControlInformationString(uint8_t controlInformation)
+std::string MbusPacket::getControlInformationString(uint8_t controlInformation)
 {
     if(controlInformation >= 0xA0 && controlInformation <= 0xB7) return "Manufacturer specific Application Layer";
     switch(controlInformation)
@@ -611,7 +595,7 @@ std::string MyPacket::getControlInformationString(uint8_t controlInformation)
     }
 }
 
-bool MyPacket::isTelegramWithoutMeterData()
+bool MbusPacket::isTelegramWithoutMeterData()
 {
     return _controlInformation == 0x69 ||
            _controlInformation == 0x70 ||
@@ -619,7 +603,7 @@ bool MyPacket::isTelegramWithoutMeterData()
            _controlInformation == 0x79;
 }
 
-bool MyPacket::hasShortTplHeader()
+bool MbusPacket::hasShortTplHeader()
 {
     return _controlInformation == 0x61 ||
            _controlInformation == 0x65 ||
@@ -633,7 +617,7 @@ bool MyPacket::hasShortTplHeader()
            _controlInformation == 0x8A;
 }
 
-bool MyPacket::hasLongTplHeader()
+bool MbusPacket::hasLongTplHeader()
 {
     return _controlInformation == 0x60 ||
            _controlInformation == 0x64 ||
@@ -648,21 +632,21 @@ bool MyPacket::hasLongTplHeader()
            _controlInformation == 0x8B;
 }
 
-bool MyPacket::isFormatTelegram()
+bool MbusPacket::isFormatTelegram()
 {
     return _controlInformation == 0x69 ||
            _controlInformation == 0x6A ||
            _controlInformation == 0x6B;
 }
 
-bool MyPacket::isCompactDataTelegram()
+bool MbusPacket::isCompactDataTelegram()
 {
     return _controlInformation == 0x73 ||
            _controlInformation == 0x79 ||
            _controlInformation == 0x7B;
 }
 
-bool MyPacket::isDataTelegram()
+bool MbusPacket::isDataTelegram()
 {
     return _controlInformation == 0x72 ||
            _controlInformation == 0x73 ||
@@ -671,7 +655,7 @@ bool MyPacket::isDataTelegram()
            _controlInformation == 0x7B;
 }
 
-std::vector<uint8_t> MyPacket::getPosition(uint32_t position, uint32_t size)
+std::vector<uint8_t> MbusPacket::getPosition(uint32_t position, uint32_t size)
 {
 	try
 	{
@@ -681,18 +665,10 @@ std::vector<uint8_t> MyPacket::getPosition(uint32_t position, uint32_t size)
     {
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
     return std::vector<uint8_t>();
 }
 
-bool MyPacket::decrypt(std::vector<uint8_t>& key)
+bool MbusPacket::decrypt(std::vector<uint8_t>& key)
 {
     try
     {
@@ -870,18 +846,10 @@ bool MyPacket::decrypt(std::vector<uint8_t>& key)
     {
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
     return false;
 }
 
-void MyPacket::strip2F(std::vector<uint8_t>& data)
+void MbusPacket::strip2F(std::vector<uint8_t>& data)
 {
     try
     {
@@ -909,17 +877,9 @@ void MyPacket::strip2F(std::vector<uint8_t>& data)
     {
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
 }
 
-void MyPacket::parsePayload()
+void MbusPacket::parsePayload()
 {
     try
     {
@@ -1051,17 +1011,9 @@ void MyPacket::parsePayload()
     {
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
 }
 
-uint32_t MyPacket::getDataSize(uint8_t dif, uint8_t firstDataByte)
+uint32_t MbusPacket::getDataSize(uint8_t dif, uint8_t firstDataByte)
 {
     dif = dif & 0xF;
     if(dif == 0xD) return firstDataByte + 1;

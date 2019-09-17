@@ -6,10 +6,10 @@
 #include <homegear-base/BaseLib.h>
 #include "Crc16.h"
 
-namespace MyFamily
+namespace Mbus
 {
 
-class MyPacket : public BaseLib::Systems::Packet
+class MbusPacket : public BaseLib::Systems::Packet
 {
 public:
     enum class DifFunction
@@ -60,9 +60,9 @@ public:
         uint8_t keyId = 0;
     };
 
-    MyPacket();
-    MyPacket(std::vector<uint8_t>& packet);
-    virtual ~MyPacket();
+    MbusPacket();
+    MbusPacket(const std::vector<uint8_t>& packet);
+    ~MbusPacket() override;
 
     std::string getInfoString();
 
@@ -143,7 +143,7 @@ protected:
     uint32_t getDataSize(uint8_t dif, uint8_t firstDataByte);
 };
 
-typedef std::shared_ptr<MyPacket> PMyPacket;
+typedef std::shared_ptr<MbusPacket> PMbusPacket;
 
 }
 #endif

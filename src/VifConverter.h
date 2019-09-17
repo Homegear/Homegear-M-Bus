@@ -7,7 +7,7 @@
 
 using namespace BaseLib;
 
-namespace MyFamily
+namespace Mbus
 {
 
 class VifConverter

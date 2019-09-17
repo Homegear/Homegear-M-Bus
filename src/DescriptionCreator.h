@@ -4,11 +4,11 @@
 #define HOMEGEAR_MBUS_DESCRIPTIONCREATOR_H
 
 #include <homegear-base/BaseLib.h>
-#include "MyPacket.h"
+#include "MbusPacket.h"
 
 #include <sys/stat.h>
 
-namespace MyFamily
+namespace Mbus
 {
 
 class DescriptionCreator
@@ -24,7 +24,7 @@ public:
     DescriptionCreator();
     virtual ~DescriptionCreator() = default;
 
-    DescriptionCreator::PeerInfo createDescription(PMyPacket packet);
+    DescriptionCreator::PeerInfo createDescription(PMbusPacket packet);
 private:
     std::map<uint8_t, std::string> _vifVariableNameMap;
     std::map<uint8_t, std::string> _vifUnit;
@@ -37,7 +37,7 @@ private:
     void createDirectories();
     void createXmlMaintenanceChannel(PHomegearDevice& device);
     std::string getFreeParameterId(std::string baseId, PFunction& function);
-    void parseDataRecord(MyPacket::DataRecord& dataRecord, PParameter& parameter, PFunction& function, PPacket& packet);
+    void parseDataRecord(MbusPacket::DataRecord& dataRecord, PParameter& parameter, PFunction& function, PPacket& packet);
 };
 
 }

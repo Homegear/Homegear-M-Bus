@@ -7,24 +7,22 @@
 #define MY_FAMILY_NAME "M-Bus"
 
 #include <homegear-base/BaseLib.h>
-#include "MyFamily.h"
-#include "PhysicalInterfaces/IMBusInterface.h"
+#include "Mbus.h"
+#include "Interfaces.h"
 
-namespace MyFamily
+namespace Mbus
 {
 
 class GD
 {
 public:
-	virtual ~GD();
+    GD() = delete;
 
 	static BaseLib::SharedObjects* bl;
-	static MyFamily* family;
-	static std::map<std::string, std::shared_ptr<IMBusInterface>> physicalInterfaces;
-	static std::shared_ptr<IMBusInterface> defaultPhysicalInterface;
+	static Mbus* family;
+    static std::shared_ptr<Interfaces> interfaces;
 	static BaseLib::Output out;
 private:
-	GD();
 };
 
 }

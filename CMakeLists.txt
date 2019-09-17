@@ -8,24 +8,26 @@ set(SOURCE_FILES
         src/Crc16.h
         src/DescriptionCreator.cpp
         src/DescriptionCreator.h
-        src/PhysicalInterfaces/IMBusInterface.cpp
-        src/PhysicalInterfaces/IMBusInterface.h
+        src/PhysicalInterfaces/IMbusInterface.cpp
+        src/PhysicalInterfaces/IMbusInterface.h
         src/PhysicalInterfaces/Amber.cpp
         src/PhysicalInterfaces/Amber.h
+        src/PhysicalInterfaces/Hgdc.cpp
+        src/PhysicalInterfaces/Hgdc.h
         src/Factory.cpp
         src/Factory.h
         src/GD.cpp
         src/GD.h
         src/Interfaces.cpp
         src/Interfaces.h
-        src/MyCentral.cpp
-        src/MyCentral.h
-        src/MyFamily.cpp
-        src/MyFamily.h
-        src/MyPacket.cpp
-        src/MyPacket.h
-        src/MyPeer.cpp
-        src/MyPeer.h
+        src/MbusCentral.cpp
+        src/MbusCentral.h
+        src/Mbus.cpp
+        src/Mbus.h
+        src/MbusPacket.cpp
+        src/MbusPacket.h
+        src/MbusPeer.cpp
+        src/MbusPeer.h
         src/VifConverter.cpp
         src/VifConverter.h
         config.h)
