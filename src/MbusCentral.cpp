@@ -246,6 +246,11 @@ bool MbusCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLi
             if(deviceIterator != _devicesToPair.end())
             {
                 std::vector<uint8_t> key = BaseLib::HelperFunctions::getUBinary(deviceIterator->second);
+                if(myPacket->getEncryptionMode() != 0 && key.empty())
+                {
+                    _bl->out.printInfo("Info: Can't pair device " + BaseLib::HelperFunctions::getHexString(myPacket->senderAddress()) + ", because the communication is encrypted and the key is unknown.");
+                    return false;
+                }
                 if(!myPacket->decrypt(key) || !myPacket->dataValid()) return false;
                 if(myPacket->isEncrypted() && _bl->debugLevel >= 4) _bl->out.printInfo(BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender address: 0x" + BaseLib::HelperFunctions::getHexString(myPacket->senderAddress(), 8));
                 pairDevice(myPacket, key);

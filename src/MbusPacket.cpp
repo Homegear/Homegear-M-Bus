@@ -136,7 +136,12 @@ MbusPacket::MbusPacket(const std::vector<uint8_t>& packet) : MbusPacket()
                 _encryptionMode = _configuration & 0x1F;
 
                 size_t tplPos = 13;
-                if(_encryptionMode == 7)
+                if(_encryptionMode == 5)
+                {
+                    _mode5Info = Mode5Info();
+                    _mode5Info.blockCount = _configuration >> 12;
+                }
+                else if(_encryptionMode == 7)
                 {
                     _mode7Info = Mode7Info();
                     _mode7Info.messageCounterInTpl = _configuration & 0x20;
@@ -181,7 +186,12 @@ MbusPacket::MbusPacket(const std::vector<uint8_t>& packet) : MbusPacket()
                 _encryptionMode = _configuration & 0x1F;
 
                 size_t tplPos = 5;
-                if(_encryptionMode == 7)
+                if(_encryptionMode == 5)
+                {
+                    _mode5Info = Mode5Info();
+                    _mode5Info.blockCount = _configuration >> 12;
+                }
+                else if(_encryptionMode == 7)
                 {
                     _mode7Info = Mode7Info();
                     _mode7Info.messageCounterInTpl = _configuration & 0x20;
@@ -675,17 +685,27 @@ bool MbusPacket::decrypt(std::vector<uint8_t>& key)
         if(_isDecrypted) return true;
         if(_encryptionMode == 4 || _encryptionMode == 5)
         {
+            if(_mode5Info.blockCount == 0) _mode5Info.blockCount = _payload.size() / 16;
+
             BaseLib::Security::Gcrypt gcrypt(GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CBC, GCRY_CIPHER_SECURE);
-            gcrypt.setIv(_iv);
             gcrypt.setKey(key);
+            gcrypt.setIv(_iv);
+            std::vector<uint8_t> encrypted;
+            encrypted.insert(encrypted.end(), _payload.begin(), _payload.begin() + (_mode5Info.blockCount * 16));
             std::vector<uint8_t> decrypted;
-            gcrypt.decrypt(decrypted, _payload);
+            gcrypt.decrypt(decrypted, encrypted);
             if(decrypted.at(0) != 0x2F || decrypted.at(1) != 0x2F)
             {
                 return false; //Two "2F" at the beginning are required to verify correct decryption
             }
-            _payload = decrypted;
-            strip2F(_payload);
+            std::vector<uint8_t> unencryptedData;
+            if(encrypted.size() < _payload.size()) unencryptedData.insert(unencryptedData.end(), _payload.begin() + encrypted.size(), _payload.end());
+            strip2F(decrypted);
+            strip2F(unencryptedData);
+            _payload.clear();
+            _payload.reserve(decrypted.size() + unencryptedData.size());
+            _payload.insert(_payload.end(), decrypted.begin(), decrypted.end());
+            _payload.insert(_payload.end(), unencryptedData.begin(), unencryptedData.end());
             std::vector<uint8_t> packet;
             packet.reserve(_packet.size());
             packet.insert(packet.end(), _packet.begin(), _packet.end() - _payload.size());
@@ -805,8 +825,8 @@ bool MbusPacket::decrypt(std::vector<uint8_t>& key)
                 }
 
                 BaseLib::Security::Gcrypt gcrypt(GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CBC, GCRY_CIPHER_SECURE);
-                gcrypt.setIv(_iv);
                 gcrypt.setKey(derivedKey);
+                gcrypt.setIv(_iv);
                 std::vector<uint8_t> encrypted;
                 encrypted.insert(encrypted.end(), _payload.begin(), _payload.begin() + (_mode7Info.blockCount * 16));
                 std::vector<uint8_t> decrypted;

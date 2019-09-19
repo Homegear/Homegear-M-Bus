@@ -72,6 +72,15 @@ void Hgdc::startListening()
 {
     try
     {
+        std::string settingName = "mode";
+        auto modeSetting = GD::family->getFamilySetting(settingName);
+        if(modeSetting) _settings->mode = BaseLib::HelperFunctions::toLower(modeSetting->stringValue);
+        if(_settings->mode.empty() || (_settings->mode != "t" && _settings->mode != "s" && _settings->mode != "c"))
+        {
+            _out.printError("Warning: \"Mode\" is not set or invalid in \"mbus.conf\". Setting it to \"T\".");
+            _settings->mode = "t";
+        }
+
         _packetReceivedEventHandlerId = GD::bl->hgdc->registerPacketReceivedEventHandler(MY_FAMILY_ID, std::function<void(int64_t, const std::string&, const std::vector<uint8_t>&)>(std::bind(&Hgdc::processPacket, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)));
         _reconnectedEventHandlerId = GD::bl->hgdc->registerReconnectedEventHandler(std::function<void()>(std::bind(&Hgdc::reconnected, this)));
         IPhysicalInterface::startListening();
@@ -102,6 +111,12 @@ void Hgdc::stopListening()
 
 void Hgdc::reconnected()
 {
+    int32_t cycles = BaseLib::HelperFunctions::getRandomNumber(40, 100);
+    for(int32_t i = 0; i < cycles; i++)
+    {
+        if(_stopped) return;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
     init();
 }
 

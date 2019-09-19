@@ -50,6 +50,11 @@ public:
         uint16_t messageLength = 0;
     };
 
+    struct Mode5Info
+    {
+        uint8_t blockCount = 0;
+    };
+
     struct Mode7Info
     {
         bool messageCounterInTpl = false;
@@ -124,6 +129,7 @@ protected:
     uint8_t _status = 0;
     uint16_t _configuration = 0;
     uint8_t _encryptionMode = 0;
+    Mode5Info _mode5Info;
     Mode7Info _mode7Info;
     AflHeader _aflHeader;
     uint16_t _formatCrc = 0;
