@@ -72,6 +72,9 @@ void Hgdc::startListening()
 {
     try
     {
+        GD::bl->hgdc->unregisterReconnectedEventHandler(_reconnectedEventHandlerId);
+        GD::bl->hgdc->unregisterPacketReceivedEventHandler(_packetReceivedEventHandlerId);
+
         std::string settingName = "mode";
         auto modeSetting = GD::family->getFamilySetting(settingName);
         if(modeSetting) _settings->mode = BaseLib::HelperFunctions::toLower(modeSetting->stringValue);

@@ -117,8 +117,6 @@ void Interfaces::stopListening()
             GD::bl->hgdc->unregisterModuleUpdateEventHandler(_hgdcReconnectedEventHandlerId);
         }
 
-        GD::bl->threadManager.join(_workerThread);
-
         PhysicalInterfaces::stopListening();
     }
     catch(const std::exception& ex)
@@ -180,7 +178,7 @@ void Interfaces::hgdcReconnected()
             if(_stopped) return;
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
-        GD::bl->threadManager.start(_workerThread, true, &Interfaces::hgdcReconnectedThread, this);
+        _hgdcReconnected = true;
     }
     catch(const std::exception& ex)
     {
@@ -241,7 +239,8 @@ void Interfaces::hgdcModuleUpdate(const BaseLib::PVariable& modules)
 {
     try
     {
-        GD::bl->threadManager.start(_workerThread, true, &Interfaces::hgdcModulesAddedThread, this, modules);
+        std::lock_guard<std::mutex> interfaceGuard(_physicalInterfacesMutex);
+        _updatedHgdcModules = modules;
     }
     catch(const std::exception& ex)
     {
@@ -253,6 +252,8 @@ void Interfaces::hgdcReconnectedThread()
 {
     try
     {
+        if(!_hgdcReconnected) return;
+        _hgdcReconnected = false;
         createHgdcInterfaces(true);
     }
     catch(const std::exception& ex)
@@ -261,10 +262,19 @@ void Interfaces::hgdcReconnectedThread()
     }
 }
 
-void Interfaces::hgdcModulesAddedThread(BaseLib::PVariable modules)
+void Interfaces::hgdcModuleUpdateThread()
 {
     try
     {
+        BaseLib::PVariable modules;
+
+        {
+            std::lock_guard<std::mutex> interfaceGuard(_physicalInterfacesMutex);
+            modules = _updatedHgdcModules;
+        }
+
+        if(!modules) return;
+
         auto addedModules = std::make_shared<std::list<std::shared_ptr<BaseLib::Systems::IPhysicalInterface>>>();
 
         for(auto& module : *modules->structValue)
@@ -345,6 +355,29 @@ void Interfaces::hgdcModulesAddedThread(BaseLib::PVariable modules)
 
             module->startListening();
         }
+    }
+    catch(const std::exception& ex)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    }
+
+    try
+    {
+        std::lock_guard<std::mutex> interfaceGuard(_physicalInterfacesMutex);
+        _updatedHgdcModules.reset();
+    }
+    catch(const std::exception& ex)
+    {
+        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    }
+}
+
+void Interfaces::worker()
+{
+    try
+    {
+        hgdcModuleUpdateThread();
+        hgdcReconnectedThread();
     }
     catch(const std::exception& ex)
     {

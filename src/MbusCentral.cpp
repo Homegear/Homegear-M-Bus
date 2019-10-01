@@ -104,6 +104,7 @@ void MbusCentral::worker()
                 }
 
                 if(peer && !peer->deleting) peer->worker();
+                GD::interfaces->worker();
             }
             catch(const std::exception& ex)
             {
