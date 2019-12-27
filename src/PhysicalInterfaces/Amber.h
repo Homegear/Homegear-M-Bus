@@ -3,24 +3,24 @@
 #ifndef USB300_H_
 #define USB300_H_
 
-#include "../MyPacket.h"
-#include "IMBusInterface.h"
+#include "../MbusPacket.h"
+#include "IMbusInterface.h"
 #include <homegear-base/BaseLib.h>
 
-namespace MyFamily
+namespace Mbus
 {
 
-class Amber : public IMBusInterface
+class Amber : public IMbusInterface
 {
 public:
-	Amber(std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> settings);
-	virtual ~Amber();
+	explicit Amber(std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> settings);
+	~Amber() override;
 
-	virtual void startListening();
-	virtual void stopListening();
-	virtual void setup(int32_t userID, int32_t groupID, bool setPermissions);
+	void startListening() override;
+	void stopListening() override;
+	void setup(int32_t userID, int32_t groupID, bool setPermissions) override;
 
-	virtual bool isOpen() { return _serial && _serial->isOpen() && !_stopped; }
+	bool isOpen() override { return _serial && _serial->isOpen() && !_stopped; }
 protected:
 	std::unique_ptr<BaseLib::SerialReaderWriter> _serial;
     std::atomic_bool _initComplete;
@@ -32,7 +32,7 @@ protected:
 	void reconnect();
 	void listen();
 	bool setParameter(uint8_t address, uint8_t value);
-	virtual void rawSend(std::vector<uint8_t>& packet);
+	void rawSend(std::vector<uint8_t>& packet) override;
 	void processPacket(std::vector<uint8_t>& data);
 };
 

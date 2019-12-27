@@ -29,7 +29,7 @@
 
 #include "Crc16.h"
 
-namespace MyFamily
+namespace Mbus
 {
 
 Crc16::Crc16()

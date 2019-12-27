@@ -3,24 +3,24 @@
 #ifndef MYPEER_H_
 #define MYPEER_H_
 
-#include "PhysicalInterfaces/IMBusInterface.h"
-#include "MyPacket.h"
+#include "PhysicalInterfaces/IMbusInterface.h"
+#include "MbusPacket.h"
 #include "VifConverter.h"
 #include <homegear-base/BaseLib.h>
 
 using namespace BaseLib;
 using namespace BaseLib::DeviceDescription;
 
-namespace MyFamily
+namespace Mbus
 {
-class MyCentral;
+class MbusCentral;
 
-class MyPeer : public BaseLib::Systems::Peer, public BaseLib::Rpc::IWebserverEventSink
+class MbusPeer : public BaseLib::Systems::Peer, public BaseLib::Rpc::IWebserverEventSink
 {
 public:
-	MyPeer(uint32_t parentID, IPeerEventSink* eventHandler);
-	MyPeer(int32_t id, int32_t address, std::string serialNumber, uint32_t parentID, IPeerEventSink* eventHandler);
-	virtual ~MyPeer();
+	MbusPeer(uint32_t parentID, IPeerEventSink* eventHandler);
+	MbusPeer(int32_t id, int32_t address, std::string serialNumber, uint32_t parentID, IPeerEventSink* eventHandler);
+	virtual ~MbusPeer();
 	void init();
 	void dispose();
 
@@ -46,7 +46,7 @@ public:
 
     void worker();
 	virtual std::string handleCliCommand(std::string command);
-	void packetReceived(PMyPacket& packet);
+	void packetReceived(PMbusPacket& packet);
 
 	virtual bool load(BaseLib::Systems::ICentral* central);
     virtual void savePeers() {}
@@ -108,7 +108,7 @@ protected:
 
 	virtual std::shared_ptr<BaseLib::Systems::ICentral> getCentral();
 
-	void getValuesFromPacket(PMyPacket packet, std::vector<FrameValues>& frameValue);
+	void getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues>& frameValue);
 
 	virtual PParameterGroup getParameterSet(int32_t channel, ParameterGroup::Type::Enum type);
 
@@ -130,7 +130,7 @@ protected:
 	// }}}
 };
 
-typedef std::shared_ptr<MyPeer> PMyPeer;
+typedef std::shared_ptr<MbusPeer> PMyPeer;
 
 }
 

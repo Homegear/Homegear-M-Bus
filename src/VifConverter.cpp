@@ -3,7 +3,7 @@
 #include "VifConverter.h"
 #include "GD.h"
 
-namespace MyFamily
+namespace Mbus
 {
 
 PVariable VifConverter::getVariable(uint8_t type, std::vector<uint8_t>& vifs, const std::vector<uint8_t>& value)
@@ -115,14 +115,6 @@ PVariable VifConverter::getVariable(uint8_t type, std::vector<uint8_t>& vifs, co
     catch(const std::exception& ex)
     {
         GD::bl->out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(const Exception& ex)
-    {
-        GD::bl->out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        GD::bl->out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
     }
     return std::make_shared<Variable>();
 }
