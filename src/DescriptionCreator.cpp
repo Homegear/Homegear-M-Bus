@@ -3,7 +3,7 @@
 #include "DescriptionCreator.h"
 #include "GD.h"
 
-namespace MyFamily
+namespace Mbus
 {
 
 DescriptionCreator::DescriptionCreator()
@@ -588,7 +588,7 @@ DescriptionCreator::DescriptionCreator()
     _vifFdVariableNameMap[112] = "BATTERY_CHANGE_DATETIME";
 }
 
-DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMyPacket packet)
+DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMbusPacket packet)
 {
     try
     {
@@ -649,14 +649,6 @@ DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMyPacket pac
     {
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
 
     return PeerInfo();
 }
@@ -698,14 +690,6 @@ void DescriptionCreator::createDirectories()
     catch(const std::exception& ex)
     {
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(BaseLib::Exception& ex)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
     }
 }
 
@@ -753,7 +737,7 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice& device)
     // }}}
 }
 
-void DescriptionCreator::parseDataRecord(MyPacket::DataRecord& dataRecord, PParameter& parameter, PFunction& function, PPacket& packet)
+void DescriptionCreator::parseDataRecord(MbusPacket::DataRecord& dataRecord, PParameter& parameter, PFunction& function, PPacket& packet)
 {
     try
     {
@@ -847,14 +831,6 @@ void DescriptionCreator::parseDataRecord(MyPacket::DataRecord& dataRecord, PPara
     {
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
 }
 
 std::string DescriptionCreator::getFreeParameterId(std::string baseId, PFunction& function)
@@ -877,14 +853,6 @@ std::string DescriptionCreator::getFreeParameterId(std::string baseId, PFunction
     catch(const std::exception& ex)
     {
         GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(BaseLib::Exception& ex)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
     }
     return "";
 }

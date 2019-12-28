@@ -1,13 +1,13 @@
 /* Copyright 2013-2019 Homegear GmbH */
 
-#include "IMBusInterface.h"
+#include "IMbusInterface.h"
 #include "../GD.h"
-#include "../MyPacket.h"
+#include "../MbusPacket.h"
 
-namespace MyFamily
+namespace Mbus
 {
 
-IMBusInterface::IMBusInterface(std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> settings) : IPhysicalInterface(GD::bl, GD::family->getFamily(), settings)
+IMbusInterface::IMbusInterface(std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> settings) : IPhysicalInterface(GD::bl, GD::family->getFamily(), settings)
 {
 	_bl = GD::bl;
 
@@ -18,12 +18,12 @@ IMBusInterface::IMBusInterface(std::shared_ptr<BaseLib::Systems::PhysicalInterfa
 	}
 }
 
-IMBusInterface::~IMBusInterface()
+IMbusInterface::~IMbusInterface()
 {
 
 }
 
-void IMBusInterface::getResponse(std::vector<uint8_t>& requestPacket, std::vector<uint8_t>& responsePacket)
+void IMbusInterface::getResponse(std::vector<uint8_t>& requestPacket, std::vector<uint8_t>& responsePacket)
 {
 	try
     {
@@ -65,17 +65,9 @@ void IMBusInterface::getResponse(std::vector<uint8_t>& requestPacket, std::vecto
     {
         _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-        _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
 }
 
-void IMBusInterface::addCrc8(std::vector<uint8_t>& packet)
+void IMbusInterface::addCrc8(std::vector<uint8_t>& packet)
 {
     try
     {
@@ -92,21 +84,13 @@ void IMBusInterface::addCrc8(std::vector<uint8_t>& packet)
     {
         _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-        _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
 }
 
-void IMBusInterface::raisePacketReceived(std::shared_ptr<BaseLib::Systems::Packet> packet)
+void IMbusInterface::raisePacketReceived(std::shared_ptr<BaseLib::Systems::Packet> packet)
 {
     try
     {
-        PMyPacket myPacket(std::dynamic_pointer_cast<MyPacket>(packet));
+        PMbusPacket myPacket(std::dynamic_pointer_cast<MbusPacket>(packet));
         if(!myPacket) return;
 
         BaseLib::Systems::IPhysicalInterface::raisePacketReceived(packet);
@@ -114,14 +98,6 @@ void IMBusInterface::raisePacketReceived(std::shared_ptr<BaseLib::Systems::Packe
     catch(const std::exception& ex)
     {
         _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(BaseLib::Exception& ex)
-    {
-        _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-        _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
     }
 }
 }

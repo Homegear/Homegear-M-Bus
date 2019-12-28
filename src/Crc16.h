@@ -34,7 +34,7 @@
 #include <vector>
 #include <map>
 
-namespace MyFamily
+namespace Mbus
 {
 
 class Crc16

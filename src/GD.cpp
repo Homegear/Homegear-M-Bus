@@ -2,11 +2,10 @@
 
 #include "GD.h"
 
-namespace MyFamily
+namespace Mbus
 {
 	BaseLib::SharedObjects* GD::bl = nullptr;
-	MyFamily* GD::family = nullptr;
-	std::map<std::string, std::shared_ptr<IMBusInterface>> GD::physicalInterfaces;
-	std::shared_ptr<IMBusInterface> GD::defaultPhysicalInterface;
+	Mbus* GD::family = nullptr;
+    std::shared_ptr<Interfaces> GD::interfaces;
 	BaseLib::Output GD::out;
 }

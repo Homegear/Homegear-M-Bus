@@ -5,14 +5,14 @@
 
 #include <homegear-base/BaseLib.h>
 
-namespace MyFamily
+namespace Mbus
 {
 
-class IMBusInterface : public BaseLib::Systems::IPhysicalInterface
+class IMbusInterface : public BaseLib::Systems::IPhysicalInterface
 {
 public:
-	IMBusInterface(std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> settings);
-	virtual ~IMBusInterface();
+	IMbusInterface(std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> settings);
+	virtual ~IMbusInterface();
 
 	virtual void startListening() {}
 	virtual void stopListening() {}

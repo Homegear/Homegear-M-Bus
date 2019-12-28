@@ -7,15 +7,15 @@
 
 using namespace BaseLib;
 
-namespace MyFamily
+namespace Mbus
 {
-class MyCentral;
+class MbusCentral;
 
-class MyFamily : public BaseLib::Systems::DeviceFamily
+class Mbus : public BaseLib::Systems::DeviceFamily
 {
 public:
-	MyFamily(BaseLib::SharedObjects* bl, BaseLib::Systems::IFamilyEventSink* eventHandler);
-	virtual ~MyFamily();
+	Mbus(BaseLib::SharedObjects* bl, BaseLib::Systems::IFamilyEventSink* eventHandler);
+	virtual ~Mbus();
 	virtual bool init();
 	virtual void dispose();
 

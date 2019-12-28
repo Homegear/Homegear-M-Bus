@@ -2,28 +2,29 @@
 
 #include "GD.h"
 #include "Interfaces.h"
-#include "MyFamily.h"
-#include "MyCentral.h"
+#include "Mbus.h"
+#include "MbusCentral.h"
 
-namespace MyFamily
+namespace Mbus
 {
 
-MyFamily::MyFamily(BaseLib::SharedObjects* bl, BaseLib::Systems::IFamilyEventSink* eventHandler) : BaseLib::Systems::DeviceFamily(bl, eventHandler, MY_FAMILY_ID, MY_FAMILY_NAME)
+Mbus::Mbus(BaseLib::SharedObjects* bl, BaseLib::Systems::IFamilyEventSink* eventHandler) : BaseLib::Systems::DeviceFamily(bl, eventHandler, MY_FAMILY_ID, MY_FAMILY_NAME)
 {
 	GD::bl = bl;
 	GD::family = this;
 	GD::out.init(bl);
 	GD::out.setPrefix(std::string("Module ") + MY_FAMILY_NAME + ": ");
 	GD::out.printDebug("Debug: Loading module...");
-	_physicalInterfaces.reset(new Interfaces(bl, _settings->getPhysicalInterfaceSettings()));
+    GD::interfaces = std::make_shared<Interfaces>(bl, _settings->getPhysicalInterfaceSettings());
+    _physicalInterfaces = GD::interfaces;
 }
 
-MyFamily::~MyFamily()
+Mbus::~Mbus()
 {
 
 }
 
-bool MyFamily::init()
+bool Mbus::init()
 {
 	_bl->out.printInfo("Loading XML RPC devices...");
 	std::string xmlPath = _bl->settings.familyDataPath() + std::to_string(GD::family->getFamily()) + "/desc/";
@@ -33,48 +34,41 @@ bool MyFamily::init()
 	return true;
 }
 
-void MyFamily::dispose()
+void Mbus::dispose()
 {
 	if(_disposed) return;
 	DeviceFamily::dispose();
-
 	_central.reset();
+    GD::interfaces.reset();
+    _physicalInterfaces.reset();
 }
 
-void MyFamily::reloadRpcDevices()
+void Mbus::reloadRpcDevices()
 {
 	_bl->out.printInfo("Reloading XML RPC devices...");
 	std::string xmlPath = _bl->settings.familyDataPath() + std::to_string(GD::family->getFamily()) + "/desc/";
 	if(BaseLib::Io::directoryExists(xmlPath)) _rpcDevices->load(xmlPath);
 }
 
-void MyFamily::createCentral()
+void Mbus::createCentral()
 {
 	try
 	{
-		_central.reset(new MyCentral(0, "VMBUS00001", this));
+		_central.reset(new MbusCentral(0, "VMBUS00001", this));
 		GD::out.printMessage("Created central with id " + std::to_string(_central->getId()) + ".");
 	}
 	catch(const std::exception& ex)
     {
     	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
     }
-    catch(BaseLib::Exception& ex)
-    {
-    	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-    }
-    catch(...)
-    {
-    	GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
-    }
 }
 
-std::shared_ptr<BaseLib::Systems::ICentral> MyFamily::initializeCentral(uint32_t deviceId, int32_t address, std::string serialNumber)
+std::shared_ptr<BaseLib::Systems::ICentral> Mbus::initializeCentral(uint32_t deviceId, int32_t address, std::string serialNumber)
 {
-	return std::shared_ptr<MyCentral>(new MyCentral(deviceId, serialNumber, this));
+	return std::shared_ptr<MbusCentral>(new MbusCentral(deviceId, serialNumber, this));
 }
 
-PVariable MyFamily::getPairingInfo()
+PVariable Mbus::getPairingInfo()
 {
 	try
 	{
@@ -86,14 +80,6 @@ PVariable MyFamily::getPairingInfo()
 	catch(const std::exception& ex)
 	{
 		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-	}
-	catch(BaseLib::Exception& ex)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
-	}
-	catch(...)
-	{
-		GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 	return Variable::createError(-32500, "Unknown application error.");
 }

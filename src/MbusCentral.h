@@ -3,8 +3,8 @@
 #ifndef MYCENTRAL_H_
 #define MYCENTRAL_H_
 
-#include "MyPeer.h"
-#include "MyPacket.h"
+#include "MbusPeer.h"
+#include "MbusPacket.h"
 #include "DescriptionCreator.h"
 #include <homegear-base/BaseLib.h>
 
@@ -12,21 +12,21 @@
 #include <mutex>
 #include <string>
 
-namespace MyFamily
+namespace Mbus
 {
 
-class MyCentral : public BaseLib::Systems::ICentral
+class MbusCentral : public BaseLib::Systems::ICentral
 {
 public:
-	MyCentral(ICentralEventSink* eventHandler);
-	MyCentral(uint32_t deviceType, std::string serialNumber, ICentralEventSink* eventHandler);
-	virtual ~MyCentral();
+	MbusCentral(ICentralEventSink* eventHandler);
+	MbusCentral(uint32_t deviceType, std::string serialNumber, ICentralEventSink* eventHandler);
+	virtual ~MbusCentral();
 	virtual void dispose(bool wait = true);
 
 	std::string handleCliCommand(std::string command);
 	virtual bool onPacketReceived(std::string& senderId, std::shared_ptr<BaseLib::Systems::Packet> packet);
 
-	uint64_t getPeerIdFromSerial(std::string& serialNumber) { std::shared_ptr<MyPeer> peer = getPeer(serialNumber); if(peer) return peer->getID(); else return 0; }
+	uint64_t getPeerIdFromSerial(std::string& serialNumber) { std::shared_ptr<MbusPeer> peer = getPeer(serialNumber); if(peer) return peer->getID(); else return 0; }
 	PMyPeer getPeer(uint64_t id);
 	PMyPeer getPeer(int32_t address);
 	PMyPeer getPeer(std::string serialNumber);
@@ -40,7 +40,7 @@ public:
 protected:
 	bool _sniff = false;
 	std::mutex _sniffedPacketsMutex;
-	std::map<int32_t, std::vector<PMyPacket>> _sniffedPackets;
+	std::map<int32_t, std::vector<PMbusPacket>> _sniffedPackets;
 
 	std::atomic_bool _stopPairingModeThread;
 	std::mutex _pairingModeThreadMutex;
@@ -59,11 +59,11 @@ protected:
 	virtual void savePeers(bool full);
 	virtual void loadVariables() {}
 	virtual void saveVariables() {}
-	std::shared_ptr<MyPeer> createPeer(uint32_t deviceType, int32_t address, std::string serialNumber, bool save = true);
+	std::shared_ptr<MbusPeer> createPeer(uint32_t deviceType, int32_t address, std::string serialNumber, bool save = true);
 	void deletePeer(uint64_t id);
 
 	void pairingModeTimer(int32_t duration, bool debugOutput = true);
-	void pairDevice(PMyPacket packet, std::vector<uint8_t>& key);
+	void pairDevice(PMbusPacket packet, std::vector<uint8_t>& key);
 };
 
 }
