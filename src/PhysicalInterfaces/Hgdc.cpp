@@ -146,11 +146,11 @@ void Hgdc::init()
             setParameter(5, 1);
         }
 
-        if(parameters.at(10) != 250)
+        if(parameters.at(10) != 128)
         {
             settingsChanged = true;
-            _out.printInfo("Info: Setting APP_MAXPacketLength from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(10), 2) + " to 250");
-            setParameter(10, 250);
+            _out.printInfo("Info: Setting APP_MAXPacketLength from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(10), 2) + " to 128");
+            setParameter(10, 128);
         }
 
         if(parameters.at(11) != 0)
@@ -184,7 +184,7 @@ void Hgdc::init()
         if(parameters.at(63) != 0)
         {
             settingsChanged = true;
-            _out.printInfo("Info: Setting RF_AutoSleep from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(63), 2) + " to 6");
+            _out.printInfo("Info: Setting RF_AutoSleep from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(63), 2) + " to 0");
             setParameter(63, 0);
         }
 
