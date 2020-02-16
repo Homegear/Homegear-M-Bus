@@ -31,7 +31,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t>& packet) : MbusPacket()
     _packet = packet;
 	_timeReceived = BaseLib::HelperFunctions::getTime();
     _rssi = packet.at(packet.size() - 2);
-    if(_rssi >= 128) _rssi = ((_rssi - 256) / 2) - 74; //From Amber wireless datasheet
+    if(_rssi >= 128) _rssi = ((_rssi - 256) / 2) - 74; //From Amber wireless datasheet and CC1101/CC110L datasheet
     else _rssi = (_rssi / 2) - 74;
 
     _command = packet.at(1);
