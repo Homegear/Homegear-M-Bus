@@ -828,7 +828,7 @@ std::string MbusCentral::handleCliCommand(std::string command)
             std::string senderId = "TestInterface";
             onPacketReceived(senderId, packet);
 
-            stringStream << "Packet processed." << std::endl;
+            stringStream << "Packet processed. Packet info:" << std::endl << packet->getInfoString() << std::endl;
             return stringStream.str();
         }
         else if(BaseLib::HelperFunctions::checkCliCommand(command, "crc", "", "", 1, arguments, showHelp))
