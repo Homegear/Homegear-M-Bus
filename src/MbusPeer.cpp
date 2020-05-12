@@ -349,7 +349,7 @@ void MbusPeer::setRssiDevice(uint8_t rssi)
 
 			std::shared_ptr<std::vector<std::string>> valueKeys(new std::vector<std::string>({std::string("RSSI_DEVICE")}));
 			std::shared_ptr<std::vector<PVariable>> rpcValues(new std::vector<PVariable>());
-			rpcValues->push_back(parameter.rpcParameter->convertFromPacket(parameterData));
+			rpcValues->push_back(parameter.rpcParameter->convertFromPacket(parameterData, parameter.invert(), false));
 
             std::string eventSource = "device-" + std::to_string(_peerID);
             std::string address = _serialNumber + ":0";
@@ -620,8 +620,9 @@ bool MbusPeer::getAllValuesHook2(PRpcClientInfo clientInfo, PParameter parameter
 			if(parameter->id == "PEER_ID")
 			{
 				std::vector<uint8_t> parameterData;
-				parameter->convertToPacket(PVariable(new Variable((int32_t)_peerID)), parameterData);
-				valuesCentral[channel][parameter->id].setBinaryData(parameterData);
+				auto& rpcConfigurationParameter = valuesCentral[channel][parameter->id];
+				parameter->convertToPacket(PVariable(new Variable((int32_t)_peerID)), rpcConfigurationParameter.invert(), parameterData);
+                rpcConfigurationParameter.setBinaryData(parameterData);
 			}
 		}
 	}
@@ -641,8 +642,9 @@ bool MbusPeer::getParamsetHook2(PRpcClientInfo clientInfo, PParameter parameter,
 			if(parameter->id == "PEER_ID")
 			{
 				std::vector<uint8_t> parameterData;
-				parameter->convertToPacket(PVariable(new Variable((int32_t)_peerID)), parameterData);
-				valuesCentral[channel][parameter->id].setBinaryData(parameterData);
+                auto& rpcConfigurationParameter = valuesCentral[channel][parameter->id];
+				parameter->convertToPacket(PVariable(new Variable((int32_t)_peerID)), rpcConfigurationParameter.invert(), parameterData);
+                rpcConfigurationParameter.setBinaryData(parameterData);
 			}
 		}
 	}
@@ -702,7 +704,7 @@ PVariable MbusPeer::putParamset(BaseLib::PRpcClientInfo clientInfo, int32_t chan
 				if(!parameter.rpcParameter) continue;
 				if(parameter.rpcParameter->password && i->second->stringValue.empty()) continue; //Don't safe password if empty
 				std::vector<uint8_t> parameterData;
-				parameter.rpcParameter->convertToPacket(i->second, parameterData);
+				parameter.rpcParameter->convertToPacket(i->second, parameter.invert(), parameterData);
 				parameter.setBinaryData(parameterData);
 				if(parameter.databaseId > 0) saveParameter(parameter.databaseId, parameterData);
 				else saveParameter(0, ParameterGroup::Type::Enum::config, channel, i->first, parameterData);
@@ -727,7 +729,7 @@ PVariable MbusPeer::putParamset(BaseLib::PRpcClientInfo clientInfo, int32_t chan
 		{
 			return Variable::createError(-3, "Parameter set type is not supported.");
 		}
-		return PVariable(new Variable(VariableType::tVoid));
+		return std::make_shared<Variable>(VariableType::tVoid);
 	}
 	catch(const std::exception& ex)
     {

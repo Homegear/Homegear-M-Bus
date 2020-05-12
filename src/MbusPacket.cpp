@@ -353,7 +353,7 @@ std::string MbusPacket::getInfoString()
             info += std::string(" - P-field:           ") + (_ellInfo.communicationControlField.bitField.priorityField ? "true" : "false") + "\n";
             info += std::string(" - A-field:           ") + (_ellInfo.communicationControlField.bitField.accessibilityField ? "true" : "false") + "\n";
             info += std::string(" - R-field:           ") + (_ellInfo.communicationControlField.bitField.repeatedAccessField ? "true" : "false") + "\n";
-            info += " - Access number: 0x" + BaseLib::HelperFunctions::getHexString(_ellInfo.accessNumber) + "\n";
+            info += std::string(" - Access number:     0x") + BaseLib::HelperFunctions::getHexString(_ellInfo.accessNumber) + "\n";
             if(_ellInfo.controlInformation == 0x8D || _ellInfo.controlInformation == 0x8F)
             {
                 info += std::string(" - Encryption method: 0x") + BaseLib::HelperFunctions::getHexString(_ellInfo.sessionNumberField.bitField.encryptionField) + "\n";
@@ -754,7 +754,7 @@ std::vector<uint8_t> MbusPacket::getPosition(uint32_t position, uint32_t size)
     return std::vector<uint8_t>();
 }
 
-bool MbusPacket::decrypt(std::vector<uint8_t>& key)
+bool MbusPacket::decrypt(const std::vector<uint8_t>& key)
 {
     try
     {
@@ -770,10 +770,10 @@ bool MbusPacket::decrypt(std::vector<uint8_t>& key)
             encrypted.insert(encrypted.end(), _payload.begin(), _payload.begin() + (_mode5Info.blockCount * 16));
             std::vector<uint8_t> decrypted;
             gcrypt.decrypt(decrypted, encrypted);
-            if(decrypted.at(0) != 0x2F || decrypted.at(1) != 0x2F)
+            /*if(decrypted.at(0) != 0x2F || decrypted.at(1) != 0x2F)
             {
                 return false; //Two "2F" at the beginning are required to verify correct decryption
-            }
+            }*/
             std::vector<uint8_t> unencryptedData;
             if(encrypted.size() < _payload.size()) unencryptedData.insert(unencryptedData.end(), _payload.begin() + encrypted.size(), _payload.end());
             strip2F(decrypted);
@@ -991,7 +991,7 @@ void MbusPacket::parsePayload()
             _formatCrc = (((uint16_t)_payload.at(2)) << 8) | _payload.at(1);
         }
 
-        //Skip first three for format packets. The format packet starts with length + 2 unknown bytes.
+        //Skip first three bytes for format packets. The format packet starts with length + 2 unknown bytes.
         //Each compact data packet starts with these 2 unknown bytes + 2 additional random unknown bytes
         uint32_t dataPos = 4;
         uint32_t nopCount = 0;
