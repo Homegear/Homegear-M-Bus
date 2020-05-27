@@ -349,7 +349,7 @@ void MbusPeer::setRssiDevice(uint8_t rssi)
 
 			std::shared_ptr<std::vector<std::string>> valueKeys(new std::vector<std::string>({std::string("RSSI_DEVICE")}));
 			std::shared_ptr<std::vector<PVariable>> rpcValues(new std::vector<PVariable>());
-			rpcValues->push_back(parameter.rpcParameter->convertFromPacket(parameterData, parameter.invert(), false));
+			rpcValues->push_back(parameter.rpcParameter->convertFromPacket(parameterData, parameter.mainRole(), false));
 
             std::string eventSource = "device-" + std::to_string(_peerID);
             std::string address = _serialNumber + ":0";
@@ -621,7 +621,7 @@ bool MbusPeer::getAllValuesHook2(PRpcClientInfo clientInfo, PParameter parameter
 			{
 				std::vector<uint8_t> parameterData;
 				auto& rpcConfigurationParameter = valuesCentral[channel][parameter->id];
-				parameter->convertToPacket(PVariable(new Variable((int32_t)_peerID)), rpcConfigurationParameter.invert(), parameterData);
+				parameter->convertToPacket(PVariable(new Variable((int32_t)_peerID)), rpcConfigurationParameter.mainRole(), parameterData);
                 rpcConfigurationParameter.setBinaryData(parameterData);
 			}
 		}
@@ -643,7 +643,7 @@ bool MbusPeer::getParamsetHook2(PRpcClientInfo clientInfo, PParameter parameter,
 			{
 				std::vector<uint8_t> parameterData;
                 auto& rpcConfigurationParameter = valuesCentral[channel][parameter->id];
-				parameter->convertToPacket(PVariable(new Variable((int32_t)_peerID)), rpcConfigurationParameter.invert(), parameterData);
+				parameter->convertToPacket(PVariable(new Variable((int32_t)_peerID)), rpcConfigurationParameter.mainRole(), parameterData);
                 rpcConfigurationParameter.setBinaryData(parameterData);
 			}
 		}
@@ -704,7 +704,7 @@ PVariable MbusPeer::putParamset(BaseLib::PRpcClientInfo clientInfo, int32_t chan
 				if(!parameter.rpcParameter) continue;
 				if(parameter.rpcParameter->password && i->second->stringValue.empty()) continue; //Don't safe password if empty
 				std::vector<uint8_t> parameterData;
-				parameter.rpcParameter->convertToPacket(i->second, parameter.invert(), parameterData);
+				parameter.rpcParameter->convertToPacket(i->second, parameter.mainRole(), parameterData);
 				parameter.setBinaryData(parameterData);
 				if(parameter.databaseId > 0) saveParameter(parameter.databaseId, parameterData);
 				else saveParameter(0, ParameterGroup::Type::Enum::config, channel, i->first, parameterData);
