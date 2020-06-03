@@ -307,7 +307,7 @@ void Hgdc::processPacket(int64_t familyId, const std::string& serialNumber, cons
 
         if(data.size() < 5)
         {
-            _out.printError("Error: Too small packet received: " + BaseLib::HelperFunctions::getHexString(data));
+            _out.printInfo("Info: Too small packet received: " + BaseLib::HelperFunctions::getHexString(data));
             return;
         }
 
@@ -318,7 +318,7 @@ void Hgdc::processPacket(int64_t familyId, const std::string& serialNumber, cons
         }
         if(crc8 != data.back())
         {
-            _out.printError("Error: CRC failed for packet: " + BaseLib::HelperFunctions::getHexString(data));
+            _out.printInfo("Info: CRC failed for packet: " + BaseLib::HelperFunctions::getHexString(data));
             return;
         }
 
