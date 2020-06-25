@@ -116,133 +116,136 @@ void Hgdc::init()
     {
         _initComplete = false;
 
-        std::vector<uint8_t> parameters;
-        std::vector<uint8_t> response;
-        //{{{ Query all parameters
-        for(int32_t i = 0; i < 5; i++)
+        if(_settings->type == "hgdc1700")
         {
-            std::vector<uint8_t> data{ 0xFF, CMD_GET_REQ, 0x02, 0x00, 80, 0x00 };
-            addCrc8(data);
-            getResponse(data, response);
-            if(response.size() != 86 || response[3] != 0 || response[4] != 80)
-            {
-                if(i < 4) continue;
-                _out.printError("Error executing CMD_GET_REQ on device. Response was: " + BaseLib::HelperFunctions::getHexString(response));
-                _stopped = true;
-                return;
-            }
-            parameters.insert(parameters.end(), response.begin() + 5, response.end() - 1);
-            break;
-        }
-        //}}}
-
-        if(parameters.size() != 80) return;
-
-        bool settingsChanged = false;
-        if(parameters.at(5) != 1)
-        {
-            settingsChanged = true;
-            _out.printInfo("Info: Setting UART_CMD_Out_Enable from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(5), 2) + " to 1");
-            setParameter(5, 1);
-        }
-
-        if(parameters.at(10) != 128)
-        {
-            settingsChanged = true;
-            _out.printInfo("Info: Setting APP_MAXPacketLength from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(10), 2) + " to 128");
-            setParameter(10, 128);
-        }
-
-        if(parameters.at(11) != 0)
-        {
-            settingsChanged = true;
-            _out.printInfo("Info: Setting APP_AES_Enable from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(11), 2) + " to 0");
-            setParameter(11, 0);
-        }
-
-        if(parameters.at(43) != 0)
-        {
-            settingsChanged = true;
-            _out.printInfo("Info: Setting MBUS_RXTimeout from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(43), 2) + " to 0");
-            setParameter(43, 0);
-        }
-
-        if(parameters.at(44) != 0) //Not needed for all wM-Bus modes. S and T always use format A.
-        {
-            settingsChanged = true;
-            _out.printInfo("Info: Setting MBUS_FrameFormat from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(44), 2) + " to 0");
-            setParameter(44, 0);
-        }
-
-        if(parameters.at(61) != 6)
-        {
-            settingsChanged = true;
-            _out.printInfo("Info: Setting RF_Power from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(61), 2) + " to 6");
-            setParameter(61, 6);
-        }
-
-        if(parameters.at(63) != 0)
-        {
-            settingsChanged = true;
-            _out.printInfo("Info: Setting RF_AutoSleep from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(63), 2) + " to 0");
-            setParameter(63, 0);
-        }
-
-        if(parameters.at(69) != 1)
-        {
-            settingsChanged = true;
-            _out.printInfo("Info: Setting RSSI_Enable from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(69), 2) + " to 1");
-            setParameter(69, 1);
-        }
-
-        if(_settings->mode == "c")
-        {
-            if(parameters.at(70) != 0x0E)
-            {
-                settingsChanged = true;
-                _out.printInfo("Info: Setting Mode_Preselect from 0x" + BaseLib::HelperFunctions::getHexString((int32_t) parameters.at(70), 2) + " to 0x0E (C2 other)");
-                setParameter(70, 0x0E);
-            }
-        }
-        else if(_settings->mode == "t")
-        {
-            if(parameters.at(70) != 0x08)
-            {
-                settingsChanged = true;
-                _out.printInfo("Info: Setting Mode_Preselect from 0x" + BaseLib::HelperFunctions::getHexString((int32_t) parameters.at(70), 2) + " to 0x0E (T2 other)");
-                setParameter(70, 0x08);
-            }
-        }
-        else if(_settings->mode == "s")
-        {
-            if(parameters.at(70) != 0x03)
-            {
-                settingsChanged = true;
-                _out.printInfo("Info: Setting Mode_Preselect from 0x" + BaseLib::HelperFunctions::getHexString((int32_t) parameters.at(70), 2) + " to 0x0E (S2)");
-                setParameter(70, 0x03);
-            }
-        }
-
-        if(settingsChanged)
-        {
-            //Reset
+            std::vector<uint8_t> parameters;
+            std::vector<uint8_t> response;
+            //{{{ Query all parameters
             for(int32_t i = 0; i < 5; i++)
             {
-                std::vector<uint8_t> data{ 0xFF, CMD_RESET_REQ, 0x00, 0x00 };
+                std::vector<uint8_t> data{0xFF, CMD_GET_REQ, 0x02, 0x00, 80, 0x00};
                 addCrc8(data);
                 getResponse(data, response);
-                if(response.size() != 5 || response[3] != 0)
+                if(response.size() != 86 || response[3] != 0 || response[4] != 80)
                 {
                     if(i < 4) continue;
-                    _out.printError("Error executing CMD_RESET_REQ on device. Response was: " + BaseLib::HelperFunctions::getHexString(response));
+                    _out.printError("Error executing CMD_GET_REQ on device. Response was: " + BaseLib::HelperFunctions::getHexString(response));
                     _stopped = true;
                     return;
                 }
+                parameters.insert(parameters.end(), response.begin() + 5, response.end() - 1);
                 break;
+            }
+            //}}}
+
+            if(parameters.size() != 80) return;
+
+            bool settingsChanged = false;
+            if(parameters.at(5) != 1)
+            {
+                settingsChanged = true;
+                _out.printInfo("Info: Setting UART_CMD_Out_Enable from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(5), 2) + " to 1");
+                setParameter(5, 1);
+            }
+
+            if(parameters.at(10) != 128)
+            {
+                settingsChanged = true;
+                _out.printInfo("Info: Setting APP_MAXPacketLength from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(10), 2) + " to 128");
+                setParameter(10, 128);
+            }
+
+            if(parameters.at(11) != 0)
+            {
+                settingsChanged = true;
+                _out.printInfo("Info: Setting APP_AES_Enable from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(11), 2) + " to 0");
+                setParameter(11, 0);
+            }
+
+            if(parameters.at(43) != 0)
+            {
+                settingsChanged = true;
+                _out.printInfo("Info: Setting MBUS_RXTimeout from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(43), 2) + " to 0");
+                setParameter(43, 0);
+            }
+
+            if(parameters.at(44) != 0) //Not needed for all wM-Bus modes. S and T always use format A.
+            {
+                settingsChanged = true;
+                _out.printInfo("Info: Setting MBUS_FrameFormat from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(44), 2) + " to 0");
+                setParameter(44, 0);
+            }
+
+            if(parameters.at(61) != 6)
+            {
+                settingsChanged = true;
+                _out.printInfo("Info: Setting RF_Power from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(61), 2) + " to 6");
+                setParameter(61, 6);
+            }
+
+            if(parameters.at(63) != 0)
+            {
+                settingsChanged = true;
+                _out.printInfo("Info: Setting RF_AutoSleep from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(63), 2) + " to 0");
+                setParameter(63, 0);
+            }
+
+            if(parameters.at(69) != 1)
+            {
+                settingsChanged = true;
+                _out.printInfo("Info: Setting RSSI_Enable from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(69), 2) + " to 1");
+                setParameter(69, 1);
+            }
+
+            if(_settings->mode == "c")
+            {
+                if(parameters.at(70) != 0x0E)
+                {
+                    settingsChanged = true;
+                    _out.printInfo("Info: Setting Mode_Preselect from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(70), 2) + " to 0x0E (C2 other)");
+                    setParameter(70, 0x0E);
+                }
+            }
+            else if(_settings->mode == "t")
+            {
+                if(parameters.at(70) != 0x08)
+                {
+                    settingsChanged = true;
+                    _out.printInfo("Info: Setting Mode_Preselect from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(70), 2) + " to 0x0E (T2 other)");
+                    setParameter(70, 0x08);
+                }
+            }
+            else if(_settings->mode == "s")
+            {
+                if(parameters.at(70) != 0x03)
+                {
+                    settingsChanged = true;
+                    _out.printInfo("Info: Setting Mode_Preselect from 0x" + BaseLib::HelperFunctions::getHexString((int32_t)parameters.at(70), 2) + " to 0x0E (S2)");
+                    setParameter(70, 0x03);
+                }
+            }
+
+            if(settingsChanged)
+            {
+                //Reset
+                for(int32_t i = 0; i < 5; i++)
+                {
+                    std::vector<uint8_t> data{0xFF, CMD_RESET_REQ, 0x00, 0x00};
+                    addCrc8(data);
+                    getResponse(data, response);
+                    if(response.size() != 5 || response[3] != 0)
+                    {
+                        if(i < 4) continue;
+                        _out.printError("Error executing CMD_RESET_REQ on device. Response was: " + BaseLib::HelperFunctions::getHexString(response));
+                        _stopped = true;
+                        return;
+                    }
+                    break;
+                }
             }
         }
 
-        _out.printInfo("Init complete.");
+        _out.printInfo("Init complete (device type: " + _settings->type + ").");
 
         _initComplete = true;
     }
@@ -304,7 +307,7 @@ void Hgdc::processPacket(int64_t familyId, const std::string& serialNumber, cons
 
         if(data.size() < 5)
         {
-            _out.printError("Error: Too small packet received: " + BaseLib::HelperFunctions::getHexString(data));
+            _out.printInfo("Info: Too small packet received: " + BaseLib::HelperFunctions::getHexString(data));
             return;
         }
 
@@ -315,7 +318,7 @@ void Hgdc::processPacket(int64_t familyId, const std::string& serialNumber, cons
         }
         if(crc8 != data.back())
         {
-            _out.printError("Error: CRC failed for packet: " + BaseLib::HelperFunctions::getHexString(data));
+            _out.printInfo("Info: CRC failed for packet: " + BaseLib::HelperFunctions::getHexString(data));
             return;
         }
 
