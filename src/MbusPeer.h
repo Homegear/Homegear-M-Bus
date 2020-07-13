@@ -99,34 +99,33 @@ protected:
 	bool _shuttingDown = false;
 
 	uint32_t _lastRssiDevice = 0;
-	VifConverter _vifConverter;
 
-	virtual void loadVariables(BaseLib::Systems::ICentral* central, std::shared_ptr<BaseLib::Database::DataTable>& rows);
-    virtual void saveVariables();
+	void loadVariables(BaseLib::Systems::ICentral* central, std::shared_ptr<BaseLib::Database::DataTable>& rows) override;
+    void saveVariables() override;
 
     void setRssiDevice(uint8_t rssi);
 
-	virtual std::shared_ptr<BaseLib::Systems::ICentral> getCentral();
+	std::shared_ptr<BaseLib::Systems::ICentral> getCentral() override;
 
 	void getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues>& frameValue);
 
-	virtual PParameterGroup getParameterSet(int32_t channel, ParameterGroup::Type::Enum type);
+	PParameterGroup getParameterSet(int32_t channel, ParameterGroup::Type::Enum type) override;
 
 	// {{{ Hooks
 		/**
 		 * {@inheritDoc}
 		 */
-		virtual bool getAllValuesHook2(PRpcClientInfo clientInfo, PParameter parameter, uint32_t channel, PVariable parameters);
+		bool getAllValuesHook2(PRpcClientInfo clientInfo, PParameter parameter, uint32_t channel, PVariable parameters) override;
 
 		/**
 		 * {@inheritDoc}
 		 */
-		virtual bool getParamsetHook2(PRpcClientInfo clientInfo, PParameter parameter, uint32_t channel, PVariable parameters);
+		bool getParamsetHook2(PRpcClientInfo clientInfo, PParameter parameter, uint32_t channel, PVariable parameters) override;
 
 		/**
 		 * {@inheritDoc}
 		 */
-		virtual bool convertFromPacketHook(PParameter parameter, std::vector<uint8_t>& data, PVariable& result);
+		bool convertFromPacketHook(BaseLib::Systems::RpcConfigurationParameter& parameter, std::vector<uint8_t>& data, PVariable& result) override;
 	// }}}
 };
 

@@ -548,11 +548,11 @@ void MbusPeer::packetReceived(PMbusPacket& packet)
                             }
                             else if(parameter.rpcParameter->logical->type == ILogical::Type::Enum::tBoolean)
                             {
-                                serviceMessages->set(i->first, _vifConverter.getVariable(type, vifs, i->second.value)->booleanValue);
+                                serviceMessages->set(i->first, VifConverter::getVariable(type, vifs, i->second.value)->booleanValue);
                             }
                         }
 
-                        BaseLib::PVariable value = _vifConverter.getVariable(type, vifs, i->second.value);
+                        BaseLib::PVariable value = VifConverter::getVariable(type, vifs, i->second.value);
 
                         if(i->first == "DATE" || i->first == "DATETIME")
                         {
@@ -655,19 +655,19 @@ bool MbusPeer::getParamsetHook2(PRpcClientInfo clientInfo, PParameter parameter,
     return false;
 }
 
-bool MbusPeer::convertFromPacketHook(PParameter parameter, std::vector<uint8_t>& data, PVariable& result)
+bool MbusPeer::convertFromPacketHook(BaseLib::Systems::RpcConfigurationParameter& parameter, std::vector<uint8_t>& data, PVariable& result)
 {
     try
     {
-        if(!parameter) return false;
-        if(parameter->casts.empty()) return false;
-        ParameterCast::PGeneric cast = std::dynamic_pointer_cast<ParameterCast::Generic>(parameter->casts.at(0));
+        if(!parameter.rpcParameter) return false;
+        if(parameter.rpcParameter->casts.empty()) return false;
+        ParameterCast::PGeneric cast = std::dynamic_pointer_cast<ParameterCast::Generic>(parameter.rpcParameter->casts.at(0));
         if(!cast) return false;
 
         uint8_t type = BaseLib::Math::getUnsignedNumber(cast->type);
-        std::vector<uint8_t> vifs = _bl->hf.getUBinary(parameter->metadata);
+        std::vector<uint8_t> vifs = BaseLib::HelperFunctions::getUBinary(parameter.rpcParameter->metadata);
 
-        result = _vifConverter.getVariable(type, vifs, data);
+        result = VifConverter::getVariable(type, vifs, data);
     }
     catch(const std::exception& ex)
     {
