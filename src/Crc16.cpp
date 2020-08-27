@@ -27,6 +27,7 @@
  * files in the program, then also delete it here.
  */
 
+#include <homegear-base/HelperFunctions/HelperFunctions.h>
 #include "Crc16.h"
 
 namespace Mbus

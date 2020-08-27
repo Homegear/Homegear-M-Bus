@@ -50,6 +50,49 @@ public:
         uint16_t messageLength = 0;
     };
 
+    struct EllInfo
+    {
+        struct CommunicationControlFieldBitField
+        {
+            bool reserved : 1;
+            bool repeatedAccessField : 1; //Used by single hop repeaters
+            bool accessibilityField : 1; //Is radio reception enabled to receive response?
+            bool priorityField : 1; //Set = high priority
+            bool hopField : 1; //Set = relayed by repeater?
+            bool synchronizedField : 1;
+            bool delayField : 1; //Fast (set) or slow (unset) response delay
+            bool bidirectionalField : 1;
+        };
+
+        union CommunicationControlField
+        {
+            uint8_t raw;
+            CommunicationControlFieldBitField bitField;
+        };
+
+        struct SessionNumberFieldBitField
+        {
+            uint8_t sessionField : 4; //
+            uint32_t timeField : 25; //Relative minute counter to prevent replay attacks
+            uint8_t encryptionField : 3; //Session counter within the minute
+        };
+
+        union SessionNumberField
+        {
+            uint32_t raw;
+            SessionNumberFieldBitField bitField;
+        };
+
+        uint8_t controlInformation = 0;
+        CommunicationControlField communicationControlField{0};
+        uint8_t accessNumber = 0;
+        SessionNumberField sessionNumberField{0};
+        std::string manufacturer2;
+        int32_t address2;
+        uint8_t version2;
+        uint8_t medium2;
+    };
+
     struct Mode5Info
     {
         uint8_t blockCount = 0;
@@ -91,6 +134,7 @@ public:
     uint16_t getConfiguration() { return _configuration; }
     uint8_t getEncryptionMode() { return _encryptionMode; }
     AflHeader getAflHeader() { return _aflHeader; }
+    EllInfo getEllInfo() { return _ellInfo; }
     uint16_t getFormatCrc() { return _formatCrc; }
     std::vector<uint8_t> getPayload() { return _payload; }
     std::list<DataRecord> getDataRecords() { return _dataRecords; }
@@ -111,7 +155,7 @@ public:
     std::vector<uint8_t> getBinary();
 
     std::vector<uint8_t> getPosition(uint32_t position, uint32_t size);
-    bool decrypt(std::vector<uint8_t>& key);
+    bool decrypt(const std::vector<uint8_t>& key);
 protected:
     std::array<uint8_t, 13> _difSizeMap;
 
@@ -129,6 +173,7 @@ protected:
     uint8_t _status = 0;
     uint16_t _configuration = 0;
     uint8_t _encryptionMode = 0;
+    EllInfo _ellInfo;
     Mode5Info _mode5Info;
     Mode7Info _mode7Info;
     AflHeader _aflHeader;

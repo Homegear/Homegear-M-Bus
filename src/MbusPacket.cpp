@@ -31,7 +31,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t>& packet) : MbusPacket()
     _packet = packet;
 	_timeReceived = BaseLib::HelperFunctions::getTime();
     _rssi = packet.at(packet.size() - 2);
-    if(_rssi >= 128) _rssi = ((_rssi - 256) / 2) - 74; //From Amber wireless datasheet
+    if(_rssi >= 128) _rssi = ((_rssi - 256) / 2) - 74; //From Amber wireless datasheet and CC1101/CC110L datasheet
     else _rssi = (_rssi / 2) - 74;
 
     _command = packet.at(1);
@@ -50,12 +50,56 @@ MbusPacket::MbusPacket(const std::vector<uint8_t>& packet) : MbusPacket()
         controlInformation = packet.at(ciStart);
         if(controlInformation == 0x8C) //ELL I
         {
+            _ellInfo.controlInformation = controlInformation;
+            _ellInfo.communicationControlField.raw = _packet.at(ciStart + 1);
+            _ellInfo.accessNumber = packet.at(ciStart + 2);
             ciStart += 3;
             continue;
         }
         else if(controlInformation == 0x8D) //ELL II
         {
+            _ellInfo.controlInformation = controlInformation;
+            _ellInfo.communicationControlField.raw = _packet.at(ciStart + 1);
+            _ellInfo.accessNumber = packet.at(ciStart + 2);
+            _ellInfo.sessionNumberField.raw = ((uint32_t)packet.at(ciStart + 3) << 24) | ((uint32_t)packet.at(ciStart + 4) << 16) | ((uint32_t)packet.at(ciStart + 5) << 8) | packet.at(ciStart + 6);
+            if(_encryptionMode == 0) _encryptionMode = _ellInfo.sessionNumberField.bitField.encryptionField;
             ciStart += 9;
+            continue;
+        }
+        else if(controlInformation == 0x8E) //ELL III
+        {
+            _ellInfo.controlInformation = controlInformation;
+            _ellInfo.communicationControlField.raw = _packet.at(ciStart + 1);
+            _ellInfo.accessNumber = packet.at(ciStart + 2);
+            uint32_t value = (((uint32_t) packet.at(ciStart + 4)) << 8) | packet.at(ciStart + 3);
+            _ellInfo.manufacturer2.clear();
+            _ellInfo.manufacturer2.reserve(3);
+            _ellInfo.manufacturer2.push_back((char) (((value >> 10) & 0x1F) + 64));
+            _ellInfo.manufacturer2.push_back((char) (((value >> 5) & 0x1F) + 64));
+            _ellInfo.manufacturer2.push_back((char) ((value & 0x1F) + 64));
+            _ellInfo.address2 = (((uint32_t) packet.at(ciStart + 8)) << 24) | (((uint32_t) packet.at(ciStart + 7)) << 16) | (((uint32_t) packet.at(ciStart + 6)) << 8) | ((uint32_t) packet.at(ciStart + 5));
+            _ellInfo.version2 = packet.at(ciStart + 9);
+            _ellInfo.medium2 = packet.at(ciStart + 10);
+            ciStart += 11;
+            continue;
+        }
+        else if(controlInformation == 0x8F) //ELL IV
+        {
+            _ellInfo.controlInformation = controlInformation;
+            _ellInfo.communicationControlField.raw = _packet.at(ciStart + 1);
+            _ellInfo.accessNumber = packet.at(ciStart + 2);
+            uint32_t value = (((uint32_t) packet.at(ciStart + 4)) << 8) | packet.at(ciStart + 3);
+            _ellInfo.manufacturer2.clear();
+            _ellInfo.manufacturer2.reserve(3);
+            _ellInfo.manufacturer2.push_back((char) (((value >> 10) & 0x1F) + 64));
+            _ellInfo.manufacturer2.push_back((char) (((value >> 5) & 0x1F) + 64));
+            _ellInfo.manufacturer2.push_back((char) ((value & 0x1F) + 64));
+            _ellInfo.address2 = (((uint32_t) packet.at(ciStart + 8)) << 24) | (((uint32_t) packet.at(ciStart + 7)) << 16) | (((uint32_t) packet.at(ciStart + 6)) << 8) | ((uint32_t) packet.at(ciStart + 5));
+            _ellInfo.version2 = packet.at(ciStart + 9);
+            _ellInfo.medium2 = packet.at(ciStart + 10);
+            _ellInfo.sessionNumberField.raw = ((uint32_t)packet.at(ciStart + 11) << 24) | ((uint32_t)packet.at(ciStart + 12) << 16) | ((uint32_t)packet.at(ciStart + 13) << 8) | packet.at(ciStart + 14);
+            if(_encryptionMode == 0) _encryptionMode = _ellInfo.sessionNumberField.bitField.encryptionField;
+            ciStart += 17;
             continue;
         }
         else if(controlInformation == 0x90) //AFL header
@@ -297,7 +341,33 @@ std::string MbusPacket::getInfoString()
         info +=            "Status:        0x" + BaseLib::HelperFunctions::getHexString(_status) + "\n";
         info +=            "Battery empty: " + std::to_string(batteryEmpty()) + "\n";
         info +=            "Config:        0x" + BaseLib::HelperFunctions::getHexString(_configuration, 4) + "\n";
-        info +=            "Encryption:    " + std::string(_encryptionMode == 4 || _encryptionMode == 5 || _encryptionMode == 7 ? "AES" : (_encryptionMode != 0 ? "unknown" : "none")) + "\n";
+        info +=            "Encryption:    " + std::string(_encryptionMode == 4 || _encryptionMode == 5 || _encryptionMode == 7 ? "AES (Mode " + std::to_string(_encryptionMode) + ")" : (_encryptionMode != 0 ? "unknown" : "none")) + "\n";
+        if(_ellInfo.controlInformation != 0)
+        {
+            info += "\n ---\n";
+            info += getControlInformationString(_ellInfo.controlInformation) + ":\n";
+            info += std::string(" - B-field:           ") + (_ellInfo.communicationControlField.bitField.bidirectionalField ? "true" : "false") + "\n";
+            info += std::string(" - D-field:           ") + (_ellInfo.communicationControlField.bitField.delayField ? "true" : "false") + "\n";
+            info += std::string(" - S-field:           ") + (_ellInfo.communicationControlField.bitField.synchronizedField ? "true" : "false") + "\n";
+            info += std::string(" - H-field:           ") + (_ellInfo.communicationControlField.bitField.hopField ? "true" : "false") + "\n";
+            info += std::string(" - P-field:           ") + (_ellInfo.communicationControlField.bitField.priorityField ? "true" : "false") + "\n";
+            info += std::string(" - A-field:           ") + (_ellInfo.communicationControlField.bitField.accessibilityField ? "true" : "false") + "\n";
+            info += std::string(" - R-field:           ") + (_ellInfo.communicationControlField.bitField.repeatedAccessField ? "true" : "false") + "\n";
+            info += std::string(" - Access number:     0x") + BaseLib::HelperFunctions::getHexString(_ellInfo.accessNumber) + "\n";
+            if(_ellInfo.controlInformation == 0x8D || _ellInfo.controlInformation == 0x8F)
+            {
+                info += std::string(" - Encryption method: 0x") + BaseLib::HelperFunctions::getHexString(_ellInfo.sessionNumberField.bitField.encryptionField) + "\n";
+                info += std::string(" - Time:              0x") + BaseLib::HelperFunctions::getHexString(_ellInfo.sessionNumberField.bitField.timeField) + "\n";
+                info += std::string(" - Session:           0x") + BaseLib::HelperFunctions::getHexString(_ellInfo.sessionNumberField.bitField.sessionField) + "\n";
+            }
+            if(_ellInfo.controlInformation == 0x8E || _ellInfo.controlInformation == 0x8F)
+            {
+                info += std::string(" - Manufacturer 2:    0x") + _ellInfo.manufacturer2 + "\n";
+                info += std::string(" - Address 2:         0x") + BaseLib::HelperFunctions::getHexString(_ellInfo.address2, 8) + "\n";
+                info += std::string(" - Version 2:         ") + std::to_string(_ellInfo.version2) + "\n";
+                info += std::string(" - Medium 2:          0x") + std::to_string(_ellInfo.medium2) + " (" + getMediumString(_ellInfo.medium2) + ")\n";
+            }
+        }
         for(auto& dataRecord : _dataRecords)
         {
             info += "\n ---\n";
@@ -569,9 +639,9 @@ std::string MbusPacket::getControlInformationString(uint8_t controlInformation)
         case 0x8D:
             return "Extended Link Layer II (8 Byte)";
         case 0x8E:
-            return "Extended Link Layer III";
+            return "Extended Link Layer III (10 Byte)";
         case 0x8F:
-            return "Extended Link Layer IV";
+            return "Extended Link Layer IV (16 Byte)";
         case 0x90:
             return "AFL header";
         case 0x91:
@@ -615,7 +685,8 @@ bool MbusPacket::isTelegramWithoutMeterData()
 
 bool MbusPacket::hasShortTplHeader()
 {
-    return _controlInformation == 0x61 ||
+    return _controlInformation == 0x5A ||
+           _controlInformation == 0x61 ||
            _controlInformation == 0x65 ||
            _controlInformation == 0x6A ||
            _controlInformation == 0x6E ||
@@ -629,9 +700,12 @@ bool MbusPacket::hasShortTplHeader()
 
 bool MbusPacket::hasLongTplHeader()
 {
-    return _controlInformation == 0x60 ||
+    return _controlInformation == 0x5B ||
+           _controlInformation == 0x60 ||
            _controlInformation == 0x64 ||
            _controlInformation == 0x6B ||
+           _controlInformation == 0x6C ||
+           _controlInformation == 0x6D ||
            _controlInformation == 0x6F ||
            _controlInformation == 0x72 ||
            _controlInformation == 0x73 ||
@@ -639,6 +713,8 @@ bool MbusPacket::hasLongTplHeader()
            _controlInformation == 0x7C ||
            _controlInformation == 0x7E ||
            _controlInformation == 0x80 ||
+           _controlInformation == 0x84 ||
+           _controlInformation == 0x85 ||
            _controlInformation == 0x8B;
 }
 
@@ -678,7 +754,7 @@ std::vector<uint8_t> MbusPacket::getPosition(uint32_t position, uint32_t size)
     return std::vector<uint8_t>();
 }
 
-bool MbusPacket::decrypt(std::vector<uint8_t>& key)
+bool MbusPacket::decrypt(const std::vector<uint8_t>& key)
 {
     try
     {
@@ -694,10 +770,10 @@ bool MbusPacket::decrypt(std::vector<uint8_t>& key)
             encrypted.insert(encrypted.end(), _payload.begin(), _payload.begin() + (_mode5Info.blockCount * 16));
             std::vector<uint8_t> decrypted;
             gcrypt.decrypt(decrypted, encrypted);
-            if(decrypted.at(0) != 0x2F || decrypted.at(1) != 0x2F)
+            /*if(decrypted.at(0) != 0x2F || decrypted.at(1) != 0x2F)
             {
                 return false; //Two "2F" at the beginning are required to verify correct decryption
-            }
+            }*/
             std::vector<uint8_t> unencryptedData;
             if(encrypted.size() < _payload.size()) unencryptedData.insert(unencryptedData.end(), _payload.begin() + encrypted.size(), _payload.end());
             strip2F(decrypted);
@@ -915,7 +991,7 @@ void MbusPacket::parsePayload()
             _formatCrc = (((uint16_t)_payload.at(2)) << 8) | _payload.at(1);
         }
 
-        //Skip first three for format packets. The format packet starts with length + 2 unknown bytes.
+        //Skip first three bytes for format packets. The format packet starts with length + 2 unknown bytes.
         //Each compact data packet starts with these 2 unknown bytes + 2 additional random unknown bytes
         uint32_t dataPos = 4;
         uint32_t nopCount = 0;

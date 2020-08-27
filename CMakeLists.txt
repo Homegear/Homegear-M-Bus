@@ -29,8 +29,7 @@ set(SOURCE_FILES
         src/MbusPeer.cpp
         src/MbusPeer.h
         src/VifConverter.cpp
-        src/VifConverter.h
-        config.h)
+        src/VifConverter.h)
 
 add_custom_target(homegear COMMAND ../../makeAll.sh SOURCES ${SOURCE_FILES})
 

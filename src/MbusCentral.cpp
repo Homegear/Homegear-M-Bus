@@ -828,7 +828,24 @@ std::string MbusCentral::handleCliCommand(std::string command)
             std::string senderId = "TestInterface";
             onPacketReceived(senderId, packet);
 
-            stringStream << "Packet processed." << std::endl;
+            stringStream << "Packet processed. Packet info:" << std::endl << packet->getInfoString() << std::endl;
+            return stringStream.str();
+        }
+        else if(BaseLib::HelperFunctions::checkCliCommand(command, "crc", "", "", 1, arguments, showHelp))
+        {
+            if(showHelp)
+            {
+                stringStream << "Description: This command calculates the CRC for a packet." << std::endl;
+                stringStream << "Usage: crc PACKETHEX" << std::endl << std::endl;
+                stringStream << "Parameters:" << std::endl;
+                stringStream << "  PACKETHEX: The packet to process in hexadecimal format." << std::endl;
+                return stringStream.str();
+            }
+
+            std::vector<uint8_t> data = BaseLib::HelperFunctions::getUBinary(arguments.at(0));
+            Crc16 crc16;
+            auto crc = crc16.calculate(data, 0);
+            stringStream << BaseLib::HelperFunctions::getHexString(crc, 4) << std::endl;
             return stringStream.str();
         }
         else return "Unknown command.\n";

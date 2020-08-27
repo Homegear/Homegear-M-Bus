@@ -45,7 +45,7 @@ void IMbusInterface::getResponse(std::vector<uint8_t>& requestPacket, std::vecto
             if(_bl->debugLevel >= 5) GD::out.printDebug("Debug: Sending packet " + BaseLib::HelperFunctions::getHexString(requestPacket));
             rawSend(requestPacket);
         }
-        catch(BaseLib::SocketOperationException ex)
+        catch(const BaseLib::SocketOperationException& ex)
         {
             _out.printError("Error sending packet: " + std::string(ex.what()));
             return;

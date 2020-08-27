@@ -200,14 +200,15 @@ void Interfaces::createHgdcInterfaces(bool reconnected)
             }
             for(auto& module : *modules->arrayValue)
             {
-                auto deviceId = module->structValue->at("serialNumber")->stringValue;;
+                auto deviceId = module->structValue->at("serialNumber")->stringValue;
+                auto deviceType = module->structValue->at("deviceType")->integerValue;
 
                 if(_physicalInterfaces.find(deviceId) == _physicalInterfaces.end())
                 {
                     std::shared_ptr<IMbusInterface> device;
                     GD::out.printDebug("Debug: Creating HGDC device.");
                     auto settings = std::make_shared<Systems::PhysicalInterfaceSettings>();
-                    settings->type = "hgdc";
+                    settings->type = "hgdc" + BaseLib::HelperFunctions::getHexString(deviceType);
                     settings->id = deviceId;
                     settings->serialNumber = settings->id;
                     device = std::make_shared<Hgdc>(settings);
