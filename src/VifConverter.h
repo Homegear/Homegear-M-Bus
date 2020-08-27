@@ -7,16 +7,14 @@
 
 using namespace BaseLib;
 
-namespace Mbus
-{
+namespace Mbus {
 
-class VifConverter
-{
-public:
-    VifConverter() = delete;
+class VifConverter {
+ public:
+  VifConverter() = delete;
 
-    static PVariable getVariable(uint8_t type, std::vector<uint8_t>& vifs, const std::vector<uint8_t>& value);
-private:
+  static PVariable getVariable(uint8_t type, std::vector<uint8_t> &vifs, const std::vector<uint8_t> &value);
+ private:
 
 };
 
