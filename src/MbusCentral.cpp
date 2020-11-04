@@ -313,7 +313,7 @@ bool MbusCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLi
             }
         }
 
-        if(!myPacket->isDataTelegram()) return false;
+        if(!myPacket->isDataTelegram() || myPacket->isFormatTelegram()) return false;
 
         peer->packetReceived(myPacket);
         return true;

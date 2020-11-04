@@ -317,7 +317,7 @@ void MbusPeer::getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues> 
       int32_t channelIndex = frame->channelIndex;
       int32_t channel = -1;
       if (channelIndex >= 0 && channelIndex < (signed)payload.size()) channel = payload.at(channelIndex);
-      if (channel > -1 && frame->channelSize < 8.0) channel &= (0xFF >> (8 - std::lround(frame->channelSize)));
+      if (channel > -1 && frame->channelSize < 8.0) channel &= (0xFFu >> (8u - std::lround(frame->channelSize)));
       channel += frame->channelIndexOffset;
       if (frame->channel > -1) channel = frame->channel;
       if (channel == -1) continue;
@@ -332,14 +332,14 @@ void MbusPeer::getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues> 
 
           if ((*j)->constValueInteger > -1) {
             int32_t intValue = 0;
-            _bl->hf.memcpyBigEndian(intValue, data);
+            BaseLib::HelperFunctions::memcpyBigEndian(intValue, data);
             if (intValue != (*j)->constValueInteger) {
               abort = true;
               break;
             } else if ((*j)->parameterId.empty()) continue;
           }
         } else if ((*j)->constValueInteger > -1) {
-          _bl->hf.memcpyBigEndian(data, (*j)->constValueInteger);
+          BaseLib::HelperFunctions::memcpyBigEndian(data, (*j)->constValueInteger);
         } else continue;
 
         for (std::vector<PParameter>::iterator k = frame->associatedVariables.begin(); k != frame->associatedVariables.end(); ++k) {
@@ -391,7 +391,7 @@ void MbusPeer::packetReceived(PMbusPacket &packet) {
   try {
     if (_disposing || !packet || !_rpcDevice) return;
     if (packet->senderAddress() != _address) return;
-    if (packet->getFormatCrc() != _formatCrc) {
+    if (_formatCrc != 0 && packet->getFormatCrc() != _formatCrc) {
       GD::out.printWarning("Warning: Ignoring packet with wrong format frame CRC.");
       return;
     }
