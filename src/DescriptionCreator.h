@@ -35,9 +35,9 @@ private:
     std::string _xmlPath;
 
     void createDirectories();
-    void createXmlMaintenanceChannel(PHomegearDevice& device);
+    static void createXmlMaintenanceChannel(PHomegearDevice& device);
     std::string getFreeParameterId(std::string baseId, PFunction& function);
-    void parseDataRecord(MbusPacket::DataRecord& dataRecord, PParameter& parameter, PFunction& function, PPacket& packet);
+    void parseDataRecord(const std::string& manufacturer, MbusPacket::DataRecord& dataRecord, PParameter& parameter, PFunction& function, PPacket& packet);
 };
 
 }
