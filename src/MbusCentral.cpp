@@ -221,19 +221,20 @@ bool MbusCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLi
         PMbusPacket myPacket(std::dynamic_pointer_cast<MbusPacket>(packet));
         if(!myPacket) return false;
 
-        if(_bl->debugLevel >= 4) _bl->out.printInfo(BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " M-Bus packet received (" + senderId + std::string(", RSSI: ") + std::to_string(myPacket->getRssi()) + " dBm" + "): " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender address: 0x" + BaseLib::HelperFunctions::getHexString(myPacket->senderAddress(), 8));
+        if(_bl->debugLevel >= 4) _bl->out.printInfo(BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " M-Bus packet received (" + senderId + std::string(", RSSI: ") + std::to_string(myPacket->getRssi()) + " dBm" + "): " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender address: 0x" + BaseLib::HelperFunctions::getHexString(
+              myPacket->secondaryAddress(), 8));
 
-        auto peer = getPeer(myPacket->senderAddress());
+        auto peer = getPeer(myPacket->secondaryAddress());
         if(!peer)
         {
             if(_sniff)
             {
                 std::lock_guard<std::mutex> sniffedPacketsGuard(_sniffedPacketsMutex);
-                auto sniffedPacketsIterator = _sniffedPackets.find(myPacket->senderAddress());
+                auto sniffedPacketsIterator = _sniffedPackets.find(myPacket->secondaryAddress());
                 if(sniffedPacketsIterator == _sniffedPackets.end())
                 {
-                    _sniffedPackets[myPacket->senderAddress()].reserve(100);
-                    _sniffedPackets[myPacket->senderAddress()].push_back(myPacket);
+                    _sniffedPackets[myPacket->secondaryAddress()].reserve(100);
+                    _sniffedPackets[myPacket->secondaryAddress()].push_back(myPacket);
                 }
                 else
                 {
@@ -243,33 +244,34 @@ bool MbusCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLi
             }
 
             std::lock_guard<std::mutex> devicesToPairGuard(_devicesToPairMutex);
-            auto deviceIterator = _devicesToPair.find(myPacket->senderAddress());
+            auto deviceIterator = _devicesToPair.find(myPacket->secondaryAddress());
             if(deviceIterator != _devicesToPair.end())
             {
                 std::vector<uint8_t> key = BaseLib::HelperFunctions::getUBinary(deviceIterator->second);
                 if(myPacket->getEncryptionMode() != 0 && key.empty())
                 {
-                    _bl->out.printInfo("Info: Can't pair device " + BaseLib::HelperFunctions::getHexString(myPacket->senderAddress()) + ", because the communication is encrypted and the key is unknown.");
+                    _bl->out.printInfo("Info: Can't pair device " + BaseLib::HelperFunctions::getHexString(myPacket->secondaryAddress()) + ", because the communication is encrypted and the key is unknown.");
                     return false;
                 }
                 if(!myPacket->decrypt(key) || !myPacket->dataValid()) return false;
-                if(myPacket->isEncrypted() && _bl->debugLevel >= 4) _bl->out.printInfo(BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender address: 0x" + BaseLib::HelperFunctions::getHexString(myPacket->senderAddress(), 8));
+                if(myPacket->isEncrypted() && _bl->debugLevel >= 4) _bl->out.printInfo(BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender address: 0x" + BaseLib::HelperFunctions::getHexString(
+                      myPacket->secondaryAddress(), 8));
                 pairDevice(myPacket, key);
-                peer = getPeer(myPacket->senderAddress());
+                peer = getPeer(myPacket->secondaryAddress());
                 if(!peer) return false;
             }
             else if(_pairing)
             {
                 if(myPacket->getEncryptionMode() != 0)
                 {
-                    _bl->out.printInfo("Info: Can't pair device " + BaseLib::HelperFunctions::getHexString(myPacket->senderAddress()) + ", because the communication is encrypted and the key is unknown.");
+                    _bl->out.printInfo("Info: Can't pair device " + BaseLib::HelperFunctions::getHexString(myPacket->secondaryAddress()) + ", because the communication is encrypted and the key is unknown.");
                     return false;
                 }
                 else
                 {
                     std::vector<uint8_t> key;
                     pairDevice(myPacket, key);
-                    peer = getPeer(myPacket->senderAddress());
+                    peer = getPeer(myPacket->secondaryAddress());
                     if(!peer) return false;
                 }
             }
@@ -286,7 +288,8 @@ bool MbusCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLi
         {
             std::vector<uint8_t> aesKey = peer->getAesKey();
             if(!myPacket->decrypt(aesKey) || !myPacket->dataValid()) return false;
-            if(_bl->debugLevel >= 4) _bl->out.printInfo(BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender address: 0x" + BaseLib::HelperFunctions::getHexString(myPacket->senderAddress(), 8));
+            if(_bl->debugLevel >= 4) _bl->out.printInfo(BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender address: 0x" + BaseLib::HelperFunctions::getHexString(
+                  myPacket->secondaryAddress(), 8));
             if(_bl->debugLevel >= 5) _bl->out.printDebug("Extended packet info:\n" + myPacket->getInfoString());
         }
 
@@ -302,7 +305,7 @@ bool MbusCentral::onPacketReceived(std::string& senderId, std::shared_ptr<BaseLi
 
                     //Pair again
                     pairDevice(myPacket, key);
-                    peer = getPeer(myPacket->senderAddress());
+                    peer = getPeer(myPacket->secondaryAddress());
                     if(!peer) return false;
                 }
             }
@@ -332,10 +335,10 @@ void MbusCentral::pairDevice(PMbusPacket packet, std::vector<uint8_t>& key)
         if(!packet->isFormatTelegram() && (!packet->isDataTelegram() || packet->isCompactDataTelegram())) return;
 
         std::lock_guard<std::mutex> pairGuard(_pairMutex);
-        GD::out.printInfo("Info: Pairing device 0x" + BaseLib::HelperFunctions::getHexString(packet->senderAddress(), 8) + "...");
+        GD::out.printInfo("Info: Pairing device 0x" + BaseLib::HelperFunctions::getHexString(packet->secondaryAddress(), 8) + "...");
 
         bool newPeer = true;
-        auto peer = getPeer(packet->senderAddress());
+        auto peer = getPeer(packet->secondaryAddress());
         std::unique_lock<std::mutex> lockGuard(_peersMutex);
         if(peer)
         {
@@ -391,6 +394,8 @@ void MbusCentral::pairDevice(PMbusPacket packet, std::vector<uint8_t>& key)
         peer->setDataRecordCount(packet->dataRecordCount());
         peer->setFormatCrc(packet->getFormatCrc());
         peer->setEncryptionMode(packet->getEncryptionMode());
+        peer->setWireless(packet->wireless());
+        peer->setPrimaryAddress(packet->primaryAddress());
 
         lockGuard.lock();
         _peersBySerial[peer->getSerialNumber()] = peer;

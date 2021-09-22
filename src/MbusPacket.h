@@ -103,6 +103,7 @@ class MbusPacket : public BaseLib::Systems::Packet {
 
   std::string getInfoString();
 
+  bool wireless() { return _wireless; }
   bool batteryEmpty() { return _status & 4; } //See EN 13757-7 section 7.5.6
   bool permanentError() { return _status & 8; } //See EN 13757-7 section 7.5.6
   bool temporaryError() { return _status & 0x10; } //See EN 13757-7 section 7.5.6
@@ -111,7 +112,8 @@ class MbusPacket : public BaseLib::Systems::Packet {
   bool alarmError() { return (_status & 3) == 3; } //See EN 13757-7 section 7.5.6
 
   uint8_t length() { return _length; }
-  int32_t senderAddress() { return _senderAddress; }
+  int32_t primaryAddress() { return _primaryAddress; }
+  int32_t secondaryAddress() { return _secondaryAddress; }
   int32_t getRssi() { return _rssi; }
   uint8_t getControl() { return _control; }
   std::string getManufacturer() { return _manufacturer; }
@@ -151,8 +153,10 @@ class MbusPacket : public BaseLib::Systems::Packet {
   std::array<uint8_t, 13> _difSizeMap;
 
   std::vector<uint8_t> _packet;
+  bool _wireless = true;
   uint8_t _length = 0;
-  int32_t _senderAddress = 0;
+  int32_t _primaryAddress = 0;
+  int32_t _secondaryAddress = 0;
   int32_t _rssi = 0;
   uint8_t _command = 0;
   uint8_t _control = 0;

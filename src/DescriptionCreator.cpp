@@ -590,7 +590,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMbusPacket p
   try {
     createDirectories();
 
-    std::string id = BaseLib::HelperFunctions::getHexString(packet->senderAddress(), 8);
+    std::string id = BaseLib::HelperFunctions::getHexString(packet->secondaryAddress(), 8);
 
     std::shared_ptr<HomegearDevice> device = std::make_shared<HomegearDevice>(GD::bl);
     device->version = 1;
@@ -598,7 +598,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMbusPacket p
     PSupportedDevice supportedDevice = std::make_shared<SupportedDevice>(GD::bl);
     supportedDevice->id = id;
     supportedDevice->description = packet->getMediumString(packet->getMedium());
-    supportedDevice->typeNumber = (uint32_t)packet->senderAddress();
+    supportedDevice->typeNumber = (uint32_t)packet->secondaryAddress();
     device->supportedDevices.push_back(supportedDevice);
 
     createXmlMaintenanceChannel(device);
@@ -634,9 +634,9 @@ DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMbusPacket p
     device->save(filename);
 
     PeerInfo peerInfo;
-    peerInfo.address = packet->senderAddress();
+    peerInfo.address = packet->secondaryAddress();
     peerInfo.serialNumber = "MBUS" + id;
-    peerInfo.type = packet->senderAddress();
+    peerInfo.type = packet->secondaryAddress();
     return peerInfo;
   }
   catch (const std::exception &ex) {

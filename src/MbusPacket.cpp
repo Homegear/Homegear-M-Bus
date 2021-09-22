@@ -27,27 +27,43 @@ MbusPacket::MbusPacket() {
 MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
   _packet = packet;
   _timeReceived = BaseLib::HelperFunctions::getTime();
-  _rssi = packet.at(packet.size() - 2);
-  if (_rssi >= 128) _rssi = ((_rssi - 256) / 2) - 74; //From Amber wireless datasheet and CC1101/CC110L datasheet
-  else _rssi = (_rssi / 2) - 74;
 
-  _command = packet.at(1);
-  _length = packet.at(2);
-  _control = packet.at(3);
-  uint32_t value = (((uint32_t)packet.at(5)) << 8u) | packet.at(4);
-  _manufacturer.clear();
-  _manufacturer.reserve(3);
-  _manufacturer.push_back((char)(((value >> 10u) & 0x1Fu) + 64));
-  _manufacturer.push_back((char)(((value >> 5u) & 0x1Fu) + 64));
-  _manufacturer.push_back((char)((value & 0x1Fu) + 64));
-  _iv.clear();
-  _iv.reserve(16);
-  _iv.insert(_iv.end(), packet.begin() + 4, packet.begin() + 12);
-  _senderAddress = (((uint32_t)packet.at(9)) << 24u) | (((uint32_t)packet.at(8)) << 16u) | (((uint32_t)packet.at(7)) << 8u) | ((uint32_t)packet.at(6));
-  _version = packet.at(10);
-  _medium = packet.at(11);
+  size_t ciStart = packet.size(); //Set out of range
+  if (packet.at(0) == 0xFF) {
+    _wireless = true;
+    _rssi = packet.at(packet.size() - 2);
+    if (_rssi >= 128) _rssi = ((_rssi - 256) / 2) - 74; //From Amber wireless datasheet and CC1101/CC110L datasheet
+    else _rssi = (_rssi / 2) - 74;
 
-  size_t ciStart = 12;
+    _command = packet.at(1);
+    _length = packet.at(2);
+    _control = packet.at(3);
+    uint32_t value = (((uint32_t)packet.at(5)) << 8u) | packet.at(4);
+    _manufacturer.clear();
+    _manufacturer.reserve(3);
+    _manufacturer.push_back((char)(((value >> 10u) & 0x1Fu) + 64));
+    _manufacturer.push_back((char)(((value >> 5u) & 0x1Fu) + 64));
+    _manufacturer.push_back((char)((value & 0x1Fu) + 64));
+    _iv.clear();
+    _iv.reserve(16);
+    _iv.insert(_iv.end(), packet.begin() + 4, packet.begin() + 12);
+    _secondaryAddress = (((uint32_t)packet.at(9)) << 24u) | (((uint32_t)packet.at(8)) << 16u) | (((uint32_t)packet.at(7)) << 8u) | ((uint32_t)packet.at(6));
+    _version = packet.at(10);
+    _medium = packet.at(11);
+    ciStart = 12;
+  } else if (packet.at(0) == 0x68) {
+    _wireless = false;
+    if (packet.at(0) == 0x68 && packet.at(3) == 0x68) {
+      _length = packet.at(1);
+      _control = packet.at(4);
+      _primaryAddress = packet.at(5);
+      ciStart = 6;
+    }
+  } else {
+    GD::out.printWarning("Warning: Unknown packet type: " + BaseLib::HelperFunctions::getHexString(packet.at(0)));
+    return;
+  }
+
   uint8_t controlInformation = 0;
   for (int32_t i = 0; i < 10; i++) {
     if (ciStart >= packet.size()) break;
@@ -88,7 +104,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       _ellInfo.controlInformation = controlInformation;
       _ellInfo.communicationControlField.raw = _packet.at(ciStart + 1);
       _ellInfo.accessNumber = packet.at(ciStart + 2);
-      value = (((uint32_t)packet.at(ciStart + 4)) << 8u) | packet.at(ciStart + 3);
+      uint32_t value = (((uint32_t)packet.at(ciStart + 4)) << 8u) | packet.at(ciStart + 3);
       _ellInfo.manufacturer2.clear();
       _ellInfo.manufacturer2.reserve(3);
       _ellInfo.manufacturer2.push_back((char)(((value >> 10u) & 0x1Fu) + 64));
@@ -106,7 +122,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       _ellInfo.controlInformation = controlInformation;
       _ellInfo.communicationControlField.raw = _packet.at(ciStart + 1);
       _ellInfo.accessNumber = packet.at(ciStart + 2);
-      value = (((uint32_t)packet.at(ciStart + 4)) << 8u) | packet.at(ciStart + 3);
+      uint32_t value = (((uint32_t)packet.at(ciStart + 4)) << 8u) | packet.at(ciStart + 3);
       _ellInfo.manufacturer2.clear();
       _ellInfo.manufacturer2.reserve(3);
       _ellInfo.manufacturer2.push_back((char)(((value >> 10u) & 0x1Fu) + 64));
@@ -188,7 +204,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       if (hasLongTplHeader()) //Address, manufacturer and medium from header take precedence over outer frame
       {
         _tpduStart = ciStart;
-        _senderAddress = (((uint32_t)packet.at(ciStart + 4)) << 24) | (((uint32_t)packet.at(ciStart + 3)) << 16) | (((uint32_t)packet.at(ciStart + 2)) << 8) | ((uint32_t)packet.at(ciStart + 1));
+        _secondaryAddress = (((uint32_t)packet.at(ciStart + 4)) << 24) | (((uint32_t)packet.at(ciStart + 3)) << 16) | (((uint32_t)packet.at(ciStart + 2)) << 8) | ((uint32_t)packet.at(ciStart + 1));
         uint32_t value = (((uint32_t)packet.at(ciStart + 6)) << 8) | packet.at(ciStart + 5);
         _manufacturer.clear();
         _manufacturer.reserve(3);
@@ -238,7 +254,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
         _manufacturer.push_back((char)(((value >> 10) & 0x1F) + 64));
         _manufacturer.push_back((char)(((value >> 5) & 0x1F) + 64));
         _manufacturer.push_back((char)((value & 0x1F) + 64));
-        _senderAddress = (((uint32_t)packet.at(9)) << 24u) | (((uint32_t)packet.at(8)) << 16u) | (((uint32_t)packet.at(7)) << 8u) | ((uint32_t)packet.at(6));
+        _secondaryAddress = (((uint32_t)packet.at(9)) << 24u) | (((uint32_t)packet.at(8)) << 16u) | (((uint32_t)packet.at(7)) << 8u) | ((uint32_t)packet.at(6));
         _medium = packet.at(11);
 
         _messageCounter = packet.at(ciStart + 1);
@@ -330,17 +346,18 @@ MbusPacket::~MbusPacket() {
 
 std::string MbusPacket::getInfoString() {
   try {
-    std::string info = "Command:       0x" + BaseLib::HelperFunctions::getHexString(_command) + "\n";
+    std::string info = std::string("Type:          ") + (_wireless ? "wMBus" : "M-Bus");
+    info += "Command:       0x" + BaseLib::HelperFunctions::getHexString(_command) + "\n";
     info += "Length:        " + std::to_string(_length) + "\n";
     info += "Control:       0x" + BaseLib::HelperFunctions::getHexString(_control) + "\n";
     info += "Manufacturer:  " + _manufacturer + "\n";
-    info += "Address:       0x" + BaseLib::HelperFunctions::getHexString(_senderAddress, 8) + "\n";
+    info += "Address:       0x" + BaseLib::HelperFunctions::getHexString(_secondaryAddress, 8) + "\n";
     info += "Version:       " + std::to_string(_version) + "\n";
     info += "Medium:        " + std::to_string(_medium) + " (" + getMediumString(_medium) + ")\n";
     info += "Control info:  0x" + std::to_string(_controlInformation) + " (" + getControlInformationString(_controlInformation) + ")\n";
     info += "Counter:       0x" + BaseLib::HelperFunctions::getHexString(_messageCounter) + "\n";
     info += "Status:        0x" + BaseLib::HelperFunctions::getHexString(_status) + "\n";
-    info += "Battery empty: " + std::to_string(batteryEmpty()) + "\n";
+    if (_wireless) info += "Battery empty: " + std::to_string(batteryEmpty()) + "\n";
     info += "Config:        0x" + BaseLib::HelperFunctions::getHexString(_configuration, 4) + "\n";
     if (_ellInfo.ellEncryption) {
       info += "Encryption:    AES-128-CTR in link layer";
@@ -372,7 +389,7 @@ std::string MbusPacket::getInfoString() {
         info += std::string(" - Medium 2:          0x") + std::to_string(_ellInfo.medium2) + " (" + getMediumString(_ellInfo.medium2) + ")\n";
       }
     }
-    for (auto &dataRecord : _dataRecords) {
+    for (auto &dataRecord: _dataRecords) {
       info += "\n ---\n";
       info += "   DIF: 0x" + BaseLib::HelperFunctions::getHexString(dataRecord.difs.front() & 0x0F) + " (0x" + BaseLib::HelperFunctions::getHexString(dataRecord.difs) + ")" + "\n";
       info += "    - Function:       " + std::to_string((int32_t)dataRecord.difFunction) + "\n";
@@ -694,10 +711,10 @@ bool MbusPacket::decrypt(const std::vector<uint8_t> &key) {
         kdfInput.push_back((_aflHeader.messageCounter >> 16) & 0xFF);
         kdfInput.push_back(_aflHeader.messageCounter >> 24);
       }
-      kdfInput.push_back(_senderAddress & 0xFF);
-      kdfInput.push_back((_senderAddress >> 8) & 0xFF);
-      kdfInput.push_back((_senderAddress >> 16) & 0xFF);
-      kdfInput.push_back(_senderAddress >> 24);
+      kdfInput.push_back(_secondaryAddress & 0xFF);
+      kdfInput.push_back((_secondaryAddress >> 8) & 0xFF);
+      kdfInput.push_back((_secondaryAddress >> 16) & 0xFF);
+      kdfInput.push_back(_secondaryAddress >> 24);
       kdfInput.resize(16, 7);
 
       std::vector<uint8_t> iv;
@@ -811,7 +828,7 @@ void MbusPacket::strip2F(std::vector<uint8_t> &data) {
     if (data.empty()) return;
     uint32_t startPos = 0;
     uint32_t endPos = data.size() - 1;
-    for (auto &byte : data) {
+    for (auto &byte: data) {
       if (byte != 0x2F) break;
       startPos++;
     }
