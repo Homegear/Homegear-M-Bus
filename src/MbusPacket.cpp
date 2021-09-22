@@ -346,7 +346,7 @@ MbusPacket::~MbusPacket() {
 
 std::string MbusPacket::getInfoString() {
   try {
-    std::string info = std::string("Type:          ") + (_wireless ? "wMBus" : "M-Bus");
+    std::string info = std::string("Type:          ") + (_wireless ? "wMBus" : "M-Bus") + "\n";
     info += "Command:       0x" + BaseLib::HelperFunctions::getHexString(_command) + "\n";
     info += "Length:        " + std::to_string(_length) + "\n";
     info += "Control:       0x" + BaseLib::HelperFunctions::getHexString(_control) + "\n";

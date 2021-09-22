@@ -617,7 +617,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMbusPacket p
     devicePacket->type = 1;
 
     auto dataRecords = packet->getDataRecords();
-    for (auto &dataRecord : dataRecords) {
+    for (auto &dataRecord: dataRecords) {
       PParameter parameter = std::make_shared<Parameter>(GD::bl, function->variables);
       parameter->readable = true;
       parameter->writeable = false;
@@ -732,7 +732,7 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice &device) {
   // }}}
 }
 
-void DescriptionCreator::parseDataRecord(const std::string& manufacturer, MbusPacket::DataRecord &dataRecord, PParameter &parameter, PFunction &function, PPacket &packet) {
+void DescriptionCreator::parseDataRecord(const std::string &manufacturer, MbusPacket::DataRecord &dataRecord, PParameter &parameter, PFunction &function, PPacket &packet) {
   try {
     uint8_t dif = dataRecord.difs.front() & 0x0Fu;
     parameter->metadata = BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
