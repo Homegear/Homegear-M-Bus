@@ -31,6 +31,6 @@ set(SOURCE_FILES
         src/VifConverter.cpp
         src/VifConverter.h)
 
-add_custom_target(homegear COMMAND ../../makeAll.sh SOURCES ${SOURCE_FILES})
+add_custom_target(homegear COMMAND ../../devscripts/makeAll.sh SOURCES ${SOURCE_FILES})
 
 add_library(homegear_mbus ${SOURCE_FILES})

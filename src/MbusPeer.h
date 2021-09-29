@@ -23,7 +23,7 @@ class MbusPeer : public BaseLib::Systems::Peer, public BaseLib::Rpc::IWebserverE
   void dispose();
 
   //{{{ Features
-  virtual bool wireless() { return true; }
+  bool wireless() override { return _wireless; }
   //}}}
 
   //{{{ In table variables
@@ -55,6 +55,15 @@ class MbusPeer : public BaseLib::Systems::Peer, public BaseLib::Rpc::IWebserverE
   void setLastTime(int32_t value) {
     _lastTime = value;
     saveVariable(26, (int32_t)value);
+  }
+  void setWireless(bool value) {
+    _wireless = value;
+    saveVariable(27, (int32_t)value);
+  }
+  int32_t getPrimaryAddress() { return _primaryAddress; }
+  void setPrimaryAddress(int32_t value) {
+    _primaryAddress = value;
+    saveVariable(28, (int32_t)value);
   }
   //}}}
 
@@ -108,6 +117,8 @@ class MbusPeer : public BaseLib::Systems::Peer, public BaseLib::Rpc::IWebserverE
   uint16_t _formatCrc = 0;
   uint8_t _encryptionMode = 0;
   int32_t _lastTime = 0;
+  bool _wireless = true;
+  int32_t _primaryAddress = -1;
   //End
 
   bool _shuttingDown = false;
