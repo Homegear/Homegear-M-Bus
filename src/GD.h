@@ -10,19 +10,17 @@
 #include "Mbus.h"
 #include "Interfaces.h"
 
-namespace Mbus
-{
+namespace Mbus {
 
-class GD
-{
-public:
-    GD() = delete;
+class GD {
+ public:
+  GD() = delete;
 
-	static BaseLib::SharedObjects* bl;
-	static Mbus* family;
-    static std::shared_ptr<Interfaces> interfaces;
-	static BaseLib::Output out;
-private:
+  static BaseLib::SharedObjects *bl;
+  static Mbus *family;
+  static std::shared_ptr<Interfaces> interfaces;
+  static BaseLib::Output out;
+ private:
 };
 
 }

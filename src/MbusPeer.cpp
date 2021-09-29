@@ -199,19 +199,39 @@ void MbusPeer::loadVariables(BaseLib::Systems::ICentral *central, std::shared_pt
 
     for (BaseLib::Database::DataTable::iterator row = rows->begin(); row != rows->end(); ++row) {
       switch (row->second.at(2)->intValue) {
-        case 21: _aesKey.clear();
+        case 21: {
+          _aesKey.clear();
           _aesKey.insert(_aesKey.end(), row->second.at(5)->binaryValue->begin(), row->second.at(5)->binaryValue->end());
           break;
-        case 22: _controlInformation = row->second.at(3)->intValue;
+        }
+        case 22: {
+          _controlInformation = row->second.at(3)->intValue;
           break;
-        case 23:_dataRecordCount = row->second.at(3)->intValue;
+        }
+        case 23: {
+          _dataRecordCount = row->second.at(3)->intValue;
           break;
-        case 24:_formatCrc = row->second.at(3)->intValue;
+        }
+        case 24: {
+          _formatCrc = row->second.at(3)->intValue;
           break;
-        case 25:_encryptionMode = row->second.at(3)->intValue;
+        }
+        case 25: {
+          _encryptionMode = row->second.at(3)->intValue;
           break;
-        case 26:_lastTime = row->second.at(3)->intValue;
+        }
+        case 26: {
+          _lastTime = row->second.at(3)->intValue;
           break;
+        }
+        case 27: {
+          _wireless = (bool)row->second.at(3)->intValue;
+          break;
+        }
+        case 28: {
+          _primaryAddress = row->second.at(3)->intValue;
+          break;
+        }
       }
     }
   }
@@ -230,6 +250,8 @@ void MbusPeer::saveVariables() {
     saveVariable(24, _formatCrc);
     saveVariable(25, _encryptionMode);
     saveVariable(26, _lastTime);
+    saveVariable(27, (int32_t)_wireless);
+    saveVariable(28, _primaryAddress);
   }
   catch (const std::exception &ex) {
     GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
@@ -317,7 +339,7 @@ void MbusPeer::getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues> 
       int32_t channelIndex = frame->channelIndex;
       int32_t channel = -1;
       if (channelIndex >= 0 && channelIndex < (signed)payload.size()) channel = payload.at(channelIndex);
-      if (channel > -1 && frame->channelSize < 8.0) channel &= (0xFF >> (8 - std::lround(frame->channelSize)));
+      if (channel > -1 && frame->channelSize < 8.0) channel &= (0xFFu >> (8u - std::lround(frame->channelSize)));
       channel += frame->channelIndexOffset;
       if (frame->channel > -1) channel = frame->channel;
       if (channel == -1) continue;
@@ -332,14 +354,14 @@ void MbusPeer::getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues> 
 
           if ((*j)->constValueInteger > -1) {
             int32_t intValue = 0;
-            _bl->hf.memcpyBigEndian(intValue, data);
+            BaseLib::HelperFunctions::memcpyBigEndian(intValue, data);
             if (intValue != (*j)->constValueInteger) {
               abort = true;
               break;
             } else if ((*j)->parameterId.empty()) continue;
           }
         } else if ((*j)->constValueInteger > -1) {
-          _bl->hf.memcpyBigEndian(data, (*j)->constValueInteger);
+          BaseLib::HelperFunctions::memcpyBigEndian(data, (*j)->constValueInteger);
         } else continue;
 
         for (std::vector<PParameter>::iterator k = frame->associatedVariables.begin(); k != frame->associatedVariables.end(); ++k) {
@@ -390,8 +412,8 @@ void MbusPeer::getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues> 
 void MbusPeer::packetReceived(PMbusPacket &packet) {
   try {
     if (_disposing || !packet || !_rpcDevice) return;
-    if (packet->senderAddress() != _address) return;
-    if (packet->getFormatCrc() != _formatCrc) {
+    if (packet->secondaryAddress() != _address) return;
+    if (_formatCrc != 0 && packet->getFormatCrc() != _formatCrc) {
       GD::out.printWarning("Warning: Ignoring packet with wrong format frame CRC.");
       return;
     }
@@ -454,10 +476,10 @@ void MbusPeer::packetReceived(PMbusPacket &packet) {
 
             if (i->first == "DATE" || i->first == "DATETIME") {
               int32_t time = BaseLib::HelperFunctions::getTimeSeconds();
-              if (value->integerValue < time - (86400 * 2) || value->integerValue > time + (86400 * 2)) {
+              if (packet->wireless() && (value->integerValue < time - (86400 * 2) || value->integerValue > time + (86400 * 2))) {
                 serviceMessages->set("POSSIBLE_HACKING_ATTEMPT", true);
                 GD::out.printWarning("Warning: Possible hacking attempt. Date in packet deviates more than two days from current date.");
-              } else if (value->integerValue < _lastTime) {
+              } else if (packet->wireless() && value->integerValue < _lastTime) {
                 serviceMessages->set("POSSIBLE_HACKING_ATTEMPT", true);
                 GD::out.printWarning("Warning: Possible hacking attempt. Date in packet is older than in last packet.");
               } else _lastTime = value->integerValue;
@@ -471,7 +493,7 @@ void MbusPeer::packetReceived(PMbusPacket &packet) {
     }
 
     if (!rpcValues.empty()) {
-      for (auto &valueKey : valueKeys) {
+      for (auto &valueKey: valueKeys) {
         if (valueKey.second->empty()) continue;
         std::string eventSource = "device-" + std::to_string(_peerID);
         std::string address(_serialNumber + ":" + std::to_string(valueKey.first));
