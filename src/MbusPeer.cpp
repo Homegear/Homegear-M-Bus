@@ -572,6 +572,20 @@ bool MbusPeer::convertFromPacketHook(BaseLib::Systems::RpcConfigurationParameter
   return true;
 }
 
+PVariable MbusPeer::getDeviceInfo(BaseLib::PRpcClientInfo clientInfo, std::map<std::string, bool> fields) {
+  try {
+    PVariable info(Peer::getDeviceInfo(clientInfo, fields));
+
+    info->structValue->emplace("INTERFACE", std::make_shared<Variable>(std::to_string(MY_FAMILY_ID) + ".virtual"));
+
+    return info;
+  }
+  catch (const std::exception &ex) {
+    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+  }
+  return PVariable();
+}
+
 PVariable MbusPeer::putParamset(BaseLib::PRpcClientInfo clientInfo, int32_t channel, ParameterGroup::Type::Enum type, uint64_t remoteID, int32_t remoteChannel, PVariable variables, bool checkAcls, bool onlyPushing) {
   try {
     if (_disposing) return Variable::createError(-32500, "Peer is disposing.");

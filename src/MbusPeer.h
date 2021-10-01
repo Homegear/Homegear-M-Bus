@@ -136,7 +136,7 @@ class MbusPeer : public BaseLib::Systems::Peer, public BaseLib::Rpc::IWebserverE
 
   PParameterGroup getParameterSet(int32_t channel, ParameterGroup::Type::Enum type) override;
 
-  // {{{ Hooks
+  //{{{ Hooks
   /**
    * {@inheritDoc}
    */
@@ -151,7 +151,11 @@ class MbusPeer : public BaseLib::Systems::Peer, public BaseLib::Rpc::IWebserverE
    * {@inheritDoc}
    */
   bool convertFromPacketHook(BaseLib::Systems::RpcConfigurationParameter &parameter, std::vector<uint8_t> &data, PVariable &result) override;
-  // }}}
+  //}}}
+
+  //{{{ RPC methods
+  PVariable getDeviceInfo(BaseLib::PRpcClientInfo clientInfo, std::map<std::string, bool> fields) override;
+  //}}}
 };
 
 typedef std::shared_ptr<MbusPeer> PMyPeer;
