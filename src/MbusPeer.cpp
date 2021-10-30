@@ -328,7 +328,7 @@ void MbusPeer::getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues> 
     if (_rpcDevice->packetsByMessageType.find(1) == _rpcDevice->packetsByMessageType.end()) return;
     std::pair<PacketsByMessageType::iterator, PacketsByMessageType::iterator> range = _rpcDevice->packetsByMessageType.equal_range(1);
     if (range.first == _rpcDevice->packetsByMessageType.end()) return;
-    PacketsByMessageType::iterator i = range.first;
+    auto i = range.first;
     do {
       FrameValues currentFrameValues;
       PPacket frame(i->second);
@@ -346,7 +346,7 @@ void MbusPeer::getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues> 
       currentFrameValues.frameID = frame->id;
       bool abort = false;
 
-      for (BinaryPayloads::iterator j = frame->binaryPayloads.begin(); j != frame->binaryPayloads.end(); ++j) {
+      for (auto j = frame->binaryPayloads.begin(); j != frame->binaryPayloads.end(); ++j) {
         std::vector<uint8_t> data;
         if ((*j)->bitSize > 0 && (*j)->bitIndex > 0) {
           if ((*j)->bitIndex >= payloadBitSize) continue;
@@ -364,7 +364,7 @@ void MbusPeer::getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues> 
           BaseLib::HelperFunctions::memcpyBigEndian(data, (*j)->constValueInteger);
         } else continue;
 
-        for (std::vector<PParameter>::iterator k = frame->associatedVariables.begin(); k != frame->associatedVariables.end(); ++k) {
+        for (auto k = frame->associatedVariables.begin(); k != frame->associatedVariables.end(); ++k) {
           if ((*k)->physical->groupId != (*j)->parameterId) continue;
           currentFrameValues.parameterSetType = (*k)->parent()->type();
           bool setValues = false;
@@ -433,13 +433,13 @@ void MbusPeer::packetReceived(PMbusPacket &packet) {
     std::map<uint32_t, std::shared_ptr<std::vector<PVariable>>> rpcValues;
 
     //Loop through all matching frames
-    for (std::vector<FrameValues>::iterator a = frameValues.begin(); a != frameValues.end(); ++a) {
+    for (auto &frameValue: frameValues) {
       PPacket frame;
-      if (!a->frameID.empty()) frame = _rpcDevice->packetsById.at(a->frameID);
+      if (!frameValue.frameID.empty()) frame = _rpcDevice->packetsById.at(frameValue.frameID);
       if (!frame) continue;
 
-      for (std::map<std::string, FrameValue>::iterator i = a->values.begin(); i != a->values.end(); ++i) {
-        for (std::list<uint32_t>::const_iterator j = a->paramsetChannels.begin(); j != a->paramsetChannels.end(); ++j) {
+      for (auto i = frameValue.values.begin(); i != frameValue.values.end(); ++i) {
+        for (std::list<uint32_t>::const_iterator j = frameValue.paramsetChannels.begin(); j != frameValue.paramsetChannels.end(); ++j) {
           if (std::find(i->second.channels.begin(), i->second.channels.end(), *j) == i->second.channels.end()) continue;
           if (!valueKeys[*j] || !rpcValues[*j]) {
             valueKeys[*j].reset(new std::vector<std::string>());
@@ -447,7 +447,7 @@ void MbusPeer::packetReceived(PMbusPacket &packet) {
           }
 
           BaseLib::Systems::RpcConfigurationParameter &parameter = valuesCentral[*j][i->first];
-          if (parameter.equals(i->second.value)) continue;
+          //if (parameter.equals(i->second.value)) continue;
           parameter.setBinaryData(i->second.value);
           if (parameter.databaseId > 0) saveParameter(parameter.databaseId, i->second.value);
           else saveParameter(0, ParameterGroup::Type::Enum::variables, *j, i->first, i->second.value);
