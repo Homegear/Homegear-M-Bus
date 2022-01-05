@@ -316,4 +316,25 @@ void Interfaces::worker() {
   }
 }
 
+BaseLib::PVariable Interfaces::listInterfaces() {
+  try {
+    auto array = Systems::PhysicalInterfaces::listInterfaces();
+
+    BaseLib::PVariable interfaceStruct(new BaseLib::Variable(BaseLib::VariableType::tStruct));
+
+    interfaceStruct->structValue->insert(BaseLib::StructElement("FAMILYID", std::make_shared<BaseLib::Variable>(MY_FAMILY_ID)));
+    interfaceStruct->structValue->insert(BaseLib::StructElement("VIRTUAL", std::make_shared<BaseLib::Variable>(true)));
+    interfaceStruct->structValue->insert(BaseLib::StructElement("ID", std::make_shared<BaseLib::Variable>(std::to_string(MY_FAMILY_ID) + ".virtual")));
+    interfaceStruct->structValue->insert(BaseLib::StructElement("CONNECTED", std::make_shared<BaseLib::Variable>(true)));
+
+    array->arrayValue->emplace_back(interfaceStruct);
+
+    return array;
+  }
+  catch (const std::exception &ex) {
+    _bl->out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+  }
+  return BaseLib::Variable::createError(-32500, "Unknown application error.");
+}
+
 }
