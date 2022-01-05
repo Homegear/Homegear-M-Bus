@@ -24,6 +24,7 @@ class Interfaces : public BaseLib::Systems::PhysicalInterfaces {
   bool hasInterface(const std::string &name);
   std::shared_ptr<IMbusInterface> getInterface(const std::string &name);
   std::vector<std::shared_ptr<IMbusInterface>> getInterfaces();
+  BaseLib::PVariable listInterfaces() override;
   void worker();
  protected:
   BaseLib::PVariable _updatedHgdcModules;
