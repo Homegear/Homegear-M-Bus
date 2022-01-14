@@ -7,7 +7,7 @@ namespace Mbus {
 
 PVariable VifConverter::getVariable(uint8_t type, std::vector<uint8_t> &vifs, const std::vector<uint8_t> &value) {
   try {
-    uint8_t vif = vifs.at(0);
+    uint8_t vif = vifs.empty() ? 0 : vifs.at(0);
     if (vif == 0x6C) {
       //E. g.: 332C for 19th December, 2017
       int32_t year = ((value.at(1) & 0xF0u) >> 1u) | (value.at(0) >> 5u);
@@ -80,17 +80,22 @@ PVariable VifConverter::getVariable(uint8_t type, std::vector<uint8_t> &vifs, co
       return std::make_shared<Variable>(
           (((int32_t)(value.at(3) >> 4)) * 10000000) + (((int32_t)(value.at(3) & 0x0F)) * 1000000) + (((int32_t)(value.at(2) >> 4)) * 100000) + (((int32_t)(value.at(2) & 0x0F)) * 10000) + (((int32_t)(value.at(1) >> 4)) * 1000)
               + (((int32_t)(value.at(1) & 0x0F)) * 100) + (((int32_t)(value.at(0) >> 4)) * 10) + (value.at(0) & 0x0F));
+    } else if (type == 13) {
+      return std::make_shared<Variable>(BaseLib::HelperFunctions::getHexString(value.data() + 1, value.size() - 1));
     } else if (type == 14) {
       return std::make_shared<Variable>(
           (((int64_t)(value.at(5) >> 4)) * 100000000000) + (((int64_t)(value.at(5) & 0x0F)) * 10000000000) + (((int64_t)(value.at(4) >> 4)) * 1000000000) + (((int64_t)(value.at(4) & 0x0F)) * 100000000) + (((int64_t)(value.at(3) >> 4)) * 10000000)
               + (((int64_t)(value.at(3) & 0x0F)) * 1000000) + (((int64_t)(value.at(2) >> 4)) * 100000) + (((int64_t)(value.at(2) & 0x0F)) * 10000) + (((int64_t)(value.at(1) >> 4)) * 1000) + (((int64_t)(value.at(1) & 0x0F)) * 100)
               + (((int64_t)(value.at(0) >> 4)) * 10) + (value.at(0) & 0x0F));
+    } else {
+      return std::make_shared<Variable>(BaseLib::HelperFunctions::getHexString(value));
     }
   }
   catch (const std::exception &ex) {
     GD::bl->out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
-  return std::make_shared<Variable>();
+  return
+      std::make_shared<Variable>();
 }
 
 }
