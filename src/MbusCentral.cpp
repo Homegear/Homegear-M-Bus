@@ -252,7 +252,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
     }
 
     if (peer->getControlInformation() != (int32_t)myPacket->getControlInformation() || peer->getDataRecordCount() != myPacket->dataRecordCount() || (myPacket->isFormatTelegram() && peer->getFormatCrc() != myPacket->getFormatCrc())) {
-      if (myPacket->isEncrypted()) {
+      if (myPacket->isEncrypted() || senderId == "ExternalInterface") {
         if ((myPacket->isFormatTelegram() || (myPacket->isDataTelegram() && !myPacket->isCompactDataTelegram()))) {
           _bl->out.printInfo(
               "Info: Packet type changed from " + std::to_string(peer->getControlInformation()) + " to " + std::to_string(myPacket->getControlInformation()) + " or data record count changed from " + std::to_string(peer->getDataRecordCount()) + " to "

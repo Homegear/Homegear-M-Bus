@@ -25,6 +25,7 @@ class MbusPacket : public BaseLib::Systems::Packet {
     int64_t storageNumber = -1;
     std::vector<uint8_t> vifs;
     std::vector<uint8_t> data;
+    std::string vifCustomName;
     int32_t dataStart = -1;
     int32_t dataSize = -1;
   };
