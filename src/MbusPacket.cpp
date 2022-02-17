@@ -211,6 +211,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
         _manufacturer.push_back((char)(((value >> 10) & 0x1F) + 64));
         _manufacturer.push_back((char)(((value >> 5) & 0x1F) + 64));
         _manufacturer.push_back((char)((value & 0x1F) + 64));
+        _version = packet.at(ciStart + 7);
         _medium = packet.at(ciStart + 8);
 
         _messageCounter = packet.at(ciStart + 9);
@@ -255,6 +256,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
         _manufacturer.push_back((char)(((value >> 5) & 0x1F) + 64));
         _manufacturer.push_back((char)((value & 0x1F) + 64));
         _secondaryAddress = (((uint32_t)packet.at(9)) << 24u) | (((uint32_t)packet.at(8)) << 16u) | (((uint32_t)packet.at(7)) << 8u) | ((uint32_t)packet.at(6));
+        _version = packet.at(10);
         _medium = packet.at(11);
 
         _messageCounter = packet.at(ciStart + 1);
@@ -903,42 +905,59 @@ void MbusPacket::parsePayload() {
       }
       //}}}
 
-      //{{{ Get VIFs
-      dataRecord.vifs.reserve(11);
-      dataRecord.vifs.push_back(_payload.at(pos++));
-
-      //{{{ Fixes
-      if (dataRecord.vifs.front() == 0x6E && _controlInformation == 0x6B && _manufacturer == "EFE" && _medium == 7) {
-        dataRecord.vifs.at(0) = 0x6D;
-        _payload.at(pos - 1) = 0x6D;
-      }
-      //}}}
-
-      count = 0;
-      while (dataRecord.vifs.back() & 0x80 && pos < _payload.size() && count <= 11) {
+      if (dataRecord.difs.front() != 0xF) {
+        //{{{ Get VIFs
+        dataRecord.vifs.reserve(11);
         dataRecord.vifs.push_back(_payload.at(pos++));
-        count++;
-      }
 
-      if (count > 11) {
-        GD::out.printError("Error: Could not parse packet. Packet contains more than 10 VIFEs");
-        break;
-      }
+        //{{{ Fixes
+        if (dataRecord.vifs.front() == 0x6E && _controlInformation == 0x6B && _manufacturer == "EFE" && _medium == 7) {
+          dataRecord.vifs.at(0) = 0x6D;
+          _payload.at(pos - 1) = 0x6D;
+        }
+        //}}}
 
-      if (dataRecord.vifs.front() == 0x0F || dataRecord.vifs.front() == 0x1F) {
-        GD::out.printInfo("Info: The packet contains manufacturer specific data which is currently not supported.");
-        break;
+        if ((dataRecord.vifs.front() & 0x7F) == 0x7C) { //Custom string VIF
+          if (pos >= _payload.size() || pos + _payload.at(pos) >= _payload.size()) {
+            GD::out.printError("Error: Could not parse packet. Invalid end of data.");
+            break;
+          }
+          uint8_t stringLength = _payload.at(pos);
+          dataRecord.vifCustomName.reserve(stringLength);
+          for (uint32_t i = pos + stringLength; i > pos; i--) {
+            dataRecord.vifCustomName.push_back((char)_payload.at(i));
+          }
+          pos += stringLength + 1;
+
+        }
+        count = 0;
+        while (dataRecord.vifs.back() & 0x80 && pos < _payload.size() && count <= 11) {
+          dataRecord.vifs.push_back(_payload.at(pos++));
+          count++;
+        }
+
+        if (count > 11) {
+          GD::out.printError("Error: Could not parse packet. Packet contains more than 10 VIFEs");
+          break;
+        }
+        //}}}
       }
-      //}}}
 
       dataRecord.dataStart = isFormatTelegram() ? dataPos : pos;
-      dataRecord.dataSize = getDataSize(dataRecord.difs.front(), pos < _payload.size() ? _payload.at(pos) : 0);
+      if (dataRecord.difs.front() == 0x0F || dataRecord.difs.front() == 0x1F) {
+        //Manufacturer specific
+        dataRecord.dataSize = _payload.size() - pos;
+      } else {
+        dataRecord.dataSize = getDataSize(dataRecord.difs.front(), pos < _payload.size() ? _payload.at(pos) : 0);
+      }
       if (isFormatTelegram()) {
         dataPos += dataRecord.dataSize;
       }
       if (isDataTelegram()) {
         if (pos + dataRecord.dataSize > _payload.size()) break;
-        dataRecord.data.insert(dataRecord.data.end(), _payload.begin() + pos, _payload.begin() + pos + dataRecord.dataSize);
+        int32_t dataStartPos = pos;
+        if ((dataRecord.difs.front() & 0xF) == 0xD) dataStartPos++;
+        dataRecord.data.insert(dataRecord.data.end(), _payload.begin() + dataStartPos, _payload.begin() + dataStartPos + dataRecord.dataSize);
         pos += dataRecord.dataSize;
       }
 

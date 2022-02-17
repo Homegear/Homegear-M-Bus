@@ -752,11 +752,12 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, MbusPa
     } else if (dif == 5) {
       parameter->logical = std::make_shared<LogicalDecimal>(GD::bl);
     } else if (dif == 8 || dif == 13 || dif == 15) {
-      GD::out.printWarning("Warning: DIF 0x" + BaseLib::HelperFunctions::getHexString(dif) + " is currently not supported.");
-      return;
+      parameter->logical = std::make_shared<LogicalString>(GD::bl);
     }
 
-    if (dataRecord.vifs.size() == 1) {
+    if (!dataRecord.vifCustomName.empty()) {
+      parameter->id = dataRecord.vifCustomName;
+    } else if (dataRecord.vifs.size() == 1) {
       auto vifIterator = _vifVariableNameMap.find(dataRecord.vifs.front());
       if (vifIterator == _vifVariableNameMap.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.front(), 2);
       else parameter->id = vifIterator->second;
@@ -787,6 +788,8 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, MbusPa
       } else {
         parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
       }
+    } else if (dataRecord.difs.front() == 0xF) { //Manufacturer specific
+      parameter->id = "UNKNOWN_MANUFACTURER_SPECIFIC";
     } else {
       parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
     }
