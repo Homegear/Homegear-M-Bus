@@ -1,6 +1,6 @@
 /* Copyright 2013-2019 Homegear GmbH */
 
-#include "../GD.h"
+#include "../Gd.h"
 #include "Hgdc.h"
 
 #define CMD_DATA_IND 0x03
@@ -12,22 +12,22 @@ namespace Mbus {
 
 Hgdc::Hgdc(std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> settings) : IMbusInterface(settings) {
   _settings = settings;
-  _out.init(GD::bl);
-  _out.setPrefix(GD::out.getPrefix() + "HGDC \"" + settings->id + "\": ");
+  _out.init(Gd::bl);
+  _out.setPrefix(Gd::out.getPrefix() + "HGDC \"" + settings->id + "\": ");
 
   signal(SIGPIPE, SIG_IGN);
 
   _stopped = true;
 
   std::string settingName = "securitymodewhitelist";
-  auto setting = GD::family->getFamilySetting(settingName);
+  auto setting = Gd::family->getFamilySetting(settingName);
   if (setting) {
     auto elements = BaseLib::HelperFunctions::splitAll(setting->stringValue, ',');
     for (auto &element: elements) {
       BaseLib::HelperFunctions::trim(element);
       int32_t mode = BaseLib::Math::getNumber(element);
       _securityModeWhitelist.emplace(mode);
-      GD::out.printInfo("Info: Adding mode " + std::to_string(mode) + " to security mode whitelist");
+      Gd::out.printInfo("Info: Adding mode " + std::to_string(mode) + " to security mode whitelist");
     }
   }
 
@@ -53,7 +53,7 @@ Hgdc::Hgdc(std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> settings
       _securityModeWhitelist.find(3) != _securityModeWhitelist.end() ||
       _securityModeWhitelist.find(4) != _securityModeWhitelist.end() ||
       _securityModeWhitelist.find(5) != _securityModeWhitelist.end()) {
-    GD::out.printWarning("Warning: Your security mode whitelist contains insecure security modes. This is a potential risk.");
+    Gd::out.printWarning("Warning: Your security mode whitelist contains insecure security modes. This is a potential risk.");
   }
 }
 
@@ -64,17 +64,17 @@ Hgdc::~Hgdc() {
 
 void Hgdc::startListening() {
   try {
-    GD::bl->hgdc->unregisterPacketReceivedEventHandler(_packetReceivedEventHandlerId);
+    Gd::bl->hgdc->unregisterPacketReceivedEventHandler(_packetReceivedEventHandlerId);
 
     std::string settingName = "mode";
-    auto modeSetting = GD::family->getFamilySetting(settingName);
+    auto modeSetting = Gd::family->getFamilySetting(settingName);
     if (modeSetting) _settings->mode = BaseLib::HelperFunctions::toLower(modeSetting->stringValue);
     if (_settings->mode.empty() || (_settings->mode != "t" && _settings->mode != "s" && _settings->mode != "c")) {
       _out.printError("Warning: \"Mode\" is not set or invalid in \"mbus.conf\". Setting it to \"T\".");
       _settings->mode = "t";
     }
 
-    _packetReceivedEventHandlerId = GD::bl->hgdc->registerPacketReceivedEventHandler(MY_FAMILY_ID,
+    _packetReceivedEventHandlerId = Gd::bl->hgdc->registerPacketReceivedEventHandler(MY_FAMILY_ID,
                                                                                      std::function<void(int64_t, const std::string &, const std::vector<uint8_t> &)>(std::bind(&Hgdc::processPacket,
                                                                                                                                                                                this,
                                                                                                                                                                                std::placeholders::_1,
@@ -94,7 +94,7 @@ void Hgdc::stopListening() {
   try {
     _stopped = true;
     IPhysicalInterface::stopListening();
-    GD::bl->hgdc->unregisterPacketReceivedEventHandler(_packetReceivedEventHandlerId);
+    Gd::bl->hgdc->unregisterPacketReceivedEventHandler(_packetReceivedEventHandlerId);
     _packetReceivedEventHandlerId = -1;
   }
   catch (const std::exception &ex) {
@@ -249,7 +249,7 @@ bool Hgdc::setParameter(uint8_t address, uint8_t value) {
 
 void Hgdc::rawSend(std::vector<uint8_t> &packet) {
   try {
-    if (!GD::bl->hgdc->sendPacket(_settings->serialNumber, packet)) {
+    if (!Gd::bl->hgdc->sendPacket(_settings->serialNumber, packet)) {
       _out.printError("Error sending packet " + BaseLib::HelperFunctions::getHexString(packet) + ".");
     }
   }

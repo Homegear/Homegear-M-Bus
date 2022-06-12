@@ -2,7 +2,7 @@
 
 #include "MbusPeer.h"
 
-#include "GD.h"
+#include "Gd.h"
 #include "MbusPacket.h"
 #include "MbusCentral.h"
 
@@ -12,20 +12,20 @@ namespace Mbus {
 std::shared_ptr<BaseLib::Systems::ICentral> MbusPeer::getCentral() {
   try {
     if (_central) return _central;
-    _central = GD::family->getCentral();
+    _central = Gd::family->getCentral();
     return _central;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return std::shared_ptr<BaseLib::Systems::ICentral>();
 }
 
-MbusPeer::MbusPeer(uint32_t parentID, IPeerEventSink *eventHandler) : BaseLib::Systems::Peer(GD::bl, parentID, eventHandler) {
+MbusPeer::MbusPeer(uint32_t parentID, IPeerEventSink *eventHandler) : BaseLib::Systems::Peer(Gd::bl, parentID, eventHandler) {
   init();
 }
 
-MbusPeer::MbusPeer(int32_t id, int32_t address, std::string serialNumber, uint32_t parentID, IPeerEventSink *eventHandler) : BaseLib::Systems::Peer(GD::bl, id, address, serialNumber, parentID, eventHandler) {
+MbusPeer::MbusPeer(int32_t id, int32_t address, std::string serialNumber, uint32_t parentID, IPeerEventSink *eventHandler) : BaseLib::Systems::Peer(Gd::bl, id, address, serialNumber, parentID, eventHandler) {
   init();
 }
 
@@ -34,7 +34,7 @@ MbusPeer::~MbusPeer() {
     dispose();
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -42,7 +42,7 @@ void MbusPeer::init() {
   try {
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -56,7 +56,7 @@ void MbusPeer::worker() {
     if (!serviceMessages->getUnreach()) serviceMessages->checkUnreach(_rpcDevice->timeout, getLastPacketReceived());
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -65,7 +65,7 @@ void MbusPeer::homegearStarted() {
     Peer::homegearStarted();
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -75,7 +75,7 @@ void MbusPeer::homegearShuttingDown() {
     Peer::homegearShuttingDown();
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -137,7 +137,7 @@ std::string MbusPeer::handleCliCommand(std::string command) {
     } else return "Unknown command.\n";
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return "Error executing command. See log file for more details.\n";
 }
@@ -184,7 +184,7 @@ std::string MbusPeer::printConfig() {
     return stringStream.str();
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return "";
 }
@@ -194,49 +194,49 @@ void MbusPeer::loadVariables(BaseLib::Systems::ICentral *central, std::shared_pt
     if (!rows) rows = _bl->db->getPeerVariables(_peerID);
     Peer::loadVariables(central, rows);
 
-    _rpcDevice = GD::family->getRpcDevices()->find(_deviceType, _firmwareVersion, -1);
+    _rpcDevice = Gd::family->getRpcDevices()->find(_deviceType, _firmwareVersion, -1);
     if (!_rpcDevice) return;
 
-    for (BaseLib::Database::DataTable::iterator row = rows->begin(); row != rows->end(); ++row) {
-      switch (row->second.at(2)->intValue) {
+    for (auto &row: *rows) {
+      switch (row.second.at(2)->intValue) {
         case 21: {
           _aesKey.clear();
-          _aesKey.insert(_aesKey.end(), row->second.at(5)->binaryValue->begin(), row->second.at(5)->binaryValue->end());
+          _aesKey.insert(_aesKey.end(), row.second.at(5)->binaryValue->begin(), row.second.at(5)->binaryValue->end());
           break;
         }
         case 22: {
-          _controlInformation = row->second.at(3)->intValue;
+          _controlInformation = row.second.at(3)->intValue;
           break;
         }
         case 23: {
-          _dataRecordCount = row->second.at(3)->intValue;
+          _dataRecordCount = row.second.at(3)->intValue;
           break;
         }
         case 24: {
-          _formatCrc = row->second.at(3)->intValue;
+          _formatCrc = row.second.at(3)->intValue;
           break;
         }
         case 25: {
-          _encryptionMode = row->second.at(3)->intValue;
+          _encryptionMode = row.second.at(3)->intValue;
           break;
         }
         case 26: {
-          _lastTime = row->second.at(3)->intValue;
+          _lastTime = row.second.at(3)->intValue;
           break;
         }
         case 27: {
-          _wireless = (bool)row->second.at(3)->intValue;
+          _wireless = (bool)row.second.at(3)->intValue;
           break;
         }
         case 28: {
-          _primaryAddress = row->second.at(3)->intValue;
+          _primaryAddress = row.second.at(3)->intValue;
           break;
         }
       }
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -254,7 +254,7 @@ void MbusPeer::saveVariables() {
     saveVariable(28, _primaryAddress);
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -263,7 +263,7 @@ bool MbusPeer::load(BaseLib::Systems::ICentral *central) {
     std::shared_ptr<BaseLib::Database::DataTable> rows;
     loadVariables(central, rows);
     if (!_rpcDevice) {
-      GD::out.printError("Error loading peer " + std::to_string(_peerID) + ": Device type not found: 0x" + BaseLib::HelperFunctions::getHexString(_deviceType) + " Firmware version: " + std::to_string(_firmwareVersion));
+      Gd::out.printError("Error loading peer " + std::to_string(_peerID) + ": Device type not found: 0x" + BaseLib::HelperFunctions::getHexString(_deviceType) + " Firmware version: " + std::to_string(_firmwareVersion));
       return false;
     }
 
@@ -278,7 +278,7 @@ bool MbusPeer::load(BaseLib::Systems::ICentral *central) {
     return true;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return false;
 }
@@ -310,7 +310,7 @@ void MbusPeer::setRssiDevice(uint8_t rssi) {
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -321,7 +321,7 @@ void MbusPeer::getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues> 
     //Check for low battery
     if (packet->batteryEmpty()) {
       serviceMessages->set("LOWBAT", true);
-      if (_bl->debugLevel >= 4) GD::out.printInfo("Info: LOWBAT of peer " + std::to_string(_peerID) + " with serial number " + _serialNumber + " was set to \"true\".");
+      if (_bl->debugLevel >= 4) Gd::out.printInfo("Info: LOWBAT of peer " + std::to_string(_peerID) + " with serial number " + _serialNumber + " was set to \"true\".");
     } else serviceMessages->set("LOWBAT", false);
 
     //equal_range returns all elements with "0" or an unknown element as argument
@@ -405,7 +405,7 @@ void MbusPeer::getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues> 
     } while (++i != range.second && i != _rpcDevice->packetsByMessageType.end());
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -414,11 +414,11 @@ void MbusPeer::packetReceived(PMbusPacket &packet) {
     if (_disposing || !packet || !_rpcDevice) return;
     if (packet->secondaryAddress() != _address) return;
     if (_formatCrc != 0 && packet->getFormatCrc() != _formatCrc) {
-      GD::out.printWarning("Warning: Ignoring packet with wrong format frame CRC.");
+      Gd::out.printWarning("Warning: Ignoring packet with wrong format frame CRC.");
       return;
     }
     if (getEncryptionMode() != packet->getEncryptionMode()) {
-      GD::out.printWarning("Warning: Ignoring packet with wrong encryption mode.");
+      Gd::out.printWarning("Warning: Ignoring packet with wrong encryption mode.");
       return;
     }
     std::shared_ptr<MbusCentral> central = std::dynamic_pointer_cast<MbusCentral>(getCentral());
@@ -452,7 +452,7 @@ void MbusPeer::packetReceived(PMbusPacket &packet) {
           if (parameter.databaseId > 0) saveParameter(parameter.databaseId, i->second.value);
           else saveParameter(0, ParameterGroup::Type::Enum::variables, *j, i->first, i->second.value);
           if (_bl->debugLevel >= 4)
-            GD::out.printInfo(
+            Gd::out.printInfo(
                 "Info: " + i->first + " on channel " + std::to_string(*j) + " of peer " + std::to_string(_peerID) + " with serial number " + _serialNumber + " was set to 0x" + BaseLib::HelperFunctions::getHexString(i->second.value) + ".");
 
           if (parameter.rpcParameter) {
@@ -478,10 +478,10 @@ void MbusPeer::packetReceived(PMbusPacket &packet) {
               int32_t time = BaseLib::HelperFunctions::getTimeSeconds();
               if (packet->wireless() && (value->integerValue < time - (86400 * 2) || value->integerValue > time + (86400 * 2))) {
                 serviceMessages->set("POSSIBLE_HACKING_ATTEMPT", true);
-                GD::out.printWarning("Warning: Possible hacking attempt. Date in packet deviates more than two days from current date.");
+                Gd::out.printWarning("Warning: Possible hacking attempt. Date in packet deviates more than two days from current date.");
               } else if (packet->wireless() && value->integerValue < _lastTime) {
                 serviceMessages->set("POSSIBLE_HACKING_ATTEMPT", true);
-                GD::out.printWarning("Warning: Possible hacking attempt. Date in packet is older than in last packet.");
+                Gd::out.printWarning("Warning: Possible hacking attempt. Date in packet is older than in last packet.");
               } else _lastTime = value->integerValue;
             }
 
@@ -503,7 +503,7 @@ void MbusPeer::packetReceived(PMbusPacket &packet) {
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -515,7 +515,7 @@ PParameterGroup MbusPeer::getParameterSet(int32_t channel, ParameterGroup::Type:
     else if (type == ParameterGroup::Type::Enum::link) return rpcChannel->linkParameters;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return PParameterGroup();
 }
@@ -532,7 +532,7 @@ bool MbusPeer::getAllValuesHook2(PRpcClientInfo clientInfo, PParameter parameter
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return false;
 }
@@ -549,7 +549,7 @@ bool MbusPeer::getParamsetHook2(PRpcClientInfo clientInfo, PParameter parameter,
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return false;
 }
@@ -567,7 +567,7 @@ bool MbusPeer::convertFromPacketHook(BaseLib::Systems::RpcConfigurationParameter
     result = VifConverter::getVariable(type, vifs, data);
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return true;
 }
@@ -581,7 +581,7 @@ PVariable MbusPeer::getDeviceInfo(BaseLib::PRpcClientInfo clientInfo, std::map<s
     return info;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return PVariable();
 }
@@ -615,7 +615,7 @@ PVariable MbusPeer::putParamset(BaseLib::PRpcClientInfo clientInfo, int32_t chan
         if (parameter.databaseId > 0) saveParameter(parameter.databaseId, parameterData);
         else saveParameter(0, ParameterGroup::Type::Enum::config, channel, i->first, parameterData);
         parameterChanged = true;
-        GD::out.printInfo("Info: Parameter " + i->first + " of peer " + std::to_string(_peerID) + " and channel " + std::to_string(channel) + " was set to 0x" + BaseLib::HelperFunctions::getHexString(parameterData) + ".");
+        Gd::out.printInfo("Info: Parameter " + i->first + " of peer " + std::to_string(_peerID) + " and channel " + std::to_string(channel) + " was set to 0x" + BaseLib::HelperFunctions::getHexString(parameterData) + ".");
       }
 
       if (parameterChanged) raiseRPCUpdateDevice(_peerID, channel, _serialNumber + ":" + std::to_string(channel), 0);
@@ -633,7 +633,7 @@ PVariable MbusPeer::putParamset(BaseLib::PRpcClientInfo clientInfo, int32_t chan
     return std::make_shared<Variable>(VariableType::tVoid);
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return Variable::createError(-32500, "Unknown application error.");
 }
@@ -647,7 +647,7 @@ PVariable MbusPeer::setValue(BaseLib::PRpcClientInfo clientInfo, uint32_t channe
     return Variable::createError(-5, "Unknown parameter.");
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return Variable::createError(-32500, "Unknown application error. See error log for more details.");
 }

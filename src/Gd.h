@@ -12,9 +12,9 @@
 
 namespace Mbus {
 
-class GD {
+class Gd {
  public:
-  GD() = delete;
+  Gd() = delete;
 
   static BaseLib::SharedObjects *bl;
   static Mbus *family;

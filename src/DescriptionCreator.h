@@ -14,7 +14,7 @@ class DescriptionCreator {
  public:
   struct PeerInfo {
     std::string serialNumber;
-    int32_t address = -1;
+    int32_t secondary_address = -1;
     int32_t type = -1;
   };
 

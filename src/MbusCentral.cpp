@@ -1,17 +1,18 @@
 /* Copyright 2013-2019 Homegear GmbH */
 
 #include "MbusCentral.h"
-#include "GD.h"
+#include "Gd.h"
 
 #include <iomanip>
+#include <memory>
 
 namespace Mbus {
 
-MbusCentral::MbusCentral(ICentralEventSink *eventHandler) : BaseLib::Systems::ICentral(MY_FAMILY_ID, GD::bl, eventHandler) {
+MbusCentral::MbusCentral(ICentralEventSink *eventHandler) : BaseLib::Systems::ICentral(MY_FAMILY_ID, Gd::bl, eventHandler) {
   init();
 }
 
-MbusCentral::MbusCentral(uint32_t deviceID, std::string serialNumber, ICentralEventSink *eventHandler) : BaseLib::Systems::ICentral(MY_FAMILY_ID, GD::bl, deviceID, serialNumber, -1, eventHandler) {
+MbusCentral::MbusCentral(uint32_t deviceID, std::string serialNumber, ICentralEventSink *eventHandler) : BaseLib::Systems::ICentral(MY_FAMILY_ID, Gd::bl, deviceID, serialNumber, -1, eventHandler) {
   init();
 }
 
@@ -30,14 +31,14 @@ void MbusCentral::dispose(bool wait) {
     }
 
     _stopWorkerThread = true;
-    GD::out.printDebug("Debug: Waiting for worker thread of device " + std::to_string(_deviceId) + "...");
-    GD::bl->threadManager.join(_workerThread);
+    Gd::out.printDebug("Debug: Waiting for worker thread of device " + std::to_string(_deviceId) + "...");
+    Gd::bl->threadManager.join(_workerThread);
 
-    GD::out.printDebug("Removing device " + std::to_string(_deviceId) + " from physical device's event queue...");
-    GD::interfaces->removeEventHandlers();
+    Gd::out.printDebug("Removing device " + std::to_string(_deviceId) + " from physical device's event queue...");
+    Gd::interfaces->removeEventHandlers();
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -56,12 +57,12 @@ void MbusCentral::init() {
                                                                                                                                                                               std::placeholders::_1,
                                                                                                                                                                               std::placeholders::_2)));
 
-    GD::interfaces->addEventHandlers((BaseLib::Systems::IPhysicalInterface::IPhysicalInterfaceEventSink *)this);
+    Gd::interfaces->addEventHandlers((BaseLib::Systems::IPhysicalInterface::IPhysicalInterfaceEventSink *)this);
 
-    GD::bl->threadManager.start(_workerThread, true, _bl->settings.workerThreadPriority(), _bl->settings.workerThreadPolicy(), &MbusCentral::worker, this);
+    Gd::bl->threadManager.start(_workerThread, true, _bl->settings.workerThreadPriority(), _bl->settings.workerThreadPolicy(), &MbusCentral::worker, this);
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -70,10 +71,10 @@ void MbusCentral::worker() {
     std::chrono::milliseconds sleepingTime(1000);
     uint64_t lastPeer = 0;
 
-    while (!_stopWorkerThread && !GD::bl->shuttingDown) {
+    while (!_stopWorkerThread && !Gd::bl->shuttingDown) {
       try {
         std::this_thread::sleep_for(sleepingTime);
-        if (_stopWorkerThread || GD::bl->shuttingDown) return;
+        if (_stopWorkerThread || Gd::bl->shuttingDown) return;
 
         std::shared_ptr<MbusPeer> peer;
 
@@ -93,15 +94,15 @@ void MbusCentral::worker() {
         }
 
         if (peer && !peer->deleting) peer->worker();
-        GD::interfaces->worker();
+        Gd::interfaces->worker();
       }
       catch (const std::exception &ex) {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+        Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
       }
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -110,7 +111,7 @@ void MbusCentral::loadPeers() {
     std::shared_ptr<BaseLib::Database::DataTable> rows = _bl->db->getPeers(_deviceId);
     for (BaseLib::Database::DataTable::iterator row = rows->begin(); row != rows->end(); ++row) {
       int32_t peerID = row->second.at(0)->intValue;
-      GD::out.printMessage("Loading M-Bus peer " + std::to_string(peerID));
+      Gd::out.printMessage("Loading M-Bus peer " + std::to_string(peerID));
       std::shared_ptr<MbusPeer> peer(new MbusPeer(peerID, row->second.at(2)->intValue, row->second.at(3)->textValue, _deviceId, this));
       if (!peer->load(this)) continue;
       if (!peer->getRpcDevice()) continue;
@@ -123,7 +124,7 @@ void MbusCentral::loadPeers() {
     std::lock_guard<std::mutex> devicesToPairGuard(_devicesToPairMutex);
     _devicesToPair.clear();
     std::string key = "devicesToPair";
-    auto setting = GD::family->getFamilySetting(key);
+    auto setting = Gd::family->getFamilySetting(key);
     if (setting) {
       auto serializedData = setting->binaryValue;
       BaseLib::Rpc::RpcDecoder rpcDecoder(_bl, false, false);
@@ -135,7 +136,7 @@ void MbusCentral::loadPeers() {
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -148,7 +149,7 @@ std::shared_ptr<MbusPeer> MbusCentral::getPeer(uint64_t id) {
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return std::shared_ptr<MbusPeer>();
 }
@@ -163,7 +164,7 @@ std::shared_ptr<MbusPeer> MbusCentral::getPeer(int32_t address) {
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return std::shared_ptr<MbusPeer>();
 }
@@ -177,7 +178,7 @@ std::shared_ptr<MbusPeer> MbusCentral::getPeer(std::string serialNumber) {
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return std::shared_ptr<MbusPeer>();
 }
@@ -277,7 +278,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
     return true;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return false;
 }
@@ -287,7 +288,7 @@ void MbusCentral::pairDevice(PMbusPacket packet, std::vector<uint8_t> &key) {
     if (!packet->isFormatTelegram() && (!packet->isDataTelegram() || packet->isCompactDataTelegram())) return;
 
     std::lock_guard<std::mutex> pairGuard(_pairMutex);
-    GD::out.printInfo("Info: Pairing device 0x" + BaseLib::HelperFunctions::getHexString(packet->secondaryAddress(), 8) + "...");
+    Gd::out.printInfo("Info: Pairing device 0x" + BaseLib::HelperFunctions::getHexString(packet->secondaryAddress(), 8) + "...");
 
     bool newPeer = true;
     auto peer = getPeer(packet->secondaryAddress());
@@ -309,23 +310,23 @@ void MbusCentral::pairDevice(PMbusPacket packet, std::vector<uint8_t> &key) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         i++;
       }
-      if (i == 600) GD::out.printError("Error: Peer deletion took too long.");
+      if (i == 600) Gd::out.printError("Error: Peer deletion took too long.");
     } else lockGuard.unlock();
 
     auto peerInfo = _descriptionCreator.createDescription(packet);
     if (peerInfo.serialNumber.empty()) return; //Error
-    GD::family->reloadRpcDevices();
+    Gd::family->reloadRpcDevices();
 
     if (!peer) {
-      peer = createPeer(peerInfo.type, peerInfo.address, peerInfo.serialNumber, true);
+      peer = createPeer(peerInfo.type, peerInfo.secondary_address, peerInfo.serialNumber, true);
       if (!peer) {
-        GD::out.printError("Error: Could not add device with type " + BaseLib::HelperFunctions::getHexString(peerInfo.type) + ". No matching XML file was found.");
+        Gd::out.printError("Error: Could not add device with type " + BaseLib::HelperFunctions::getHexString(peerInfo.type) + ". No matching XML file was found.");
         return;
       }
     } else {
-      peer->setRpcDevice(GD::family->getRpcDevices()->find(peerInfo.type, 0x10, -1));
+      peer->setRpcDevice(Gd::family->getRpcDevices()->find(peerInfo.type, 0x10, -1));
       if (!peer->getRpcDevice()) {
-        GD::out.printError("Error: RPC device could not be found anymore.");
+        Gd::out.printError("Error: RPC device could not be found anymore.");
         return;
       }
     }
@@ -347,37 +348,37 @@ void MbusCentral::pairDevice(PMbusPacket packet, std::vector<uint8_t> &key) {
     lockGuard.unlock();
 
     if (newPeer) {
-      GD::out.printInfo("Info: Device successfully added. Peer ID is: " + std::to_string(peer->getID()));
+      Gd::out.printInfo("Info: Device successfully added. Peer ID is: " + std::to_string(peer->getID()));
 
       PVariable deviceDescriptions(new Variable(VariableType::tArray));
       std::shared_ptr<std::vector<PVariable>> descriptions = peer->getDeviceDescriptions(nullptr, true, std::map<std::string, bool>());
       if (!descriptions) return;
-      for (std::vector<PVariable>::iterator j = descriptions->begin(); j != descriptions->end(); ++j) {
+      for (auto j = descriptions->begin(); j != descriptions->end(); ++j) {
         deviceDescriptions->arrayValue->push_back(*j);
       }
       std::vector<uint64_t> newIds{peer->getID()};
       raiseRPCNewDevices(newIds, deviceDescriptions);
     } else {
-      GD::out.printInfo("Info: Peer " + std::to_string(peer->getID()) + " successfully updated.");
+      Gd::out.printInfo("Info: Peer " + std::to_string(peer->getID()) + " successfully updated.");
 
       raiseRPCUpdateDevice(peer->getID(), 0, peer->getSerialNumber() + ":" + std::to_string(0), 0);
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
 void MbusCentral::savePeers(bool full) {
   try {
     std::lock_guard<std::mutex> peersGuard(_peersMutex);
-    for (std::map<uint64_t, std::shared_ptr<BaseLib::Systems::Peer>>::iterator i = _peersById.begin(); i != _peersById.end(); ++i) {
-      GD::out.printInfo("Info: Saving M-Bus peer " + std::to_string(i->second->getID()));
-      i->second->save(full, full, full);
+    for (auto &peer_iterator: _peersById) {
+      Gd::out.printInfo("Info: Saving M-Bus peer " + std::to_string(peer_iterator.second->getID()));
+      peer_iterator.second->save(full, full, full);
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -387,16 +388,16 @@ void MbusCentral::deletePeer(uint64_t id) {
     if (!peer) return;
     peer->deleting = true;
     PVariable deviceAddresses(new Variable(VariableType::tArray));
-    deviceAddresses->arrayValue->push_back(PVariable(new Variable(peer->getSerialNumber())));
+    deviceAddresses->arrayValue->push_back(std::make_shared<Variable>(peer->getSerialNumber()));
 
     PVariable deviceInfo(new Variable(VariableType::tStruct));
-    deviceInfo->structValue->insert(StructElement("ID", PVariable(new Variable((int32_t)peer->getID()))));
+    deviceInfo->structValue->insert(StructElement("ID", std::make_shared<Variable>((int32_t)peer->getID())));
     PVariable channels(new Variable(VariableType::tArray));
     deviceInfo->structValue->insert(StructElement("CHANNELS", channels));
 
-    for (Functions::iterator i = peer->getRpcDevice()->functions.begin(); i != peer->getRpcDevice()->functions.end(); ++i) {
-      deviceAddresses->arrayValue->push_back(PVariable(new Variable(peer->getSerialNumber() + ":" + std::to_string(i->first))));
-      channels->arrayValue->push_back(PVariable(new Variable(i->first)));
+    for (auto i = peer->getRpcDevice()->functions.begin(); i != peer->getRpcDevice()->functions.end(); ++i) {
+      deviceAddresses->arrayValue->push_back(std::make_shared<Variable>(peer->getSerialNumber() + ":" + std::to_string(i->first)));
+      channels->arrayValue->push_back(std::make_shared<Variable>(i->first));
     }
 
     std::vector<uint64_t> deletedIds{id};
@@ -414,17 +415,17 @@ void MbusCentral::deletePeer(uint64_t id) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       i++;
     }
-    if (i == 600) GD::out.printError("Error: Peer deletion took too long.");
+    if (i == 600) Gd::out.printError("Error: Peer deletion took too long.");
 
     peer->deleteFromDatabase();
 
-    GD::out.printInfo("Info: Deleting XML file \"" + peer->getRpcDevice()->getPath() + "\"");
-    GD::bl->io.deleteFile(peer->getRpcDevice()->getPath());
+    Gd::out.printInfo("Info: Deleting XML file \"" + peer->getRpcDevice()->getPath() + "\"");
+    BaseLib::Io::deleteFile(peer->getRpcDevice()->getPath());
 
-    GD::out.printMessage("Removed M-Bus peer " + std::to_string(peer->getID()));
+    Gd::out.printMessage("Removed M-Bus peer " + std::to_string(peer->getID()));
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -604,7 +605,7 @@ std::string MbusCentral::handleCliCommand(std::string command) {
         return stringStream.str();
       }
       catch (const std::exception &ex) {
-        GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+        Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
       }
     } else if (command.compare(0, 13, "peers setname") == 0 || command.compare(0, 2, "pn") == 0) {
       uint64_t peerID = 0;
@@ -732,7 +733,7 @@ std::string MbusCentral::handleCliCommand(std::string command) {
     } else return "Unknown command.\n";
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return "Error executing command. See log file for more details.\n";
 }
@@ -743,15 +744,64 @@ std::shared_ptr<MbusPeer> MbusCentral::createPeer(uint32_t deviceType, int32_t a
     peer->setDeviceType(deviceType);
     peer->setAddress(address);
     peer->setSerialNumber(serialNumber);
-    peer->setRpcDevice(GD::family->getRpcDevices()->find(deviceType, 0x10, -1));
+    peer->setRpcDevice(Gd::family->getRpcDevices()->find(deviceType, 0x10, -1));
     if (!peer->getRpcDevice()) return std::shared_ptr<MbusPeer>();
     if (save) peer->save(true, true, false); //Save and create peerID
     return peer;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return std::shared_ptr<MbusPeer>();
+}
+
+PVariable MbusCentral::createDevice(BaseLib::PRpcClientInfo clientInfo, int32_t deviceType, std::string secondary_address_hex, int32_t primary_address, int32_t firmwareVersion, std::string interfaceId) {
+  try {
+    auto secondary_address = BaseLib::Math::getNumber(secondary_address_hex, true);
+
+    if (peerExists(secondary_address)) return Variable::createError(-5, "This peer is already paired to this central.");
+
+    //Todo: Create empty description
+    //auto peerInfo = _descriptionCreator.createDescription(packet);
+    //if (peerInfo.serialNumber.empty()) return Variable::createError(-32500, "Unknown application error.");
+    //Gd::family->reloadRpcDevices();
+
+    /*auto peer = createPeer(peerInfo.type, peerInfo.secondary_address, peerInfo.serialNumber, true);
+    if (!peer) {
+      Gd::out.printError("Error: Could not add device with type " + BaseLib::HelperFunctions::getHexString(peerInfo.type) + ". No matching XML file was found.");
+      return Variable::createError(-32500, "Unknown application error.");
+    }
+
+    peer->initializeCentralConfig();
+
+    //Todo: Set interface and implement sending packets through specific interface / i. e. polling M-Bus metrics
+    //Todo: Add peers by primary address per interface
+    peer->setWireless(false);
+    peer->setPrimaryAddress(primary_address);
+
+    std::unique_lock<std::mutex> lock_guard(_peersMutex);
+    _peersBySerial[peer->getSerialNumber()] = peer;
+    _peersById[peer->getID()] = peer;
+    _peers[peer->getAddress()] = peer;
+    lock_guard.unlock();
+
+    PVariable deviceDescriptions(new Variable(VariableType::tArray));
+    std::shared_ptr<std::vector<PVariable>> descriptions = peer->getDeviceDescriptions(nullptr, true, std::map<std::string, bool>());
+    if (!descriptions) return Variable::createError(-32500, "Unknown application error.");
+    for (auto j = descriptions->begin(); j != descriptions->end(); ++j) {
+      deviceDescriptions->arrayValue->push_back(*j);
+    }
+    std::vector<uint64_t> newIds{peer->getID()};
+    raiseRPCNewDevices(newIds, deviceDescriptions);
+
+    Gd::out.printMessage("Added peer " + std::to_string(peer->getID()) + ".");
+
+    return std::make_shared<Variable>((uint32_t)peer->getID());*/
+  }
+  catch (const std::exception &ex) {
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+  }
+  return Variable::createError(-32500, "Unknown application error.");
 }
 
 PVariable MbusCentral::deleteDevice(BaseLib::PRpcClientInfo clientInfo, std::string serialNumber, int32_t flags) {
@@ -769,7 +819,7 @@ PVariable MbusCentral::deleteDevice(BaseLib::PRpcClientInfo clientInfo, std::str
     return deleteDevice(clientInfo, peerId, flags);
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return Variable::createError(-32500, "Unknown application error.");
 }
@@ -790,7 +840,7 @@ PVariable MbusCentral::deleteDevice(BaseLib::PRpcClientInfo clientInfo, uint64_t
     return PVariable(new Variable(VariableType::tVoid));
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return Variable::createError(-32500, "Unknown application error.");
 }
@@ -822,7 +872,7 @@ PVariable MbusCentral::getSniffedDevices(BaseLib::PRpcClientInfo clientInfo) {
     return array;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return Variable::createError(-32500, "Unknown application error.");
 }
@@ -835,7 +885,7 @@ PVariable MbusCentral::invokeFamilyMethod(BaseLib::PRpcClientInfo clientInfo, st
     } else return BaseLib::Variable::createError(-32601, ": Requested method not found.");
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return Variable::createError(-32502, "Unknown application error.");
 }
@@ -843,7 +893,7 @@ PVariable MbusCentral::invokeFamilyMethod(BaseLib::PRpcClientInfo clientInfo, st
 void MbusCentral::pairingModeTimer(int32_t duration, bool debugOutput) {
   try {
     _pairing = true;
-    if (debugOutput) GD::out.printInfo("Info: Pairing mode enabled for " + std::to_string(duration) + " seconds.");
+    if (debugOutput) Gd::out.printInfo("Info: Pairing mode enabled for " + std::to_string(duration) + " seconds.");
     _timeLeftInPairingMode = duration;
     int64_t startTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     int64_t timePassed = 0;
@@ -854,10 +904,10 @@ void MbusCentral::pairingModeTimer(int32_t duration, bool debugOutput) {
     }
     _timeLeftInPairingMode = 0;
     _pairing = false;
-    if (debugOutput) GD::out.printInfo("Info: Pairing mode disabled.");
+    if (debugOutput) Gd::out.printInfo("Info: Pairing mode disabled.");
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -914,7 +964,7 @@ std::shared_ptr<Variable> MbusCentral::setInstallMode(BaseLib::PRpcClientInfo cl
     std::vector<char> serializedData;
     rpcEncoder.encodeResponse(devicesToPair, serializedData);
     std::string key = "devicesToPair";
-    GD::family->setFamilySetting(key, serializedData);
+    Gd::family->setFamilySetting(key, serializedData);
 
     _stopPairingModeThread = true;
     _bl->threadManager.join(_pairingModeThread);
@@ -924,10 +974,10 @@ std::shared_ptr<Variable> MbusCentral::setInstallMode(BaseLib::PRpcClientInfo cl
       _timeLeftInPairingMode = duration; //It's important to set it here, because the thread often doesn't completely initialize before getInstallMode requests _timeLeftInPairingMode
       _bl->threadManager.start(_pairingModeThread, true, &MbusCentral::pairingModeTimer, this, duration, debugOutput);
     }
-    return PVariable(new Variable(VariableType::tVoid));
+    return std::make_shared<Variable>(VariableType::tVoid);
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return Variable::createError(-32500, "Unknown application error.");
 }
@@ -936,12 +986,12 @@ PVariable MbusCentral::startSniffing(BaseLib::PRpcClientInfo clientInfo) {
   std::lock_guard<std::mutex> sniffedPacketsGuard(_sniffedPacketsMutex);
   _sniffedPackets.clear();
   _sniff = true;
-  return PVariable(new Variable());
+  return std::make_shared<Variable>();
 }
 
 PVariable MbusCentral::stopSniffing(BaseLib::PRpcClientInfo clientInfo) {
   _sniff = false;
-  return PVariable(new Variable());
+  return std::make_shared<Variable>();
 }
 
 //{{{ Family RPC methods
@@ -950,7 +1000,7 @@ BaseLib::PVariable MbusCentral::processPacket(const PRpcClientInfo &clientInfo, 
     if (parameters->empty()) return BaseLib::Variable::createError(-1, "Wrong parameter count.");
     if (parameters->at(0)->type != BaseLib::VariableType::tString) return BaseLib::Variable::createError(-1, "Parameter 1 is not of type String.");
 
-    std::vector<uint8_t> data = _bl->hf.getUBinary(parameters->at(0)->stringValue);
+    std::vector<uint8_t> data = BaseLib::HelperFunctions::getUBinary(parameters->at(0)->stringValue);
     PMbusPacket packet = std::make_shared<MbusPacket>(data);
     std::string senderId = "ExternalInterface";
     onPacketReceived(senderId, packet);
@@ -958,7 +1008,7 @@ BaseLib::PVariable MbusCentral::processPacket(const PRpcClientInfo &clientInfo, 
     return std::make_shared<BaseLib::Variable>(packet->getInfoString());
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return Variable::createError(-32500, "Unknown application error.");
 }

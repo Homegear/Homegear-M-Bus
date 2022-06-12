@@ -2,7 +2,7 @@
 
 #include "MbusPacket.h"
 
-#include "GD.h"
+#include "Gd.h"
 
 namespace Mbus {
 MbusPacket::MbusPacket() {
@@ -60,7 +60,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       ciStart = 6;
     }
   } else {
-    GD::out.printWarning("Warning: Unknown packet type: " + BaseLib::HelperFunctions::getHexString(packet.at(0)));
+    Gd::out.printWarning("Warning: Unknown packet type: " + BaseLib::HelperFunctions::getHexString(packet.at(0)));
     return;
   }
 
@@ -159,7 +159,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       uint8_t fragmentControlField = packet.at(aflPos++);
       _aflHeader.moreFragments = fragmentControlField & 0x40u;
       if (_aflHeader.moreFragments) {
-        GD::out.printWarning("Warning AFL with multiple fragments is unsupported.");
+        Gd::out.printWarning("Warning AFL with multiple fragments is unsupported.");
         break;
       }
       if (fragmentControlField & 0x20u) //Has message control field
@@ -168,7 +168,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
         _aflHeader.messageControlField = packet.at(aflPos++);
         _aflHeader.authenticationType = _aflHeader.messageControlField & 0x0Fu;
         if (_aflHeader.authenticationType != 5) {
-          GD::out.printWarning("Only authentication type 5 is supported at the moment.");
+          Gd::out.printWarning("Only authentication type 5 is supported at the moment.");
           break;
         }
       }
@@ -187,7 +187,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       if (fragmentControlField & 0x04u) //Has MAC
       {
         if (_aflHeader.authenticationType != 5) {
-          GD::out.printWarning("Only authentication type 5 is supported at the moment.");
+          Gd::out.printWarning("Only authentication type 5 is supported at the moment.");
           break;
         }
         _aflHeader.mac.insert(_aflHeader.mac.end(), packet.begin() + aflPos, packet.begin() + aflPos + 8);
@@ -293,7 +293,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
         _payload.insert(_payload.end(), _packet.begin() + ciStart + tplPos, _packet.end() - 2);
         break; //No more CIs after payload
       } else {
-        GD::out.printWarning("Warning: Unknown CI: " + BaseLib::HelperFunctions::getHexString(controlInformation));
+        Gd::out.printWarning("Warning: Unknown CI: " + BaseLib::HelperFunctions::getHexString(controlInformation));
         break;
       }
     }
@@ -317,7 +317,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
   //15: Specific usage
   //16 - 31: Reserved
   if (_encryptionMode != 0 && _encryptionMode != 1 && _encryptionMode != 4 && _encryptionMode != 5 && _encryptionMode != 7) {
-    GD::out.printWarning("Warning: Can't process packet, because encryption mode is not supported.");
+    Gd::out.printWarning("Warning: Can't process packet, because encryption mode is not supported.");
     return;
   }
 
@@ -407,7 +407,7 @@ std::string MbusPacket::getInfoString() {
     return info;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return "";
 }
@@ -417,7 +417,7 @@ std::vector<uint8_t> MbusPacket::getBinary() {
     if (!_packet.empty()) return _packet;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return std::vector<uint8_t>();
 }
@@ -627,7 +627,7 @@ std::vector<uint8_t> MbusPacket::getPosition(uint32_t position, uint32_t size) {
     return BaseLib::BitReaderWriter::getPosition(_payload, position, size);
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return std::vector<uint8_t>();
 }
@@ -695,7 +695,7 @@ bool MbusPacket::decrypt(const std::vector<uint8_t> &key) {
     } else if (_encryptionMode == 7) {
       //{{{ Check MAC
       if (_aflHeader.mac.empty()) {
-        GD::out.printWarning("Warning: No MAC in packet.");
+        Gd::out.printWarning("Warning: No MAC in packet.");
         return false;
       }
 
@@ -723,12 +723,12 @@ bool MbusPacket::decrypt(const std::vector<uint8_t> &key) {
       std::vector<uint8_t> derivedKey;
       try {
         if (!BaseLib::Security::Mac::cmac(key, iv, kdfInput, derivedKey)) {
-          GD::out.printWarning("Warning: Could not generate key.");
+          Gd::out.printWarning("Warning: Could not generate key.");
           return false;
         }
       }
       catch (BaseLib::Security::GcryptException &ex) {
-        GD::out.printWarning("Warning: Could not generate key: " + std::string(ex.what()));
+        Gd::out.printWarning("Warning: Could not generate key: " + std::string(ex.what()));
         return false;
       }
 
@@ -754,18 +754,18 @@ bool MbusPacket::decrypt(const std::vector<uint8_t> &key) {
       try {
         std::vector<uint8_t> cmac;
         if (!BaseLib::Security::Mac::cmac(derivedKey, iv, cmacInput, cmac)) {
-          GD::out.printWarning("Warning: Could not generate key.");
+          Gd::out.printWarning("Warning: Could not generate key.");
           return false;
         }
 
         cmac.resize(8);
         if (cmac != _aflHeader.mac) {
-          GD::out.printWarning("Warning: CMAC verification failed.");
+          Gd::out.printWarning("Warning: CMAC verification failed.");
           return false;
         }
       }
       catch (BaseLib::Security::GcryptException &ex) {
-        GD::out.printWarning("Warning: Could not generate key: " + std::string(ex.what()));
+        Gd::out.printWarning("Warning: Could not generate key: " + std::string(ex.what()));
         return false;
       }
       //}}}
@@ -775,12 +775,12 @@ bool MbusPacket::decrypt(const std::vector<uint8_t> &key) {
       derivedKey.clear();
       try {
         if (!BaseLib::Security::Mac::cmac(key, iv, kdfInput, derivedKey)) {
-          GD::out.printWarning("Warning: Could not generate key.");
+          Gd::out.printWarning("Warning: Could not generate key.");
           return false;
         }
       }
       catch (BaseLib::Security::GcryptException &ex) {
-        GD::out.printWarning("Warning: Could not generate key: " + std::string(ex.what()));
+        Gd::out.printWarning("Warning: Could not generate key: " + std::string(ex.what()));
         return false;
       }
 
@@ -813,14 +813,14 @@ bool MbusPacket::decrypt(const std::vector<uint8_t> &key) {
       if (!_dataValid) return false;
       _isDecrypted = true;
     } else if (_encryptionMode != 0) {
-      GD::out.printWarning("Warning: Encryption mode " + std::to_string(_encryptionMode) + " is currently not supported.");
+      Gd::out.printWarning("Warning: Encryption mode " + std::to_string(_encryptionMode) + " is currently not supported.");
       return false;
     }
     _isDecrypted = true;
     return true;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return false;
 }
@@ -846,7 +846,7 @@ void MbusPacket::strip2F(std::vector<uint8_t> &data) {
     data = std::move(strippedPayload);
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -888,7 +888,7 @@ void MbusPacket::parsePayload() {
       if (pos >= _payload.size()) break;
 
       if (count > 11) {
-        GD::out.printError("Error: Could not parse packet. Packet contains more than 10 DIFEs");
+        Gd::out.printError("Error: Could not parse packet. Packet contains more than 10 DIFEs");
         break;
       }
 
@@ -919,7 +919,7 @@ void MbusPacket::parsePayload() {
 
         if ((dataRecord.vifs.front() & 0x7F) == 0x7C) { //Custom string VIF
           if (pos >= _payload.size() || pos + _payload.at(pos) >= _payload.size()) {
-            GD::out.printError("Error: Could not parse packet. Invalid end of data.");
+            Gd::out.printError("Error: Could not parse packet. Invalid end of data.");
             break;
           }
           uint8_t stringLength = _payload.at(pos);
@@ -937,7 +937,7 @@ void MbusPacket::parsePayload() {
         }
 
         if (count > 11) {
-          GD::out.printError("Error: Could not parse packet. Packet contains more than 10 VIFEs");
+          Gd::out.printError("Error: Could not parse packet. Packet contains more than 10 VIFEs");
           break;
         }
         //}}}
@@ -969,19 +969,19 @@ void MbusPacket::parsePayload() {
     if (_encryptionMode == 1) { //ELL encryption
       uint16_t crc16 = _crc16.calculate(_payload, 2);
       if ((crc16 >> 8u) != _payload.at(1) || (crc16 & 0xFFu) != _payload.at(0)) {
-        GD::out.printError("Error: Format frame CRC is invalid: " + BaseLib::HelperFunctions::getHexString(getBinary()));
+        Gd::out.printError("Error: Format frame CRC is invalid: " + BaseLib::HelperFunctions::getHexString(getBinary()));
         return;
       }
     }
 
     if (isFormatTelegram() && _controlInformation != 0x78) { //CI == 0x78 => Special case for Kamstrup
       if (_payload.size() - nopCount - 1 != _payload.at(0)) {
-        GD::out.printError("Error: Payload has wrong length (expected: " + std::to_string(_payload.at(0)) + ", got " + std::to_string(_payload.size() - nopCount - 1) + "): " + BaseLib::HelperFunctions::getHexString(_payload));
+        Gd::out.printError("Error: Payload has wrong length (expected: " + std::to_string(_payload.at(0)) + ", got " + std::to_string(_payload.size() - nopCount - 1) + "): " + BaseLib::HelperFunctions::getHexString(_payload));
         return; //Wrong length byte
       }
       uint16_t crc16 = _crc16.calculate(_payload, 3);
       if ((crc16 >> 8u) != _payload.at(2) || (crc16 & 0xFFu) != _payload.at(1)) {
-        GD::out.printError("Error: Format frame CRC is invalid: " + BaseLib::HelperFunctions::getHexString(getBinary()));
+        Gd::out.printError("Error: Format frame CRC is invalid: " + BaseLib::HelperFunctions::getHexString(getBinary()));
         return;
       }
     }
@@ -989,7 +989,7 @@ void MbusPacket::parsePayload() {
     _dataValid = true;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 

@@ -32,22 +32,22 @@ class MbusPeer : public BaseLib::Systems::Peer, public BaseLib::Rpc::IWebserverE
     _aesKey = value;
     saveVariable(21, value);
   }
-  int32_t getControlInformation() { return _controlInformation; }
+  int32_t getControlInformation() const { return _controlInformation; }
   void setControlInformation(int32_t value) {
     _controlInformation = value;
     saveVariable(22, value);
   }
-  int32_t getDataRecordCount() { return _dataRecordCount; }
+  int32_t getDataRecordCount() const { return _dataRecordCount; }
   void setDataRecordCount(int32_t value) {
     _dataRecordCount = value;
     saveVariable(23, value);
   }
-  int32_t getFormatCrc() { return _formatCrc; }
+  int32_t getFormatCrc() const { return _formatCrc; }
   void setFormatCrc(int32_t value) {
     _formatCrc = value;
     saveVariable(24, (int32_t)value);
   }
-  int32_t getEncryptionMode() { return _encryptionMode; }
+  int32_t getEncryptionMode() const { return _encryptionMode; }
   void setEncryptionMode(int32_t value) {
     _encryptionMode = value;
     saveVariable(25, (int32_t)value);
@@ -60,7 +60,7 @@ class MbusPeer : public BaseLib::Systems::Peer, public BaseLib::Rpc::IWebserverE
     _wireless = value;
     saveVariable(27, (int32_t)value);
   }
-  int32_t getPrimaryAddress() { return _primaryAddress; }
+  int32_t getPrimaryAddress() const { return _primaryAddress; }
   void setPrimaryAddress(int32_t value) {
     _primaryAddress = value;
     saveVariable(28, (int32_t)value);
@@ -70,32 +70,32 @@ class MbusPeer : public BaseLib::Systems::Peer, public BaseLib::Rpc::IWebserverE
   bool expectsEncryption() { return !_aesKey.empty(); }
 
   void worker();
-  virtual std::string handleCliCommand(std::string command);
+  std::string handleCliCommand(std::string command) override;
   void packetReceived(PMbusPacket &packet);
 
-  virtual bool load(BaseLib::Systems::ICentral *central);
-  virtual void savePeers() {}
+  bool load(BaseLib::Systems::ICentral *central) override;
+  void savePeers() override {}
 
-  virtual int32_t getChannelGroupedWith(int32_t channel) { return -1; }
-  virtual int32_t getNewFirmwareVersion() { return 0; }
-  virtual std::string getFirmwareVersionString(int32_t firmwareVersion) { return "1.0"; }
-  virtual bool firmwareUpdateAvailable() { return false; }
+  int32_t getChannelGroupedWith(int32_t channel) override { return -1; }
+  int32_t getNewFirmwareVersion() override { return 0; }
+  std::string getFirmwareVersionString(int32_t firmwareVersion) override { return "1.0"; }
+  bool firmwareUpdateAvailable() override { return false; }
 
   std::string printConfig();
 
   /**
    * {@inheritDoc}
    */
-  virtual void homegearStarted();
+  void homegearStarted() override;
 
   /**
    * {@inheritDoc}
    */
-  virtual void homegearShuttingDown();
+  void homegearShuttingDown() override;
 
   //RPC methods
-  virtual PVariable putParamset(BaseLib::PRpcClientInfo clientInfo, int32_t channel, ParameterGroup::Type::Enum type, uint64_t remoteID, int32_t remoteChannel, PVariable variables, bool checkAcls, bool onlyPushing = false);
-  virtual PVariable setValue(BaseLib::PRpcClientInfo clientInfo, uint32_t channel, std::string valueKey, PVariable value, bool wait);
+  PVariable putParamset(BaseLib::PRpcClientInfo clientInfo, int32_t channel, ParameterGroup::Type::Enum type, uint64_t remoteID, int32_t remoteChannel, PVariable variables, bool checkAcls, bool onlyPushing = false) override;
+  PVariable setValue(BaseLib::PRpcClientInfo clientInfo, uint32_t channel, std::string valueKey, PVariable value, bool wait) override;
   //End RPC methods
  protected:
   struct FrameValue {

@@ -1,13 +1,13 @@
 /* Copyright 2013-2019 Homegear GmbH */
 
 #include "IMbusInterface.h"
-#include "../GD.h"
+#include "../Gd.h"
 #include "../MbusPacket.h"
 
 namespace Mbus {
 
-IMbusInterface::IMbusInterface(std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> settings) : IPhysicalInterface(GD::bl, GD::family->getFamily(), settings) {
-  _bl = GD::bl;
+IMbusInterface::IMbusInterface(std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> settings) : IPhysicalInterface(Gd::bl, Gd::family->getFamily(), settings) {
+  _bl = Gd::bl;
 
   if (settings->listenThreadPriority == -1) {
     settings->listenThreadPriority = 0;
@@ -35,7 +35,7 @@ void IMbusInterface::getResponse(std::vector<uint8_t> &requestPacket, std::vecto
     std::unique_lock<std::mutex> lock(request->mutex);
 
     try {
-      if (_bl->debugLevel >= 5) GD::out.printDebug("Debug: Sending packet " + BaseLib::HelperFunctions::getHexString(requestPacket));
+      if (_bl->debugLevel >= 5) Gd::out.printDebug("Debug: Sending packet " + BaseLib::HelperFunctions::getHexString(requestPacket));
       rawSend(requestPacket);
     }
     catch (const BaseLib::SocketOperationException &ex) {

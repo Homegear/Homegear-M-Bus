@@ -16,8 +16,8 @@ set(SOURCE_FILES
         src/PhysicalInterfaces/Hgdc.h
         src/Factory.cpp
         src/Factory.h
-        src/GD.cpp
-        src/GD.h
+        src/Gd.cpp
+        src/Gd.h
         src/Interfaces.cpp
         src/Interfaces.h
         src/MbusCentral.cpp

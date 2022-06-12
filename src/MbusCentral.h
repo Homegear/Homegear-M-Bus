@@ -32,6 +32,7 @@ class MbusCentral : public BaseLib::Systems::ICentral {
   PMyPeer getPeer(int32_t address);
   PMyPeer getPeer(std::string serialNumber);
 
+  PVariable createDevice(BaseLib::PRpcClientInfo clientInfo, int32_t deviceType, std::string secondary_address, int32_t primary_address, int32_t firmwareVersion, std::string interfaceId) override;
   PVariable deleteDevice(BaseLib::PRpcClientInfo clientInfo, std::string serialNumber, int32_t flags) override;
   PVariable deleteDevice(BaseLib::PRpcClientInfo clientInfo, uint64_t peerId, int32_t flags) override;
   PVariable getSniffedDevices(BaseLib::PRpcClientInfo clientInfo) override;

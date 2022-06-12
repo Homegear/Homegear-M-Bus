@@ -3,7 +3,7 @@
 #include "DescriptionCreator.h"
 
 #include <memory>
-#include "GD.h"
+#include "Gd.h"
 
 namespace Mbus {
 
@@ -592,10 +592,10 @@ DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMbusPacket p
 
     std::string id = BaseLib::HelperFunctions::getHexString(packet->secondaryAddress(), 8);
 
-    std::shared_ptr<HomegearDevice> device = std::make_shared<HomegearDevice>(GD::bl);
+    std::shared_ptr<HomegearDevice> device = std::make_shared<HomegearDevice>(Gd::bl);
     device->version = 1;
     device->timeout = 86400;
-    PSupportedDevice supportedDevice = std::make_shared<SupportedDevice>(GD::bl);
+    PSupportedDevice supportedDevice = std::make_shared<SupportedDevice>(Gd::bl);
     supportedDevice->id = id;
     supportedDevice->description = packet->getMediumString(packet->getMedium());
     supportedDevice->typeNumber = (uint32_t)packet->secondaryAddress();
@@ -603,13 +603,13 @@ DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMbusPacket p
 
     createXmlMaintenanceChannel(device);
 
-    PFunction function = std::make_shared<Function>(GD::bl);
+    PFunction function = std::make_shared<Function>(Gd::bl);
     function->channel = 1;
     function->type = "MBUS_CHANNEL_1";
     function->variablesId = "mbus_values_1";
     device->functions[1] = function;
 
-    PPacket devicePacket = std::make_shared<Packet>(GD::bl);
+    PPacket devicePacket = std::make_shared<Packet>(Gd::bl);
     devicePacket->id = "INFO";
     device->packetsById[devicePacket->id] = devicePacket;
     devicePacket->channel = 1;
@@ -618,7 +618,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMbusPacket p
 
     auto dataRecords = packet->getDataRecords();
     for (auto &dataRecord: dataRecords) {
-      PParameter parameter = std::make_shared<Parameter>(GD::bl, function->variables);
+      PParameter parameter = std::make_shared<Parameter>(Gd::bl, function->variables);
       parameter->readable = true;
       parameter->writeable = false;
 
@@ -634,13 +634,13 @@ DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMbusPacket p
     device->save(filename);
 
     PeerInfo peerInfo;
-    peerInfo.address = packet->secondaryAddress();
+    peerInfo.secondary_address = packet->secondaryAddress();
     peerInfo.serialNumber = "MBUS" + id;
     peerInfo.type = packet->secondaryAddress();
     return peerInfo;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 
   return PeerInfo();
@@ -648,85 +648,85 @@ DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMbusPacket p
 
 void DescriptionCreator::createDirectories() {
   try {
-    uid_t localUserId = BaseLib::HelperFunctions::userId(GD::bl->settings.dataPathUser());
-    gid_t localGroupId = BaseLib::HelperFunctions::groupId(GD::bl->settings.dataPathGroup());
+    uid_t localUserId = BaseLib::HelperFunctions::userId(Gd::bl->settings.dataPathUser());
+    gid_t localGroupId = BaseLib::HelperFunctions::groupId(Gd::bl->settings.dataPathGroup());
     if (((int32_t)localUserId) == -1 || ((int32_t)localGroupId) == -1) {
-      localUserId = GD::bl->userId;
-      localGroupId = GD::bl->groupId;
+      localUserId = Gd::bl->userId;
+      localGroupId = Gd::bl->groupId;
     }
 
-    std::string path1 = GD::bl->settings.familyDataPath();
-    std::string path2 = path1 + std::to_string(GD::family->getFamily()) + "/";
+    std::string path1 = Gd::bl->settings.familyDataPath();
+    std::string path2 = path1 + std::to_string(Gd::family->getFamily()) + "/";
     _xmlPath = path2 + "desc/";
-    if (!BaseLib::Io::directoryExists(path1)) BaseLib::Io::createDirectory(path1, GD::bl->settings.dataPathPermissions());
+    if (!BaseLib::Io::directoryExists(path1)) BaseLib::Io::createDirectory(path1, Gd::bl->settings.dataPathPermissions());
     if (localUserId != 0 || localGroupId != 0) {
-      if (chown(path1.c_str(), localUserId, localGroupId) == -1) GD::out.printWarning("Could not set owner on " + path1);
-      if (chmod(path1.c_str(), GD::bl->settings.dataPathPermissions()) == -1) GD::out.printWarning("Could not set permissions on " + path1);
+      if (chown(path1.c_str(), localUserId, localGroupId) == -1) Gd::out.printWarning("Could not set owner on " + path1);
+      if (chmod(path1.c_str(), Gd::bl->settings.dataPathPermissions()) == -1) Gd::out.printWarning("Could not set permissions on " + path1);
     }
-    if (!BaseLib::Io::directoryExists(path2)) BaseLib::Io::createDirectory(path2, GD::bl->settings.dataPathPermissions());
+    if (!BaseLib::Io::directoryExists(path2)) BaseLib::Io::createDirectory(path2, Gd::bl->settings.dataPathPermissions());
     if (localUserId != 0 || localGroupId != 0) {
-      if (chown(path2.c_str(), localUserId, localGroupId) == -1) GD::out.printWarning("Could not set owner on " + path2);
-      if (chmod(path2.c_str(), GD::bl->settings.dataPathPermissions()) == -1) GD::out.printWarning("Could not set permissions on " + path2);
+      if (chown(path2.c_str(), localUserId, localGroupId) == -1) Gd::out.printWarning("Could not set owner on " + path2);
+      if (chmod(path2.c_str(), Gd::bl->settings.dataPathPermissions()) == -1) Gd::out.printWarning("Could not set permissions on " + path2);
     }
-    if (!BaseLib::Io::directoryExists(_xmlPath)) BaseLib::Io::createDirectory(_xmlPath, GD::bl->settings.dataPathPermissions());
+    if (!BaseLib::Io::directoryExists(_xmlPath)) BaseLib::Io::createDirectory(_xmlPath, Gd::bl->settings.dataPathPermissions());
     if (localUserId != 0 || localGroupId != 0) {
-      if (chown(_xmlPath.c_str(), localUserId, localGroupId) == -1) GD::out.printWarning("Could not set owner on " + _xmlPath);
-      if (chmod(_xmlPath.c_str(), GD::bl->settings.dataPathPermissions()) == -1) GD::out.printWarning("Could not set permissions on " + _xmlPath);
+      if (chown(_xmlPath.c_str(), localUserId, localGroupId) == -1) Gd::out.printWarning("Could not set owner on " + _xmlPath);
+      if (chmod(_xmlPath.c_str(), Gd::bl->settings.dataPathPermissions()) == -1) Gd::out.printWarning("Could not set permissions on " + _xmlPath);
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
 void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice &device) {
   // {{{ Channel 0
-  PFunction function(new Function(GD::bl));
+  PFunction function(new Function(Gd::bl));
   function->channel = 0;
   function->type = "MBUS_MAINTENANCE";
   function->variablesId = "mbus_maintenance_values";
   device->functions[function->channel] = function;
 
-  PParameter parameter(new Parameter(GD::bl, function->variables));
+  PParameter parameter(new Parameter(Gd::bl, function->variables));
   parameter->id = "UNREACH";
   function->variables->parametersOrdered.push_back(parameter);
   function->variables->parameters[parameter->id] = parameter;
   parameter->writeable = false;
   parameter->service = true;
-  parameter->logical = std::make_shared<LogicalBoolean>(GD::bl);;
-  parameter->physical = std::make_shared<PhysicalInteger>(GD::bl);
+  parameter->logical = std::make_shared<LogicalBoolean>(Gd::bl);;
+  parameter->physical = std::make_shared<PhysicalInteger>(Gd::bl);
   parameter->physical->groupId = parameter->id;
   parameter->physical->operationType = IPhysical::OperationType::internal;
 
-  parameter.reset(new Parameter(GD::bl, function->variables));
+  parameter.reset(new Parameter(Gd::bl, function->variables));
   parameter->id = "STICKY_UNREACH";
   function->variables->parametersOrdered.push_back(parameter);
   function->variables->parameters[parameter->id] = parameter;
   parameter->sticky = true;
   parameter->service = true;
-  parameter->logical = std::make_shared<LogicalBoolean>(GD::bl);;
-  parameter->physical = std::make_shared<PhysicalInteger>(GD::bl);
+  parameter->logical = std::make_shared<LogicalBoolean>(Gd::bl);;
+  parameter->physical = std::make_shared<PhysicalInteger>(Gd::bl);
   parameter->physical->groupId = parameter->id;
   parameter->physical->operationType = IPhysical::OperationType::internal;
 
-  parameter.reset(new Parameter(GD::bl, function->variables));
+  parameter.reset(new Parameter(Gd::bl, function->variables));
   parameter->id = "POSSIBLE_HACKING_ATTEMPT";
   function->variables->parametersOrdered.push_back(parameter);
   function->variables->parameters[parameter->id] = parameter;
   parameter->sticky = true;
   parameter->service = true;
-  parameter->logical = std::make_shared<LogicalBoolean>(GD::bl);;
-  parameter->physical = std::make_shared<PhysicalInteger>(GD::bl);
+  parameter->logical = std::make_shared<LogicalBoolean>(Gd::bl);;
+  parameter->physical = std::make_shared<PhysicalInteger>(Gd::bl);
   parameter->physical->groupId = parameter->id;
   parameter->physical->operationType = IPhysical::OperationType::internal;
 
-  parameter.reset(new Parameter(GD::bl, function->variables));
+  parameter.reset(new Parameter(Gd::bl, function->variables));
   parameter->id = "RSSI_DEVICE";
   function->variables->parametersOrdered.push_back(parameter);
   function->variables->parameters[parameter->id] = parameter;
   parameter->service = true;
-  parameter->logical = std::make_shared<LogicalInteger>(GD::bl);;
-  parameter->physical = std::make_shared<PhysicalInteger>(GD::bl);
+  parameter->logical = std::make_shared<LogicalInteger>(Gd::bl);;
+  parameter->physical = std::make_shared<PhysicalInteger>(Gd::bl);
   parameter->physical->groupId = parameter->id;
   parameter->physical->operationType = IPhysical::OperationType::internal;
   // }}}
@@ -737,10 +737,10 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, MbusPa
     uint8_t dif = dataRecord.difs.front() & 0x0Fu;
     parameter->metadata = BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
 
-    ParameterCast::PGeneric cast = std::make_shared<ParameterCast::Generic>(GD::bl);
+    ParameterCast::PGeneric cast = std::make_shared<ParameterCast::Generic>(Gd::bl);
     cast->type = "0x" + BaseLib::HelperFunctions::getHexString(dif, 2);
 
-    parameter->physical = std::make_shared<PhysicalInteger>(GD::bl);
+    parameter->physical = std::make_shared<PhysicalInteger>(Gd::bl);
     parameter->physical->operationType = IPhysical::OperationType::Enum::command;
     std::shared_ptr<Parameter::Packet> eventPacket = std::make_shared<Parameter::Packet>();
     eventPacket->type = Parameter::Packet::Type::Enum::event;
@@ -748,11 +748,11 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, MbusPa
     parameter->eventPackets.push_back(eventPacket);
 
     if (dif == 0 || dif == 1 || dif == 2 || dif == 3 || dif == 4 || dif == 6 || dif == 7 || dif == 9 || dif == 10 || dif == 11 || dif == 12 || dif == 14) {
-      parameter->logical = std::make_shared<LogicalInteger>(GD::bl);
+      parameter->logical = std::make_shared<LogicalInteger>(Gd::bl);
     } else if (dif == 5) {
-      parameter->logical = std::make_shared<LogicalDecimal>(GD::bl);
+      parameter->logical = std::make_shared<LogicalDecimal>(Gd::bl);
     } else if (dif == 8 || dif == 13 || dif == 15) {
-      parameter->logical = std::make_shared<LogicalString>(GD::bl);
+      parameter->logical = std::make_shared<LogicalString>(Gd::bl);
     }
 
     if (!dataRecord.vifCustomName.empty()) {
@@ -802,7 +802,7 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, MbusPa
     if (parameter->id.empty()) return;
     parameter->physical->groupId = parameter->id;
 
-    PBinaryPayload payload = std::make_shared<BinaryPayload>(GD::bl);
+    PBinaryPayload payload = std::make_shared<BinaryPayload>(Gd::bl);
     payload->bitIndex = dataRecord.dataStart * 8;
     payload->bitSize = dataRecord.dataSize * 8;
     payload->metaInteger1 = (int32_t)dataRecord.difFunction;
@@ -815,7 +815,7 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, MbusPa
     parameter->casts.push_back(cast);
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -833,7 +833,7 @@ std::string DescriptionCreator::getFreeParameterId(std::string baseId, PFunction
     return baseId;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return "";
 }

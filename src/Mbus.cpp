@@ -1,6 +1,6 @@
 /* Copyright 2013-2019 Homegear GmbH */
 
-#include "GD.h"
+#include "Gd.h"
 #include "Interfaces.h"
 #include "Mbus.h"
 #include "MbusCentral.h"
@@ -8,13 +8,13 @@
 namespace Mbus {
 
 Mbus::Mbus(BaseLib::SharedObjects *bl, BaseLib::Systems::IFamilyEventSink *eventHandler) : BaseLib::Systems::DeviceFamily(bl, eventHandler, MY_FAMILY_ID, MY_FAMILY_NAME) {
-  GD::bl = bl;
-  GD::family = this;
-  GD::out.init(bl);
-  GD::out.setPrefix(std::string("Module ") + MY_FAMILY_NAME + ": ");
-  GD::out.printDebug("Debug: Loading module...");
-  GD::interfaces = std::make_shared<Interfaces>(bl, _settings->getPhysicalInterfaceSettings());
-  _physicalInterfaces = GD::interfaces;
+  Gd::bl = bl;
+  Gd::family = this;
+  Gd::out.init(bl);
+  Gd::out.setPrefix(std::string("Module ") + MY_FAMILY_NAME + ": ");
+  Gd::out.printDebug("Debug: Loading module...");
+  Gd::interfaces = std::make_shared<Interfaces>(bl, _settings->getPhysicalInterfaceSettings());
+  _physicalInterfaces = Gd::interfaces;
 }
 
 Mbus::~Mbus() {
@@ -23,7 +23,7 @@ Mbus::~Mbus() {
 
 bool Mbus::init() {
   _bl->out.printInfo("Loading XML RPC devices...");
-  std::string xmlPath = _bl->settings.familyDataPath() + std::to_string(GD::family->getFamily()) + "/desc/";
+  std::string xmlPath = _bl->settings.familyDataPath() + std::to_string(Gd::family->getFamily()) + "/desc/";
   BaseLib::Io io;
   io.init(_bl);
   if (BaseLib::Io::directoryExists(xmlPath) && !io.getFiles(xmlPath).empty()) _rpcDevices->load(xmlPath);
@@ -34,23 +34,23 @@ void Mbus::dispose() {
   if (_disposed) return;
   DeviceFamily::dispose();
   _central.reset();
-  GD::interfaces.reset();
+  Gd::interfaces.reset();
   _physicalInterfaces.reset();
 }
 
 void Mbus::reloadRpcDevices() {
   _bl->out.printInfo("Reloading XML RPC devices...");
-  std::string xmlPath = _bl->settings.familyDataPath() + std::to_string(GD::family->getFamily()) + "/desc/";
+  std::string xmlPath = _bl->settings.familyDataPath() + std::to_string(Gd::family->getFamily()) + "/desc/";
   if (BaseLib::Io::directoryExists(xmlPath)) _rpcDevices->load(xmlPath);
 }
 
 void Mbus::createCentral() {
   try {
     _central.reset(new MbusCentral(0, "VMBUS00001", this));
-    GD::out.printMessage("Created central with id " + std::to_string(_central->getId()) + ".");
+    Gd::out.printMessage("Created central with id " + std::to_string(_central->getId()) + ".");
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -66,7 +66,7 @@ PVariable Mbus::getPairingInfo() {
     return array;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return Variable::createError(-32500, "Unknown application error.");
 }
