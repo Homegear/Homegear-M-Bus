@@ -36,7 +36,7 @@ void IMbusInterface::getResponse(std::vector<uint8_t> &requestPacket, std::vecto
 
     try {
       if (_bl->debugLevel >= 5) Gd::out.printDebug("Debug: Sending packet " + BaseLib::HelperFunctions::getHexString(requestPacket));
-      rawSend(requestPacket);
+      RawSend(requestPacket);
     }
     catch (const BaseLib::SocketOperationException &ex) {
       _out.printError("Error sending packet: " + std::string(ex.what()));
@@ -57,15 +57,17 @@ void IMbusInterface::getResponse(std::vector<uint8_t> &requestPacket, std::vecto
   }
 }
 
-void IMbusInterface::addCrc8(std::vector<uint8_t> &packet) {
+void IMbusInterface::addCrc8(std::vector<uint8_t> &packet, uint32_t start_pos, uint32_t crc_position) {
   try {
     if (packet.size() < 4) return;
 
+    if (crc_position == 0) crc_position = packet.size() - 1;
+
     uint8_t crc8 = 0;
-    for (uint32_t i = 0; i < packet.size() - 1; i++) {
-      crc8 = crc8 ^ (uint8_t)packet[i];
+    for (uint32_t i = start_pos; i < crc_position; i++) {
+      crc8 = crc8 ^ (uint8_t)packet.at(i);
     }
-    packet.back() = crc8;
+    packet.at(crc_position) = crc8;
   }
   catch (const std::exception &ex) {
     _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());

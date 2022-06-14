@@ -14,6 +14,8 @@ set(SOURCE_FILES
         src/PhysicalInterfaces/Amber.h
         src/PhysicalInterfaces/Hgdc.cpp
         src/PhysicalInterfaces/Hgdc.h
+        src/PhysicalInterfaces/Tcp.cpp
+        src/PhysicalInterfaces/Tcp.h
         src/Factory.cpp
         src/Factory.h
         src/Gd.cpp

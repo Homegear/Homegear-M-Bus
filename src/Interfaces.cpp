@@ -4,6 +4,7 @@
 #include "Gd.h"
 #include "PhysicalInterfaces/Amber.h"
 #include "PhysicalInterfaces/Hgdc.h"
+#include "PhysicalInterfaces/Tcp.h"
 
 namespace Mbus {
 
@@ -48,16 +49,18 @@ void Interfaces::removeEventHandlers() {
 
 void Interfaces::create() {
   try {
-    for (std::map<std::string, Systems::PPhysicalInterfaceSettings>::iterator i = _physicalInterfaceSettings.begin(); i != _physicalInterfaceSettings.end(); ++i) {
+    for (auto &physical_interface_setting: _physicalInterfaceSettings) {
       std::shared_ptr<IMbusInterface> device;
-      if (!i->second) continue;
-      Gd::out.printDebug("Debug: Creating physical device. Type defined in mbus.conf is: " + i->second->type);
-      if (i->second->type == "amber") device.reset(new Amber(i->second));
-      else Gd::out.printError("Error: Unsupported physical device type: " + i->second->type);
+      if (!physical_interface_setting.second) continue;
+      if (physical_interface_setting.second->id == "ExternalInterface") continue; //Not allowed
+      Gd::out.printDebug("Debug: Creating physical device. Type defined in mbus.conf is: " + physical_interface_setting.second->type);
+      if (physical_interface_setting.second->type == "amber") device.reset(new Amber(physical_interface_setting.second));
+      else if (physical_interface_setting.second->type == "tcp") device.reset(new Tcp(physical_interface_setting.second));
+      else Gd::out.printError("Error: Unsupported physical device type: " + physical_interface_setting.second->type);
       if (device) {
-        if (_physicalInterfaces.find(i->second->id) != _physicalInterfaces.end()) Gd::out.printError("Error: id used for two devices: " + i->second->id);
-        _physicalInterfaces[i->second->id] = device;
-        if (i->second->isDefault || !_defaultPhysicalInterface) _defaultPhysicalInterface = device;
+        if (_physicalInterfaces.find(physical_interface_setting.second->id) != _physicalInterfaces.end()) Gd::out.printError("Error: id used for two devices: " + physical_interface_setting.second->id);
+        _physicalInterfaces[physical_interface_setting.second->id] = device;
+        if (physical_interface_setting.second->isDefault || !_defaultPhysicalInterface) _defaultPhysicalInterface = device;
       }
     }
     if (!_defaultPhysicalInterface) _defaultPhysicalInterface = std::make_shared<IMbusInterface>(std::make_shared<BaseLib::Systems::PhysicalInterfaceSettings>());
@@ -106,8 +109,8 @@ std::vector<std::shared_ptr<IMbusInterface>> Interfaces::getInterfaces() {
   try {
     std::lock_guard<std::mutex> interfaceGuard(_physicalInterfacesMutex);
     interfaces.reserve(_physicalInterfaces.size());
-    for (auto interfaceBase: _physicalInterfaces) {
-      std::shared_ptr<IMbusInterface> interface(std::dynamic_pointer_cast<IMbusInterface>(interfaceBase.second));
+    for (const auto &interface_base: _physicalInterfaces) {
+      std::shared_ptr<IMbusInterface> interface(std::dynamic_pointer_cast<IMbusInterface>(interface_base.second));
       if (!interface) continue;
       if (interface->isOpen()) interfaces.push_back(interface);
     }
@@ -320,14 +323,16 @@ BaseLib::PVariable Interfaces::listInterfaces() {
   try {
     auto array = Systems::PhysicalInterfaces::listInterfaces();
 
-    BaseLib::PVariable interfaceStruct(new BaseLib::Variable(BaseLib::VariableType::tStruct));
+    if (array->arrayValue->empty()) {
+      BaseLib::PVariable interfaceStruct(new BaseLib::Variable(BaseLib::VariableType::tStruct));
 
-    interfaceStruct->structValue->insert(BaseLib::StructElement("FAMILYID", std::make_shared<BaseLib::Variable>(MY_FAMILY_ID)));
-    interfaceStruct->structValue->insert(BaseLib::StructElement("VIRTUAL", std::make_shared<BaseLib::Variable>(true)));
-    interfaceStruct->structValue->insert(BaseLib::StructElement("ID", std::make_shared<BaseLib::Variable>(std::to_string(MY_FAMILY_ID) + ".virtual")));
-    interfaceStruct->structValue->insert(BaseLib::StructElement("CONNECTED", std::make_shared<BaseLib::Variable>(true)));
+      interfaceStruct->structValue->insert(BaseLib::StructElement("FAMILYID", std::make_shared<BaseLib::Variable>(MY_FAMILY_ID)));
+      interfaceStruct->structValue->insert(BaseLib::StructElement("VIRTUAL", std::make_shared<BaseLib::Variable>(true)));
+      interfaceStruct->structValue->insert(BaseLib::StructElement("ID", std::make_shared<BaseLib::Variable>(std::to_string(MY_FAMILY_ID) + ".virtual")));
+      interfaceStruct->structValue->insert(BaseLib::StructElement("CONNECTED", std::make_shared<BaseLib::Variable>(true)));
 
-    array->arrayValue->emplace_back(interfaceStruct);
+      array->arrayValue->emplace_back(interfaceStruct);
+    }
 
     return array;
   }

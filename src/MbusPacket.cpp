@@ -6,22 +6,22 @@
 
 namespace Mbus {
 MbusPacket::MbusPacket() {
-  _difSizeMap[0] = 0;
-  _difSizeMap[1] = 1;
-  _difSizeMap[2] = 2;
-  _difSizeMap[3] = 3;
-  _difSizeMap[4] = 4;
-  _difSizeMap[5] = 5;
-  _difSizeMap[6] = 6;
-  _difSizeMap[7] = 8;
-  _difSizeMap[8] = 0;
-  _difSizeMap[9] = 1;
-  _difSizeMap[10] = 2;
-  _difSizeMap[11] = 3;
-  _difSizeMap[12] = 4;
-  _difSizeMap[13] = 0;
-  _difSizeMap[14] = 6;
-  _difSizeMap[15] = 0;
+  _difSizeMap[0] = 0; //No data
+  _difSizeMap[1] = 1; //8 bit integer
+  _difSizeMap[2] = 2; //16 bit integer
+  _difSizeMap[3] = 3; //24 bit integer
+  _difSizeMap[4] = 4; //32 bit integer
+  _difSizeMap[5] = 4; //32 bit floating point
+  _difSizeMap[6] = 6; //48 bit integer
+  _difSizeMap[7] = 8; //64 bit integer
+  _difSizeMap[8] = 0; //"Auswahl für Ablesung"
+  _difSizeMap[9] = 1; //2 digit BCD
+  _difSizeMap[10] = 2; //4 digit BCD
+  _difSizeMap[11] = 3; //6 digit BCD
+  _difSizeMap[12] = 4; //8 digit BCD
+  _difSizeMap[13] = 0; //Variable length
+  _difSizeMap[14] = 6; //12 digit BCD
+  _difSizeMap[15] = 0; //Special functions
 }
 
 MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
@@ -868,6 +868,7 @@ void MbusPacket::parsePayload() {
     uint32_t pos = 0;
     if (isFormatTelegram()) pos = 3;
     for (; pos < _payload.size();) {
+      Gd::out.printDebug("Debug: Parsing payload position " + std::to_string(pos) + "...");
       while (_payload.at(pos) == 0x2F) {
         nopCount++;
         pos++; //Ignore padding byte. Can be within the packet in case unencrypted data follows encrypted data
@@ -928,10 +929,9 @@ void MbusPacket::parsePayload() {
             dataRecord.vifCustomName.push_back((char)_payload.at(i));
           }
           pos += stringLength + 1;
-
         }
         count = 0;
-        while (dataRecord.vifs.back() & 0x80 && pos < _payload.size() && count <= 11) {
+        while ((dataRecord.vifs.back() & 0x80) && pos < _payload.size() && count <= 11) {
           dataRecord.vifs.push_back(_payload.at(pos++));
           count++;
         }

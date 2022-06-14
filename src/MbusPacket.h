@@ -99,12 +99,12 @@ class MbusPacket : public BaseLib::Systems::Packet {
   };
 
   MbusPacket();
-  MbusPacket(const std::vector<uint8_t> &packet);
+  explicit MbusPacket(const std::vector<uint8_t> &packet);
   ~MbusPacket() override;
 
   std::string getInfoString();
 
-  bool wireless() { return _wireless; }
+  bool wireless() const { return _wireless; }
   bool batteryEmpty() { return _status & 4; } //See EN 13757-7 section 7.5.6
   bool permanentError() { return _status & 8; } //See EN 13757-7 section 7.5.6
   bool temporaryError() { return _status & 0x10; } //See EN 13757-7 section 7.5.6
