@@ -18,7 +18,7 @@ std::shared_ptr<BaseLib::Systems::ICentral> MbusPeer::getCentral() {
   catch (const std::exception &ex) {
     Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
-  return std::shared_ptr<BaseLib::Systems::ICentral>();
+  return {};
 }
 
 MbusPeer::MbusPeer(uint32_t parentID, IPeerEventSink *eventHandler) : BaseLib::Systems::Peer(Gd::bl, parentID, eventHandler) {
@@ -189,6 +189,18 @@ std::string MbusPeer::printConfig() {
   return "";
 }
 
+std::string MbusPeer::getPhysicalInterfaceId() const {
+  if (_physicalInterfaceId.empty()) Gd::interfaces->getDefaultInterface()->getID();
+  return _physicalInterfaceId;
+}
+
+void MbusPeer::setPhysicalInterfaceId(std::string id) {
+  if (id.empty() || Gd::interfaces->hasInterface(id)) {
+    _physicalInterfaceId = id;
+    saveVariable(19, _physicalInterfaceId);
+  }
+}
+
 void MbusPeer::loadVariables(BaseLib::Systems::ICentral *central, std::shared_ptr<BaseLib::Database::DataTable> &rows) {
   try {
     if (!rows) rows = _bl->db->getPeerVariables(_peerID);
@@ -199,6 +211,10 @@ void MbusPeer::loadVariables(BaseLib::Systems::ICentral *central, std::shared_pt
 
     for (auto &row: *rows) {
       switch (row.second.at(2)->intValue) {
+        case 19: {
+          _physicalInterfaceId = row.second.at(4)->textValue;
+          break;
+        }
         case 21: {
           _aesKey.clear();
           _aesKey.insert(_aesKey.end(), row.second.at(5)->binaryValue->begin(), row.second.at(5)->binaryValue->end());
@@ -229,7 +245,11 @@ void MbusPeer::loadVariables(BaseLib::Systems::ICentral *central, std::shared_pt
           break;
         }
         case 28: {
-          _primaryAddress = row.second.at(3)->intValue;
+          _primaryAddress = (int32_t)row.second.at(3)->intValue;
+          break;
+        }
+        case 29: {
+          medium_ = (uint8_t)row.second.at(3)->intValue;
           break;
         }
       }
@@ -244,6 +264,7 @@ void MbusPeer::saveVariables() {
   try {
     if (_peerID == 0) return;
     Peer::saveVariables();
+    saveVariable(19, _physicalInterfaceId);
     saveVariable(21, _aesKey);
     saveVariable(22, _controlInformation);
     saveVariable(23, _dataRecordCount);
@@ -252,6 +273,7 @@ void MbusPeer::saveVariables() {
     saveVariable(26, _lastTime);
     saveVariable(27, (int32_t)_wireless);
     saveVariable(28, _primaryAddress);
+    saveVariable(29, medium_);
   }
   catch (const std::exception &ex) {
     Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
@@ -290,9 +312,9 @@ void MbusPeer::setRssiDevice(uint8_t rssi) {
     if (time - _lastRssiDevice > 10) {
       _lastRssiDevice = time;
 
-      std::unordered_map<uint32_t, std::unordered_map<std::string, BaseLib::Systems::RpcConfigurationParameter>>::iterator channelIterator = valuesCentral.find(0);
+      auto channelIterator = valuesCentral.find(0);
       if (channelIterator == valuesCentral.end()) return;
-      std::unordered_map<std::string, BaseLib::Systems::RpcConfigurationParameter>::iterator parameterIterator = channelIterator->second.find("RSSI_DEVICE");
+      auto parameterIterator = channelIterator->second.find("RSSI_DEVICE");
       if (parameterIterator == channelIterator->second.end()) return;
 
       BaseLib::Systems::RpcConfigurationParameter &parameter = parameterIterator->second;
@@ -314,7 +336,7 @@ void MbusPeer::setRssiDevice(uint8_t rssi) {
   }
 }
 
-void MbusPeer::getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues> &frameValues) {
+void MbusPeer::getValuesFromPacket(const PMbusPacket &packet, std::vector<FrameValues> &frameValues) {
   try {
     if (!_rpcDevice) return;
 
@@ -630,6 +652,20 @@ PVariable MbusPeer::putParamset(BaseLib::PRpcClientInfo clientInfo, int32_t chan
     } else {
       return Variable::createError(-3, "Parameter set type is not supported.");
     }
+    return std::make_shared<Variable>(VariableType::tVoid);
+  }
+  catch (const std::exception &ex) {
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+  }
+  return Variable::createError(-32500, "Unknown application error.");
+}
+
+PVariable MbusPeer::setInterface(BaseLib::PRpcClientInfo clientInfo, std::string interfaceId) {
+  try {
+    if (!interfaceId.empty() && !Gd::interfaces->hasInterface(interfaceId)) {
+      return Variable::createError(-5, "Unknown physical interface.");
+    }
+    setPhysicalInterfaceId(interfaceId);
     return std::make_shared<Variable>(VariableType::tVoid);
   }
   catch (const std::exception &ex) {

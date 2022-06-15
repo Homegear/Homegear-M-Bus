@@ -21,7 +21,8 @@ class DescriptionCreator {
   DescriptionCreator();
   virtual ~DescriptionCreator() = default;
 
-  DescriptionCreator::PeerInfo createDescription(PMbusPacket packet);
+  DescriptionCreator::PeerInfo CreateDescription(PMbusPacket packet);
+  DescriptionCreator::PeerInfo CreateEmptyDescription(int32_t secondary_address);
  private:
   std::map<uint8_t, std::string> _vifVariableNameMap;
   std::map<uint8_t, std::string> _vifUnit;

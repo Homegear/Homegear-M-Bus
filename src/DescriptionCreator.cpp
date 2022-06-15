@@ -586,7 +586,7 @@ DescriptionCreator::DescriptionCreator() {
   _vifFdVariableNameMap[112] = "BATTERY_CHANGE_DATETIME";
 }
 
-DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMbusPacket packet) {
+DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(PMbusPacket packet) {
   try {
     createDirectories();
 
@@ -643,7 +643,52 @@ DescriptionCreator::PeerInfo DescriptionCreator::createDescription(PMbusPacket p
     Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 
-  return PeerInfo();
+  return {};
+}
+
+DescriptionCreator::PeerInfo DescriptionCreator::CreateEmptyDescription(int32_t secondary_address) {
+  try {
+    createDirectories();
+
+    std::string id = BaseLib::HelperFunctions::getHexString(secondary_address, 8);
+
+    std::shared_ptr<HomegearDevice> device = std::make_shared<HomegearDevice>(Gd::bl);
+    device->version = 1;
+    device->timeout = 86400;
+    PSupportedDevice supportedDevice = std::make_shared<SupportedDevice>(Gd::bl);
+    supportedDevice->id = id;
+    supportedDevice->typeNumber = (uint32_t)secondary_address;
+    device->supportedDevices.push_back(supportedDevice);
+
+    createXmlMaintenanceChannel(device);
+
+    PFunction function = std::make_shared<Function>(Gd::bl);
+    function->channel = 1;
+    function->type = "MBUS_CHANNEL_1";
+    function->variablesId = "mbus_values_1";
+    device->functions[1] = function;
+
+    PPacket devicePacket = std::make_shared<Packet>(Gd::bl);
+    devicePacket->id = "INFO";
+    device->packetsById[devicePacket->id] = devicePacket;
+    devicePacket->channel = 1;
+    devicePacket->direction = Packet::Direction::Enum::toCentral;
+    devicePacket->type = 1;
+
+    std::string filename = _xmlPath + id + ".xml";
+    device->save(filename);
+
+    PeerInfo peerInfo;
+    peerInfo.secondary_address = secondary_address;
+    peerInfo.serialNumber = "MBUS" + id;
+    peerInfo.type = secondary_address;
+    return peerInfo;
+  }
+  catch (const std::exception &ex) {
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+  }
+
+  return {};
 }
 
 void DescriptionCreator::createDirectories() {

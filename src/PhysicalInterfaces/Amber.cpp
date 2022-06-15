@@ -135,7 +135,7 @@ bool Amber::setParameter(uint8_t address, uint8_t value) {
     std::vector<uint8_t> response;
     for (int32_t i = 0; i < 5; i++) {
       std::vector<uint8_t> data{0xFF, CMD_SET_REQ, 0x03, address, 0x01, value, 0x00};
-      addCrc8(data);
+      addAmberCrc8(data);
       getResponse(data, response);
       if (response.size() != 5 || response[3] != 0) {
         if (i < 4) continue;
@@ -161,7 +161,7 @@ void Amber::init() {
     //{{{ Query all parameters
     for (int32_t i = 0; i < 5; i++) {
       std::vector<uint8_t> data{0xFF, CMD_GET_REQ, 0x02, 0x00, 80, 0x00};
-      addCrc8(data);
+      addAmberCrc8(data);
       getResponse(data, response);
       if (response.size() != 86 || response[3] != 0 || response[4] != 80) {
         if (i < 4) continue;
@@ -250,7 +250,7 @@ void Amber::init() {
       //Reset
       for (int32_t i = 0; i < 5; i++) {
         std::vector<uint8_t> data{0xFF, CMD_RESET_REQ, 0x00, 0x00};
-        addCrc8(data);
+        addAmberCrc8(data);
         getResponse(data, response);
         if (response.size() != 5 || response[3] != 0) {
           if (i < 4) continue;

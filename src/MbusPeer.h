@@ -27,6 +27,8 @@ class MbusPeer : public BaseLib::Systems::Peer, public BaseLib::Rpc::IWebserverE
   //}}}
 
   //{{{ In table variables
+  std::string getPhysicalInterfaceId() const;
+  void setPhysicalInterfaceId(std::string);
   std::vector<uint8_t> getAesKey() { return _aesKey; }
   void setAesKey(std::vector<uint8_t> &value) {
     _aesKey = value;
@@ -65,6 +67,11 @@ class MbusPeer : public BaseLib::Systems::Peer, public BaseLib::Rpc::IWebserverE
     _primaryAddress = value;
     saveVariable(28, (int32_t)value);
   }
+  int32_t GetMedium() const { return medium_; }
+  void SetMedium(uint8_t value) {
+    medium_ = value;
+    saveVariable(29, (int32_t)value);
+  }
   //}}}
 
   bool expectsEncryption() { return !_aesKey.empty(); }
@@ -95,6 +102,7 @@ class MbusPeer : public BaseLib::Systems::Peer, public BaseLib::Rpc::IWebserverE
 
   //RPC methods
   PVariable putParamset(BaseLib::PRpcClientInfo clientInfo, int32_t channel, ParameterGroup::Type::Enum type, uint64_t remoteID, int32_t remoteChannel, PVariable variables, bool checkAcls, bool onlyPushing = false) override;
+  PVariable setInterface(BaseLib::PRpcClientInfo clientInfo, std::string interfaceId) override;
   PVariable setValue(BaseLib::PRpcClientInfo clientInfo, uint32_t channel, std::string valueKey, PVariable value, bool wait) override;
   //End RPC methods
  protected:
@@ -111,14 +119,16 @@ class MbusPeer : public BaseLib::Systems::Peer, public BaseLib::Rpc::IWebserverE
   };
 
   //In table variables:
+  std::string _physicalInterfaceId;
   std::vector<uint8_t> _aesKey;
   int32_t _controlInformation = -1;
   int32_t _dataRecordCount = -1;
   uint16_t _formatCrc = 0;
   uint8_t _encryptionMode = 0;
-  int32_t _lastTime = 0;
+  int64_t _lastTime = 0;
   bool _wireless = true;
   int32_t _primaryAddress = -1;
+  uint8_t medium_ = 0;
   //End
 
   bool _shuttingDown = false;
@@ -132,7 +142,7 @@ class MbusPeer : public BaseLib::Systems::Peer, public BaseLib::Rpc::IWebserverE
 
   std::shared_ptr<BaseLib::Systems::ICentral> getCentral() override;
 
-  void getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues> &frameValue);
+  void getValuesFromPacket(const PMbusPacket& packet, std::vector<FrameValues> &frameValue);
 
   PParameterGroup getParameterSet(int32_t channel, ParameterGroup::Type::Enum type) override;
 

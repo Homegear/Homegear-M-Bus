@@ -18,7 +18,7 @@ class Tcp : public IMbusInterface {
   void stopListening() override;
 
   bool isOpen() override { return !_stopped && _initComplete; }
-  void Poll(const std::vector<uint8_t>& primary_addresses, const std::vector<std::string>& secondary_addresses);
+  void Poll(const std::vector<uint8_t>& primary_addresses, const std::vector<int32_t>& secondary_addresses) override;
  protected:
   std::atomic_bool _initComplete{false};
   std::atomic_bool stop_listen_thread_{true};

@@ -57,17 +57,30 @@ void IMbusInterface::getResponse(std::vector<uint8_t> &requestPacket, std::vecto
   }
 }
 
-void IMbusInterface::addCrc8(std::vector<uint8_t> &packet, uint32_t start_pos, uint32_t crc_position) {
+void IMbusInterface::addAmberCrc8(std::vector<uint8_t> &packet) {
   try {
     if (packet.size() < 4) return;
 
-    if (crc_position == 0) crc_position = packet.size() - 1;
-
     uint8_t crc8 = 0;
-    for (uint32_t i = start_pos; i < crc_position; i++) {
+    for (uint32_t i = 0; i < packet.size() - 1; i++) {
       crc8 = crc8 ^ (uint8_t)packet.at(i);
     }
-    packet.at(crc_position) = crc8;
+    packet.back() = crc8;
+  }
+  catch (const std::exception &ex) {
+    _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+  }
+}
+
+void IMbusInterface::addCrc8(std::vector<uint8_t> &packet) {
+  try {
+    if (packet.size() < 4) return;
+
+    uint8_t crc8 = 0;
+    for (uint32_t i = packet.at(0) == 0x10 ? 1 : 4; i < packet.size() - 2; i++) {
+      crc8 = crc8 + (uint8_t)packet.at(i);
+    }
+    packet.at(packet.size() - 2) = crc8;
   }
   catch (const std::exception &ex) {
     _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());

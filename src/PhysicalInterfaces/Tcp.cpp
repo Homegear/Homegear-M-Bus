@@ -63,11 +63,11 @@ void Tcp::stopListening() {
   }
 }
 
-void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<std::string> &secondary_addresses) {
+void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<int32_t> &secondary_addresses) {
   try {
     for (auto &address: primary_addresses) {
       std::vector<uint8_t> packet{0x10, 0x40, address, 0, 0x16};
-      addCrc8(packet, 1, 3);
+      addCrc8(packet);
 
       RawSend(packet);
 
@@ -77,9 +77,42 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
       }
 
       packet.at(1) = 0x7B;
-      addCrc8(packet, 1, 3);
+      addCrc8(packet);
 
       RawSend(packet);
+
+      for (uint32_t i = 0; i < 30; i++) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (_stopped) return;
+      }
+    }
+
+    for (auto &address: secondary_addresses) {
+      std::vector<uint8_t> packet_1{0x10, 0x40, 0xFF, 0, 0x16};
+      addCrc8(packet_1);
+
+      RawSend(packet_1);
+
+      for (uint32_t i = 0; i < 20; i++) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (_stopped) return;
+      }
+
+      //Packet to temporarily set primary address for this device to 0xFD.
+      std::vector<uint8_t> packet_2{0x68, 0x0B, 0x0B, 0x68, 0x73, 0xFD, 0x52, (uint8_t)address, (uint8_t)(address >> 8), (uint8_t)(address >> 16), (uint8_t)(address >> 24), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0x16};
+      addCrc8(packet_2);
+
+      RawSend(packet_2);
+
+      for (uint32_t i = 0; i < 20; i++) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (_stopped) return;
+      }
+
+      std::vector<uint8_t> packet_3{0x10, 0x7B, 0xFD, 0, 0x16};
+      addCrc8(packet_3);
+
+      RawSend(packet_3);
 
       for (uint32_t i = 0; i < 30; i++) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -124,7 +157,6 @@ void Tcp::listen() {
           _out.printInfo("Info: Connected.");
         }
 
-        if (last_activity == 0) Poll(std::vector<uint8_t>{1, 2, 3, 4, 5}, std::vector<std::string>{});
         bytes_received = socket_->proofread((char *)buffer.data(), buffer.size());
 
         if (BaseLib::HelperFunctions::getTime() - last_activity > 2000) data.clear();

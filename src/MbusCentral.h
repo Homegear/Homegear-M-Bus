@@ -68,9 +68,10 @@ class MbusCentral : public BaseLib::Systems::ICentral {
   void deletePeer(uint64_t id);
 
   void pairingModeTimer(int32_t duration, bool debugOutput = true);
-  void pairDevice(PMbusPacket packet, std::vector<uint8_t> &key);
+  void pairDevice(const PMbusPacket& packet, std::vector<uint8_t> &key);
 
   //{{{ Family RPC methods
+  BaseLib::PVariable poll(const BaseLib::PRpcClientInfo &clientInfo, const BaseLib::PArray &parameters);
   BaseLib::PVariable processPacket(const BaseLib::PRpcClientInfo &clientInfo, const BaseLib::PArray &parameters);
   //}}}
 };
