@@ -17,8 +17,6 @@ Tcp::Tcp(std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> settings) 
 
 Tcp::~Tcp() {
   stopListening();
-  stop_listen_thread_ = true;
-  _bl->threadManager.join(listen_thread_);
 }
 
 void Tcp::startListening() {
@@ -35,15 +33,23 @@ void Tcp::startListening() {
       return;
     }
 
+    std::string settingName = "pollinginterval";
+    auto setting = Gd::family->getFamilySetting(settingName);
+    if (setting) {
+      if (setting->stringValue == "hourly") polling_interval_ = PollingInterval::hourly;
+      else if (setting->stringValue == "daily") polling_interval_ = PollingInterval::daily;
+      else if (setting->stringValue == "weekly") polling_interval_ = PollingInterval::weekly;
+      else if (setting->stringValue == "monthly") polling_interval_ = PollingInterval::monthly;
+      else polling_interval_ = PollingInterval::off;
+    }
+
     socket_ = std::make_shared<BaseLib::TcpSocket>(Gd::bl, _settings->host, _settings->port, !_settings->caFile.empty(), _settings->caFile, true);
     socket_->setConnectionRetries(1);
     socket_->setReadTimeout(100000);
 
     _stopped = false;
 
-    stop_listen_thread_ = true;
     if (_listenThread.joinable()) _listenThread.join();
-    stop_listen_thread_ = false;
     listen_thread_ = std::thread(&Tcp::listen, this);
   }
   catch (const std::exception &ex) {
@@ -54,7 +60,6 @@ void Tcp::startListening() {
 void Tcp::stopListening() {
   try {
     _stopped = true;
-    stop_listen_thread_ = true;
     _bl->threadManager.join(listen_thread_);
     IPhysicalInterface::stopListening();
   }
@@ -142,7 +147,7 @@ void Tcp::listen() {
     uint32_t bytes_received = 0;
     int64_t last_activity = 0;
 
-    while (!stop_listen_thread_) {
+    while (!_stopped) {
       try {
         if (!socket_->connected()) {
           socket_->open();
@@ -150,7 +155,7 @@ void Tcp::listen() {
             _out.printWarning("Warning: Not connected to socket.");
             for (int32_t i = 0; i < 10; i++) {
               std::this_thread::sleep_for(std::chrono::milliseconds(100));
-              if (stop_listen_thread_) return;
+              if (_stopped) return;
             }
             continue;
           }
