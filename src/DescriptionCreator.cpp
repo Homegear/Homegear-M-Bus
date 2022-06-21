@@ -24,6 +24,11 @@ DescriptionCreator::DescriptionCreator() {
   vif_info_[6] = VifInfo("ENERGY", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours);
   //10^1 kWh
   vif_info_[7] = VifInfo("ENERGY", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 10, VifScaleOperation::kMultiplication);
+  for(uint32_t i = 0; i <= 7; i++) {
+    vif_info_.at(i).medium_role_map.emplace(0x02, 900201);
+    vif_info_.at(i).medium_role_map.emplace(0x04, 900401);
+    vif_info_.at(i).medium_role_map.emplace(0x0C, 900401);
+  }
 
   //J
   vif_info_[8] = VifInfo("ENERGY", "J", BaseLib::DeviceDescription::UnitCode::kJoules);
@@ -58,6 +63,17 @@ DescriptionCreator::DescriptionCreator() {
   vif_info_[22] = VifInfo("VOLUME", "m³", BaseLib::DeviceDescription::UnitCode::kCubicMeters);
   //10^1 m^3
   vif_info_[23] = VifInfo("VOLUME", "m³", BaseLib::DeviceDescription::UnitCode::kCubicMeters, 10, VifScaleOperation::kMultiplication);
+  for(uint32_t i = 16; i <= 23; i++) {
+    vif_info_.at(i).medium_role_map.emplace(0x03, 900301);
+    vif_info_.at(i).medium_role_map.emplace(0x04, 900101);
+    vif_info_.at(i).medium_role_map.emplace(0x0C, 900101);
+    vif_info_.at(i).medium_role_map.emplace(0x06, 900101);
+    vif_info_.at(i).medium_role_map.emplace(0x07, 900101);
+    vif_info_.at(i).medium_role_map.emplace(0x15, 900101);
+    vif_info_.at(i).medium_role_map.emplace(0x16, 900101);
+    vif_info_.at(i).medium_role_map.emplace(0x17, 900101);
+    vif_info_.at(i).medium_role_map.emplace(0x28, 900101);
+  }
 
   //g
   vif_info_[24] = VifInfo("MASS", "g", BaseLib::DeviceDescription::UnitCode::kGrams, 1, VifScaleOperation::kMultiplication);
@@ -136,6 +152,10 @@ DescriptionCreator::DescriptionCreator() {
   vif_info_[62] = VifInfo("VOLUME_FLOW", "m³/h", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerHour);
   //10^1 m^3/h
   vif_info_[63] = VifInfo("VOLUME_FLOW", "m³/h", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerHour, 10, VifScaleOperation::kMultiplication);
+  for(uint32_t i = 56; i <= 63; i++) {
+    vif_info_.at(i).medium_role_map.emplace(0x04, 900403);
+    vif_info_.at(i).medium_role_map.emplace(0x0C, 900403);
+  }
 
   //10⁻¹ cm³/min
   vif_info_[64] = VifInfo("VOLUME_FLOW", "l/min", BaseLib::DeviceDescription::UnitCode::kLitersPerMinute, 10000, VifScaleOperation::kDivision);
@@ -196,6 +216,10 @@ DescriptionCreator::DescriptionCreator() {
   vif_info_[90] = VifInfo("FLOW_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 10, VifScaleOperation::kDivision);
   //°C
   vif_info_[91] = VifInfo("FLOW_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius);
+  for(uint32_t i = 88; i <= 91; i++) {
+    vif_info_.at(i).medium_role_map.emplace(0x04, 900404);
+    vif_info_.at(i).medium_role_map.emplace(0x0C, 900404);
+  }
 
   //10⁻³ °C
   vif_info_[92] = VifInfo("RETURN_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 1000, VifScaleOperation::kDivision);
@@ -205,6 +229,10 @@ DescriptionCreator::DescriptionCreator() {
   vif_info_[94] = VifInfo("RETURN_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 10, VifScaleOperation::kDivision);
   //°C
   vif_info_[95] = VifInfo("RETURN_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius);
+  for(uint32_t i = 92; i <= 95; i++) {
+    vif_info_.at(i).medium_role_map.emplace(0x04, 900405);
+    vif_info_.at(i).medium_role_map.emplace(0x0C, 900405);
+  }
 
   //mK
   vif_info_[96] = VifInfo("TEMPERATURE_DIFFERENCE", "K", BaseLib::DeviceDescription::UnitCode::kKelvins, 1000, VifScaleOperation::kDivision);
@@ -269,9 +297,9 @@ DescriptionCreator::DescriptionCreator() {
   //2 to 7 reserved
 
   //10^-1 GJ
-  vif_fb_info_[8] = VifInfo("ENERGY", "", BaseLib::DeviceDescription::UnitCode::kMegajoules, 100, VifScaleOperation::kMultiplication);
+  vif_fb_info_[8] = VifInfo("ENERGY", "MJ", BaseLib::DeviceDescription::UnitCode::kMegajoules, 100, VifScaleOperation::kMultiplication);
   //GJ
-  vif_fb_info_[9] = VifInfo("ENERGY", "", BaseLib::DeviceDescription::UnitCode::kMegajoules, 1000, VifScaleOperation::kMultiplication);
+  vif_fb_info_[9] = VifInfo("ENERGY", "MJ", BaseLib::DeviceDescription::UnitCode::kMegajoules, 1000, VifScaleOperation::kMultiplication);
 
   //10 to 15 reserved
 
@@ -316,11 +344,19 @@ DescriptionCreator::DescriptionCreator() {
   vif_fb_info_[89] = VifInfo("FLOW_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 100, VifScaleOperation::kDivision);
   vif_fb_info_[90] = VifInfo("FLOW_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 10, VifScaleOperation::kDivision);
   vif_fb_info_[91] = VifInfo("FLOW_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit);
+  for(uint32_t i = 88; i <= 91; i++) {
+    vif_fb_info_.at(i).medium_role_map.emplace(0x04, 900404);
+    vif_fb_info_.at(i).medium_role_map.emplace(0x0C, 900404);
+  }
 
   vif_fb_info_[92] = VifInfo("RETURN_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 1000, VifScaleOperation::kDivision);
   vif_fb_info_[93] = VifInfo("RETURN_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 100, VifScaleOperation::kDivision);
   vif_fb_info_[94] = VifInfo("RETURN_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 10, VifScaleOperation::kDivision);
   vif_fb_info_[95] = VifInfo("RETURN_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit);
+  for(uint32_t i = 92; i <= 95; i++) {
+    vif_fb_info_.at(i).medium_role_map.emplace(0x04, 900405);
+    vif_fb_info_.at(i).medium_role_map.emplace(0x0C, 900405);
+  }
 
   vif_fb_info_[96] = VifInfo("TEMPERATURE_DIFFERENCE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 1000, VifScaleOperation::kDivision);
   vif_fb_info_[97] = VifInfo("TEMPERATURE_DIFFERENCE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 100, VifScaleOperation::kDivision);
@@ -517,7 +553,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPa
       parameter->readable = true;
       parameter->writeable = false;
 
-      parseDataRecord(packet->getManufacturer(), dataRecord, parameter, function, devicePacket);
+      parseDataRecord(packet->getManufacturer(), packet->getMedium(), dataRecord, parameter, function, devicePacket);
 
       if (!parameter->casts.empty()) {
         function->variables->parametersOrdered.push_back(parameter);
@@ -672,7 +708,7 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice &device) {
   // }}}
 }
 
-void DescriptionCreator::parseDataRecord(const std::string &manufacturer, MbusPacket::DataRecord &dataRecord, PParameter &parameter, PFunction &function, PPacket &packet) {
+void DescriptionCreator::parseDataRecord(const std::string &manufacturer, uint8_t medium, MbusPacket::DataRecord &dataRecord, PParameter &parameter, PFunction &function, PPacket &packet) {
   try {
     uint8_t dif = dataRecord.difs.front() & 0x0Fu;
     parameter->metadata = BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
@@ -701,16 +737,16 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, MbusPa
     } else if (dataRecord.vifs.size() == 1) {
       auto vifIterator = vif_info_.find(dataRecord.vifs.front());
       if (vifIterator == vif_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.front(), 2);
-      else setVifInfo(parameter, vifIterator->second);
+      else setVifInfo(parameter, vifIterator->second, dataRecord, medium);
     } else if (dataRecord.vifs.size() == 2) {
       if (dataRecord.vifs.front() == 0xFB) {
         auto vifIterator = vif_fb_info_.find(dataRecord.vifs.at(1));
         if (vifIterator == vif_fb_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
-        else setVifInfo(parameter, vifIterator->second);
+        else setVifInfo(parameter, vifIterator->second, dataRecord, medium);
       } else if (dataRecord.vifs.front() == 0xFD) {
         auto vifIterator = vif_fd_info_.find(dataRecord.vifs.at(1));
         if (vifIterator == vif_fd_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
-        else setVifInfo(parameter, vifIterator->second);
+        else setVifInfo(parameter, vifIterator->second, dataRecord, medium);
       } else if (dataRecord.vifs.front() == 0xFF) {
         //Manufacturer specific
         if (manufacturer == "KAM") {
@@ -749,7 +785,7 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, MbusPa
   }
 }
 
-void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_info) {
+void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_info, const MbusPacket::DataRecord &dataRecord, uint8_t medium) {
   try {
     parameter->id = vif_info.name;
     parameter->unit = vif_info.unit;
@@ -760,6 +796,13 @@ void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_in
       if (vif_info.unit_scale_operation == VifScaleOperation::kDivision) cast2->factor = vif_info.unit_scale_factor;
       else cast2->factor = 1.0 / (double)vif_info.unit_scale_factor;
       parameter->casts.emplace_back(std::move(cast2));
+    }
+
+    if (dataRecord.difFunction == MbusPacket::DifFunction::instantaneousValue && dataRecord.subunit == 0 && dataRecord.storageNumber == 0 && dataRecord.tariff == 0) {
+      auto role_iterator = vif_info.medium_role_map.find(medium);
+      if (role_iterator != vif_info.medium_role_map.end()) {
+        parameter->roles.emplace(role_iterator->second, Role(role_iterator->second, RoleDirection::input, false, false, {}));
+      }
     }
   }
   catch (const std::exception &ex) {

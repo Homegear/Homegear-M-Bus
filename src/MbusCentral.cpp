@@ -754,9 +754,9 @@ std::shared_ptr<MbusPeer> MbusCentral::createPeer(uint32_t deviceType, int32_t a
     std::shared_ptr<MbusPeer> peer(new MbusPeer(_deviceId, this));
     peer->setDeviceType(deviceType);
     peer->setAddress(address);
-    peer->setSerialNumber(serialNumber);
+    peer->setSerialNumber(std::move(serialNumber));
     peer->setRpcDevice(Gd::family->getRpcDevices()->find(deviceType, 0x10, -1));
-    if (!peer->getRpcDevice()) return std::shared_ptr<MbusPeer>();
+    if (!peer->getRpcDevice()) return {};
     if (save) peer->save(true, true, false); //Save and create peerID
     return peer;
   }
