@@ -32,7 +32,8 @@ class Tcp : public IMbusInterface {
   std::thread listen_thread_;
   std::shared_ptr<BaseLib::TcpSocket> socket_;
   PollingInterval polling_interval_ = PollingInterval::daily;
-  int64_t next_polling_ = 0;
+  int64_t last_polling_ = 0;
+  bool polled_ = false;
 
   void RawSend(std::vector<uint8_t> &packet) override;
   void listen();

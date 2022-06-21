@@ -144,7 +144,7 @@ class MbusPacket : public BaseLib::Systems::Packet {
   bool isCompactDataTelegram();
   bool isDataTelegram();
 
-  std::string getMediumString(uint8_t medium);
+  static std::string getMediumString(uint8_t medium);
   std::string getControlInformationString(uint8_t controlInformation);
   std::vector<uint8_t> getBinary();
 

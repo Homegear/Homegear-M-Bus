@@ -8,585 +8,480 @@
 namespace Mbus {
 
 DescriptionCreator::DescriptionCreator() {
-  _vifVariableNameMap[0] = "ENERGY";
-  _vifUnit[0] = "mWh";
-  _vifVariableNameMap[1] = "ENERGY";
-  _vifUnit[1] = "10⁻² Wh";
-  _vifVariableNameMap[2] = "ENERGY";
-  _vifUnit[2] = "10⁻¹ Wh";
-  _vifVariableNameMap[3] = "ENERGY";
-  _vifUnit[3] = "Wh";
-  _vifVariableNameMap[4] = "ENERGY";
-  _vifUnit[4] = "10⁻² kWh";
-  _vifVariableNameMap[5] = "ENERGY";
-  _vifUnit[5] = "10⁻¹ kWh";
-  _vifVariableNameMap[6] = "ENERGY";
-  _vifUnit[6] = "kWh";
-  _vifVariableNameMap[7] = "ENERGY";
-  _vifUnit[7] = "10¹ kWh";
+  //mWh
+  vif_info_[0] = VifInfo("ENERGY", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 1000, VifScaleOperation::kDivision);
+  //10^-2 Wh
+  vif_info_[1] = VifInfo("ENERGY", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 100, VifScaleOperation::kDivision);
+  //10^-1 Wh
+  vif_info_[2] = VifInfo("ENERGY", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 10, VifScaleOperation::kDivision);
+  //Wh
+  vif_info_[3] = VifInfo("ENERGY", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours);
+  //10^-2 kWh
+  vif_info_[4] = VifInfo("ENERGY", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 100, VifScaleOperation::kDivision);
+  //10^-1 kWh
+  vif_info_[5] = VifInfo("ENERGY", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 10, VifScaleOperation::kDivision);
+  //kWh
+  vif_info_[6] = VifInfo("ENERGY", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours);
+  //10^1 kWh
+  vif_info_[7] = VifInfo("ENERGY", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 10, VifScaleOperation::kMultiplication);
 
-  _vifVariableNameMap[8] = "ENERGY";
-  _vifUnit[8] = "J";
-  _vifVariableNameMap[9] = "ENERGY";
-  _vifUnit[9] = "10⁻² kJ";
-  _vifVariableNameMap[10] = "ENERGY";
-  _vifUnit[10] = "10⁻¹ kJ";
-  _vifVariableNameMap[11] = "ENERGY";
-  _vifUnit[11] = "kJ";
-  _vifVariableNameMap[12] = "ENERGY";
-  _vifUnit[12] = "10⁻² MJ";
-  _vifVariableNameMap[13] = "ENERGY";
-  _vifUnit[13] = "10⁻¹ MJ";
-  _vifVariableNameMap[14] = "ENERGY";
-  _vifUnit[14] = "MJ";
-  _vifVariableNameMap[15] = "ENERGY";
-  _vifUnit[15] = "10¹ MJ";
+  //J
+  vif_info_[8] = VifInfo("ENERGY", "J", BaseLib::DeviceDescription::UnitCode::kJoules);
+  //10^-2 kJ
+  vif_info_[9] = VifInfo("ENERGY", "kJ", BaseLib::DeviceDescription::UnitCode::kKilojoules, 100, VifScaleOperation::kDivision);
+  //10^-1 kJ
+  vif_info_[10] = VifInfo("ENERGY", "kJ", BaseLib::DeviceDescription::UnitCode::kKilojoules, 10, VifScaleOperation::kDivision);
+  //kJ
+  vif_info_[11] = VifInfo("ENERGY", "kJ", BaseLib::DeviceDescription::UnitCode::kKilojoules);
+  //10^-2 MJ
+  vif_info_[12] = VifInfo("ENERGY", "MJ", BaseLib::DeviceDescription::UnitCode::kMegajoules, 100, VifScaleOperation::kDivision);
+  //10^-1 MJ
+  vif_info_[13] = VifInfo("ENERGY", "MJ", BaseLib::DeviceDescription::UnitCode::kMegajoules, 10, VifScaleOperation::kDivision);
+  //MJ
+  vif_info_[14] = VifInfo("ENERGY", "MJ", BaseLib::DeviceDescription::UnitCode::kMegajoules);
+  //10^1 MJ
+  vif_info_[15] = VifInfo("ENERGY", "MJ", BaseLib::DeviceDescription::UnitCode::kMegajoules, 10, VifScaleOperation::kMultiplication);
 
-  _vifVariableNameMap[16] = "VOLUME";
-  _vifUnit[16] = "cm³";
-  _vifVariableNameMap[17] = "VOLUME";
-  _vifUnit[17] = "10¹ cm³";
-  _vifVariableNameMap[18] = "VOLUME";
-  _vifUnit[18] = "10² cm³";
-  _vifVariableNameMap[19] = "VOLUME";
-  _vifUnit[19] = "l";
-  _vifVariableNameMap[20] = "VOLUME";
-  _vifUnit[20] = "10⁻² m³";
-  _vifVariableNameMap[21] = "VOLUME";
-  _vifUnit[21] = "10⁻¹ m³";
-  _vifVariableNameMap[22] = "VOLUME";
-  _vifUnit[22] = "m³";
-  _vifVariableNameMap[23] = "VOLUME";
-  _vifUnit[23] = "10¹ m³";
+  //cm^3
+  vif_info_[16] = VifInfo("VOLUME", "l", BaseLib::DeviceDescription::UnitCode::kLiters, 1000, VifScaleOperation::kDivision);
+  //10^1 cm^3
+  vif_info_[17] = VifInfo("VOLUME", "l", BaseLib::DeviceDescription::UnitCode::kLiters, 100, VifScaleOperation::kDivision);
+  //10^2 cm^3
+  vif_info_[18] = VifInfo("VOLUME", "l", BaseLib::DeviceDescription::UnitCode::kLiters, 10, VifScaleOperation::kDivision);
+  //l
+  vif_info_[19] = VifInfo("VOLUME", "l", BaseLib::DeviceDescription::UnitCode::kLiters);
+  //10^-2 m^3
+  vif_info_[20] = VifInfo("VOLUME", "m³", BaseLib::DeviceDescription::UnitCode::kCubicMeters, 100, VifScaleOperation::kDivision);
+  //10^-1 m^3
+  vif_info_[21] = VifInfo("VOLUME", "m³", BaseLib::DeviceDescription::UnitCode::kCubicMeters, 10, VifScaleOperation::kDivision);
+  //m^3
+  vif_info_[22] = VifInfo("VOLUME", "m³", BaseLib::DeviceDescription::UnitCode::kCubicMeters);
+  //10^1 m^3
+  vif_info_[23] = VifInfo("VOLUME", "m³", BaseLib::DeviceDescription::UnitCode::kCubicMeters, 10, VifScaleOperation::kMultiplication);
 
-  _vifVariableNameMap[24] = "MASS";
-  _vifUnit[24] = "g";
-  _vifVariableNameMap[25] = "MASS";
-  _vifUnit[25] = "10⁻² kg";
-  _vifVariableNameMap[26] = "MASS";
-  _vifUnit[26] = "10⁻¹ kg";
-  _vifVariableNameMap[27] = "MASS";
-  _vifUnit[27] = "kg";
-  _vifVariableNameMap[28] = "MASS";
-  _vifUnit[28] = "10⁻² t";
-  _vifVariableNameMap[29] = "MASS";
-  _vifUnit[29] = "10⁻¹ t";
-  _vifVariableNameMap[30] = "MASS";
-  _vifUnit[30] = "t";
-  _vifVariableNameMap[31] = "MASS";
-  _vifUnit[31] = "10¹ t";
+  //g
+  vif_info_[24] = VifInfo("MASS", "g", BaseLib::DeviceDescription::UnitCode::kGrams, 1, VifScaleOperation::kMultiplication);
+  //10^-2 kg
+  vif_info_[25] = VifInfo("MASS", "kg", BaseLib::DeviceDescription::UnitCode::kKilograms, 100, VifScaleOperation::kDivision);
+  //10^-1 kg
+  vif_info_[26] = VifInfo("MASS", "kg", BaseLib::DeviceDescription::UnitCode::kKilograms, 10, VifScaleOperation::kDivision);
+  //kg
+  vif_info_[27] = VifInfo("MASS", "kg", BaseLib::DeviceDescription::UnitCode::kKilograms);
+  //10^-2 t
+  vif_info_[28] = VifInfo("MASS", "t", BaseLib::DeviceDescription::UnitCode::kTons, 100, VifScaleOperation::kDivision);
+  //10^-1 t
+  vif_info_[29] = VifInfo("MASS", "t", BaseLib::DeviceDescription::UnitCode::kTons, 10, VifScaleOperation::kDivision);
+  //t
+  vif_info_[30] = VifInfo("MASS", "t", BaseLib::DeviceDescription::UnitCode::kTons);
+  //10^1 t
+  vif_info_[31] = VifInfo("MASS", "t", BaseLib::DeviceDescription::UnitCode::kTons, 10, VifScaleOperation::kMultiplication);
 
-  _vifVariableNameMap[32] = "ON_TIME";
-  _vifUnit[32] = "s";
-  _vifVariableNameMap[33] = "ON_TIME";
-  _vifUnit[33] = "m";
-  _vifVariableNameMap[34] = "ON_TIME";
-  _vifUnit[34] = "h";
-  _vifVariableNameMap[35] = "ON_TIME";
-  _vifUnit[35] = "d";
+  vif_info_[32] = VifInfo("ON_TIME", "s", BaseLib::DeviceDescription::UnitCode::kSeconds);
+  vif_info_[33] = VifInfo("ON_TIME", "m", BaseLib::DeviceDescription::UnitCode::kMinutes);
+  vif_info_[34] = VifInfo("ON_TIME", "h", BaseLib::DeviceDescription::UnitCode::kHours);
+  vif_info_[35] = VifInfo("ON_TIME", "d", BaseLib::DeviceDescription::UnitCode::kDays);
 
-  _vifVariableNameMap[36] = "OPERATING_TIME";
-  _vifUnit[36] = "s";
-  _vifVariableNameMap[37] = "OPERATING_TIME";
-  _vifUnit[37] = "m";
-  _vifVariableNameMap[38] = "OPERATING_TIME";
-  _vifUnit[38] = "h";
-  _vifVariableNameMap[39] = "OPERATING_TIME";
-  _vifUnit[39] = "d";
+  vif_info_[36] = VifInfo("OPERATING_TIME", "s", BaseLib::DeviceDescription::UnitCode::kSeconds);
+  vif_info_[37] = VifInfo("OPERATING_TIME", "m", BaseLib::DeviceDescription::UnitCode::kMinutes);
+  vif_info_[38] = VifInfo("OPERATING_TIME", "h", BaseLib::DeviceDescription::UnitCode::kHours);
+  vif_info_[39] = VifInfo("OPERATING_TIME", "d", BaseLib::DeviceDescription::UnitCode::kDays);
 
-  _vifVariableNameMap[40] = "POWER";
-  _vifUnit[40] = "mW";
-  _vifVariableNameMap[41] = "POWER";
-  _vifUnit[41] = "10⁻² W";
-  _vifVariableNameMap[42] = "POWER";
-  _vifUnit[42] = "10⁻¹ W";
-  _vifVariableNameMap[43] = "POWER";
-  _vifUnit[43] = "W";
-  _vifVariableNameMap[44] = "POWER";
-  _vifUnit[44] = "10⁻² kW";
-  _vifVariableNameMap[45] = "POWER";
-  _vifUnit[45] = "10⁻¹ kW";
-  _vifVariableNameMap[46] = "POWER";
-  _vifUnit[46] = "kW";
-  _vifVariableNameMap[47] = "POWER";
-  _vifUnit[47] = "10¹ kW";
+  //mW
+  vif_info_[40] = VifInfo("POWER", "mW", BaseLib::DeviceDescription::UnitCode::kMilliwatts);
+  //10^-2 W
+  vif_info_[41] = VifInfo("POWER", "W", BaseLib::DeviceDescription::UnitCode::kWatts, 100, VifScaleOperation::kDivision);
+  //10^-1 W
+  vif_info_[42] = VifInfo("POWER", "W", BaseLib::DeviceDescription::UnitCode::kWatts, 10, VifScaleOperation::kDivision);
+  //W
+  vif_info_[43] = VifInfo("POWER", "W", BaseLib::DeviceDescription::UnitCode::kWatts);
+  //10^-2 kW
+  vif_info_[44] = VifInfo("POWER", "kW", BaseLib::DeviceDescription::UnitCode::kKilowatts, 100, VifScaleOperation::kDivision);
+  //10^-1 kW
+  vif_info_[45] = VifInfo("POWER", "kW", BaseLib::DeviceDescription::UnitCode::kKilowatts, 10, VifScaleOperation::kDivision);
+  //kW
+  vif_info_[46] = VifInfo("POWER", "kW", BaseLib::DeviceDescription::UnitCode::kKilowatts);
+  //10^1 kW
+  vif_info_[47] = VifInfo("POWER", "kW", BaseLib::DeviceDescription::UnitCode::kKilowatts, 10, VifScaleOperation::kMultiplication);
 
-  _vifVariableNameMap[48] = "POWER";
-  _vifUnit[48] = "J/h";
-  _vifVariableNameMap[49] = "POWER";
-  _vifUnit[49] = "10⁻² kJ/h";
-  _vifVariableNameMap[50] = "POWER";
-  _vifUnit[50] = "10⁻¹ kJ/h";
-  _vifVariableNameMap[51] = "POWER";
-  _vifUnit[51] = "kJ/J";
-  _vifVariableNameMap[52] = "POWER";
-  _vifUnit[52] = "10⁻² MJ/h";
-  _vifVariableNameMap[53] = "POWER";
-  _vifUnit[53] = "10⁻¹ MJ/h";
-  _vifVariableNameMap[54] = "POWER";
-  _vifUnit[54] = "MJ";
-  _vifVariableNameMap[55] = "POWER";
-  _vifUnit[55] = "10¹ MJ";
+  //J/h
+  vif_info_[48] = VifInfo("POWER", "J/h", BaseLib::DeviceDescription::UnitCode::kJoulePerHours);
+  //10^-2 kJ/h
+  vif_info_[49] = VifInfo("POWER", "J/h", BaseLib::DeviceDescription::UnitCode::kJoulePerHours, 10, VifScaleOperation::kMultiplication);
+  //10^-1 kJ/h
+  vif_info_[50] = VifInfo("POWER", "J/h", BaseLib::DeviceDescription::UnitCode::kJoulePerHours, 100, VifScaleOperation::kMultiplication);
+  //kJ/j
+  vif_info_[51] = VifInfo("POWER", "J/h", BaseLib::DeviceDescription::UnitCode::kJoulePerHours, 1000, VifScaleOperation::kMultiplication);
+  //10^-2 MJ/h
+  vif_info_[52] = VifInfo("POWER", "J/h", BaseLib::DeviceDescription::UnitCode::kJoulePerHours, 10000, VifScaleOperation::kMultiplication);
+  //10^-1 MJ/h
+  vif_info_[53] = VifInfo("POWER", "J/h", BaseLib::DeviceDescription::UnitCode::kJoulePerHours, 100000, VifScaleOperation::kMultiplication);
+  //MJ/h
+  vif_info_[54] = VifInfo("POWER", "J/h", BaseLib::DeviceDescription::UnitCode::kJoulePerHours, 1000000, VifScaleOperation::kMultiplication);
+  //10^1 MJ/h
+  vif_info_[55] = VifInfo("POWER", "J/h", BaseLib::DeviceDescription::UnitCode::kJoulePerHours, 10000000, VifScaleOperation::kMultiplication);
 
-  _vifVariableNameMap[56] = "VOLUME_FLOW";
-  _vifUnit[56] = "cm³/h";
-  _vifVariableNameMap[57] = "VOLUME_FLOW";
-  _vifUnit[57] = "10¹ cm³/h";
-  _vifVariableNameMap[58] = "VOLUME_FLOW";
-  _vifUnit[58] = "10² cm³/h";
-  _vifVariableNameMap[59] = "VOLUME_FLOW";
-  _vifUnit[59] = "l/h";
-  _vifVariableNameMap[60] = "VOLUME_FLOW";
-  _vifUnit[60] = "10⁻² m³/h";
-  _vifVariableNameMap[61] = "VOLUME_FLOW";
-  _vifUnit[61] = "10⁻¹ m³/h";
-  _vifVariableNameMap[62] = "VOLUME_FLOW";
-  _vifUnit[62] = "m³/h";
-  _vifVariableNameMap[63] = "VOLUME_FLOW";
-  _vifUnit[63] = "10¹ m³/h";
+  //cm^3/h
+  vif_info_[56] = VifInfo("VOLUME_FLOW", "l/h", BaseLib::DeviceDescription::UnitCode::kLitersPerHour, 1000, VifScaleOperation::kDivision);
+  //10^1 cm^3/h
+  vif_info_[57] = VifInfo("VOLUME_FLOW", "l/h", BaseLib::DeviceDescription::UnitCode::kLitersPerHour, 100, VifScaleOperation::kDivision);
+  //10^2 cm^3/h
+  vif_info_[58] = VifInfo("VOLUME_FLOW", "l/h", BaseLib::DeviceDescription::UnitCode::kLitersPerHour, 10, VifScaleOperation::kDivision);
+  //l/h
+  vif_info_[59] = VifInfo("VOLUME_FLOW", "l/h", BaseLib::DeviceDescription::UnitCode::kLitersPerHour);
+  //10^-2 m^3/h
+  vif_info_[60] = VifInfo("VOLUME_FLOW", "m³/h", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerHour, 100, VifScaleOperation::kDivision);
+  //10^-1 m^3/h
+  vif_info_[61] = VifInfo("VOLUME_FLOW", "m³/h", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerHour, 10, VifScaleOperation::kDivision);
+  //m^3/h
+  vif_info_[62] = VifInfo("VOLUME_FLOW", "m³/h", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerHour);
+  //10^1 m^3/h
+  vif_info_[63] = VifInfo("VOLUME_FLOW", "m³/h", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerHour, 10, VifScaleOperation::kMultiplication);
 
-  _vifVariableNameMap[64] = "VOLUME_FLOW";
-  _vifUnit[64] = "10⁻¹ cm³/min";
-  _vifVariableNameMap[65] = "VOLUME_FLOW";
-  _vifUnit[65] = "cm³/min";
-  _vifVariableNameMap[66] = "VOLUME_FLOW";
-  _vifUnit[66] = "10¹ cm³/min";
-  _vifVariableNameMap[67] = "VOLUME_FLOW";
-  _vifUnit[67] = "10² cm³/min";
-  _vifVariableNameMap[68] = "VOLUME_FLOW";
-  _vifUnit[68] = "l/min";
-  _vifVariableNameMap[69] = "VOLUME_FLOW";
-  _vifUnit[69] = "10⁻² m³/min";
-  _vifVariableNameMap[70] = "VOLUME_FLOW";
-  _vifUnit[70] = "10⁻¹ m³/min";
-  _vifVariableNameMap[71] = "VOLUME_FLOW";
-  _vifUnit[71] = "m³/min";
+  //10⁻¹ cm³/min
+  vif_info_[64] = VifInfo("VOLUME_FLOW", "l/min", BaseLib::DeviceDescription::UnitCode::kLitersPerMinute, 10000, VifScaleOperation::kDivision);
+  //cm³/min
+  vif_info_[65] = VifInfo("VOLUME_FLOW", "l/min", BaseLib::DeviceDescription::UnitCode::kLitersPerMinute, 1000, VifScaleOperation::kDivision);
+  //10¹ cm³/min
+  vif_info_[66] = VifInfo("VOLUME_FLOW", "l/min", BaseLib::DeviceDescription::UnitCode::kLitersPerMinute, 100, VifScaleOperation::kDivision);
+  //10² cm³/min
+  vif_info_[67] = VifInfo("VOLUME_FLOW", "l/min", BaseLib::DeviceDescription::UnitCode::kLitersPerMinute, 10, VifScaleOperation::kDivision);
+  //l/min
+  vif_info_[68] = VifInfo("VOLUME_FLOW", "l/min", BaseLib::DeviceDescription::UnitCode::kLitersPerMinute);
+  //10⁻² m³/min
+  vif_info_[69] = VifInfo("VOLUME_FLOW", "m³/min", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerMinute, 100, VifScaleOperation::kDivision);
+  //10⁻¹ m³/min
+  vif_info_[70] = VifInfo("VOLUME_FLOW", "m³/min", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerMinute, 10, VifScaleOperation::kDivision);
+  //m³/min
+  vif_info_[71] = VifInfo("VOLUME_FLOW", "m³/min", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerMinute);
 
-  _vifVariableNameMap[72] = "VOLUME_FLOW";
-  _vifUnit[72] = "mm³/s";
-  _vifVariableNameMap[73] = "VOLUME_FLOW";
-  _vifUnit[73] = "10⁻² cm³/s";
-  _vifVariableNameMap[74] = "VOLUME_FLOW";
-  _vifUnit[74] = "10⁻¹ cm³/s";
-  _vifVariableNameMap[75] = "VOLUME_FLOW";
-  _vifUnit[75] = "cm³/s";
-  _vifVariableNameMap[76] = "VOLUME_FLOW";
-  _vifUnit[76] = "10¹ cm³/s";
-  _vifVariableNameMap[77] = "VOLUME_FLOW";
-  _vifUnit[77] = "10² cm³/s";
-  _vifVariableNameMap[78] = "VOLUME_FLOW";
-  _vifUnit[78] = "l/s";
-  _vifVariableNameMap[79] = "VOLUME_FLOW";
-  _vifUnit[79] = "10⁻² m³/s";
+  //mm³/s
+  vif_info_[72] = VifInfo("VOLUME_FLOW", "l/s", BaseLib::DeviceDescription::UnitCode::kLitersPerSecond, 1000000, VifScaleOperation::kDivision);
+  //10⁻² cm³/s
+  vif_info_[73] = VifInfo("VOLUME_FLOW", "l/s", BaseLib::DeviceDescription::UnitCode::kLitersPerSecond, 100000, VifScaleOperation::kDivision);
+  //10⁻¹ cm³/s
+  vif_info_[74] = VifInfo("VOLUME_FLOW", "l/s", BaseLib::DeviceDescription::UnitCode::kLitersPerSecond, 10000, VifScaleOperation::kDivision);
+  //cm³/s
+  vif_info_[75] = VifInfo("VOLUME_FLOW", "l/s", BaseLib::DeviceDescription::UnitCode::kLitersPerSecond, 1000, VifScaleOperation::kDivision);
+  //10¹ cm³/s
+  vif_info_[76] = VifInfo("VOLUME_FLOW", "l/s", BaseLib::DeviceDescription::UnitCode::kLitersPerSecond, 100, VifScaleOperation::kDivision);
+  //10² cm³/s
+  vif_info_[77] = VifInfo("VOLUME_FLOW", "l/s", BaseLib::DeviceDescription::UnitCode::kLitersPerSecond, 10, VifScaleOperation::kDivision);
+  //l/s
+  vif_info_[78] = VifInfo("VOLUME_FLOW", "l/s", BaseLib::DeviceDescription::UnitCode::kLitersPerSecond);
+  //10⁻² m³/s
+  vif_info_[79] = VifInfo("VOLUME_FLOW", "m³/s", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerSecond, 100, VifScaleOperation::kDivision);
 
-  _vifVariableNameMap[80] = "MASS_FLOW";
-  _vifUnit[80] = "g/h";
-  _vifVariableNameMap[81] = "MASS_FLOW";
-  _vifUnit[81] = "10⁻² kg/h";
-  _vifVariableNameMap[82] = "MASS_FLOW";
-  _vifUnit[82] = "10⁻¹ kg/h";
-  _vifVariableNameMap[83] = "MASS_FLOW";
-  _vifUnit[83] = "kg/h";
-  _vifVariableNameMap[84] = "MASS_FLOW";
-  _vifUnit[84] = "10⁻² t/h";
-  _vifVariableNameMap[85] = "MASS_FLOW";
-  _vifUnit[85] = "10⁻¹ t/h";
-  _vifVariableNameMap[86] = "MASS_FLOW";
-  _vifUnit[86] = "t/h";
-  _vifVariableNameMap[87] = "MASS_FLOW";
-  _vifUnit[87] = "10¹ t/h";
+  //g/h
+  vif_info_[80] = VifInfo("MASS_FLOW", "kg/h", BaseLib::DeviceDescription::UnitCode::kKilogramsPerHour, 1000, VifScaleOperation::kDivision);
+  //10⁻² kg/h
+  vif_info_[81] = VifInfo("MASS_FLOW", "kg/h", BaseLib::DeviceDescription::UnitCode::kKilogramsPerHour, 100, VifScaleOperation::kDivision);
+  //10⁻¹ kg/h
+  vif_info_[82] = VifInfo("MASS_FLOW", "kg/h", BaseLib::DeviceDescription::UnitCode::kKilogramsPerHour, 10, VifScaleOperation::kDivision);
+  //kg/h
+  vif_info_[83] = VifInfo("MASS_FLOW", "kg/h", BaseLib::DeviceDescription::UnitCode::kKilogramsPerHour);
+  //10⁻² t/h
+  vif_info_[84] = VifInfo("MASS_FLOW", "t/h", BaseLib::DeviceDescription::UnitCode::kTonsPerHour, 100, VifScaleOperation::kDivision);
+  //10⁻¹ t/h
+  vif_info_[85] = VifInfo("MASS_FLOW", "t/h", BaseLib::DeviceDescription::UnitCode::kTonsPerHour, 10, VifScaleOperation::kDivision);
+  //t/h
+  vif_info_[86] = VifInfo("MASS_FLOW", "t/h", BaseLib::DeviceDescription::UnitCode::kTonsPerHour);
+  //10¹ t/h
+  vif_info_[87] = VifInfo("MASS_FLOW", "t/h", BaseLib::DeviceDescription::UnitCode::kTonsPerHour, 10, VifScaleOperation::kMultiplication);
 
-  _vifVariableNameMap[88] = "FLOW_TEMPERATURE";
-  _vifUnit[88] = "10⁻³ °C";
-  _vifVariableNameMap[89] = "FLOW_TEMPERATURE";
-  _vifUnit[89] = "10⁻² °C";
-  _vifVariableNameMap[90] = "FLOW_TEMPERATURE";
-  _vifUnit[90] = "10⁻¹ °C";
-  _vifVariableNameMap[91] = "FLOW_TEMPERATURE";
-  _vifUnit[91] = "°C";
+  //10⁻³ °C
+  vif_info_[88] = VifInfo("FLOW_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 1000, VifScaleOperation::kDivision);
+  //10⁻² °C
+  vif_info_[89] = VifInfo("FLOW_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 100, VifScaleOperation::kDivision);
+  //10⁻¹ °C
+  vif_info_[90] = VifInfo("FLOW_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 10, VifScaleOperation::kDivision);
+  //°C
+  vif_info_[91] = VifInfo("FLOW_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius);
 
-  _vifVariableNameMap[92] = "RETURN_TEMPERATURE";
-  _vifUnit[92] = "10⁻³ °C";
-  _vifVariableNameMap[93] = "RETURN_TEMPERATURE";
-  _vifUnit[93] = "10⁻² °C";
-  _vifVariableNameMap[94] = "RETURN_TEMPERATURE";
-  _vifUnit[94] = "10⁻¹ °C";
-  _vifVariableNameMap[95] = "RETURN_TEMPERATURE";
-  _vifUnit[95] = "°C";
+  //10⁻³ °C
+  vif_info_[92] = VifInfo("RETURN_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 1000, VifScaleOperation::kDivision);
+  //10⁻² °C
+  vif_info_[93] = VifInfo("RETURN_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 100, VifScaleOperation::kDivision);
+  //10⁻¹ °C
+  vif_info_[94] = VifInfo("RETURN_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 10, VifScaleOperation::kDivision);
+  //°C
+  vif_info_[95] = VifInfo("RETURN_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius);
 
-  _vifVariableNameMap[96] = "TEMPERATURE_DIFFERENCE";
-  _vifUnit[96] = "mK";
-  _vifVariableNameMap[97] = "TEMPERATURE_DIFFERENCE";
-  _vifUnit[97] = "10⁻² K";
-  _vifVariableNameMap[98] = "TEMPERATURE_DIFFERENCE";
-  _vifUnit[98] = "10⁻¹ K";
-  _vifVariableNameMap[99] = "TEMPERATURE_DIFFERENCE";
-  _vifUnit[99] = "K";
+  //mK
+  vif_info_[96] = VifInfo("TEMPERATURE_DIFFERENCE", "K", BaseLib::DeviceDescription::UnitCode::kKelvins, 1000, VifScaleOperation::kDivision);
+  //10⁻² K
+  vif_info_[97] = VifInfo("TEMPERATURE_DIFFERENCE", "K", BaseLib::DeviceDescription::UnitCode::kKelvins, 100, VifScaleOperation::kDivision);
+  //10⁻¹ K
+  vif_info_[98] = VifInfo("TEMPERATURE_DIFFERENCE", "K", BaseLib::DeviceDescription::UnitCode::kKelvins, 10, VifScaleOperation::kDivision);
+  //K
+  vif_info_[99] = VifInfo("TEMPERATURE_DIFFERENCE", "K", BaseLib::DeviceDescription::UnitCode::kKelvins);
 
-  _vifVariableNameMap[100] = "EXTERNAL_TEMPERATURE";
-  _vifUnit[100] = "10⁻³ °C";
-  _vifVariableNameMap[101] = "EXTERNAL_TEMPERATURE";
-  _vifUnit[101] = "10⁻² °C";
-  _vifVariableNameMap[102] = "EXTERNAL_TEMPERATURE";
-  _vifUnit[102] = "10⁻¹ °C";
-  _vifVariableNameMap[103] = "EXTERNAL_TEMPERATURE";
-  _vifUnit[103] = "°C";
+  //10⁻³ °C
+  vif_info_[100] = VifInfo("EXTERNAL_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 1000, VifScaleOperation::kDivision);
+  //10⁻² °C
+  vif_info_[101] = VifInfo("EXTERNAL_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 100, VifScaleOperation::kDivision);
+  //10⁻¹ °C
+  vif_info_[102] = VifInfo("EXTERNAL_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 10, VifScaleOperation::kDivision);
+  //°C
+  vif_info_[103] = VifInfo("EXTERNAL_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius);
 
-  _vifVariableNameMap[104] = "PRESSURE";
-  _vifUnit[104] = "mbar";
-  _vifVariableNameMap[105] = "PRESSURE";
-  _vifUnit[105] = "10⁻² bar";
-  _vifVariableNameMap[106] = "PRESSURE";
-  _vifUnit[106] = "10⁻¹ bar";
-  _vifVariableNameMap[107] = "PRESSURE";
-  _vifUnit[107] = "bar";
+  //mbar
+  vif_info_[104] = VifInfo("PRESSURE", "mbar", BaseLib::DeviceDescription::UnitCode::kMillibars);
+  //10⁻² bar
+  vif_info_[105] = VifInfo("PRESSURE", "bar", BaseLib::DeviceDescription::UnitCode::kBars, 100, VifScaleOperation::kDivision);
+  //10⁻¹ bar
+  vif_info_[106] = VifInfo("PRESSURE", "bar", BaseLib::DeviceDescription::UnitCode::kBars, 10, VifScaleOperation::kDivision);
+  //bar
+  vif_info_[107] = VifInfo("PRESSURE", "bar", BaseLib::DeviceDescription::UnitCode::kBars);
 
-  _vifVariableNameMap[108] = "DATE";
-  _vifVariableNameMap[109] = "DATETIME";
+  vif_info_[108] = VifInfo("DATE", "s", BaseLib::DeviceDescription::UnitCode::kTimestampSeconds);
+  vif_info_[109] = VifInfo("DATETIME", "s", BaseLib::DeviceDescription::UnitCode::kTimestampSeconds);
 
-  _vifVariableNameMap[110] = "HCA_UNITS";
+  vif_info_[110] = VifInfo("HCA_UNITS", "", BaseLib::DeviceDescription::UnitCode::kHeatingCostAllocatorUnits);
 
   //111 reserved
 
-  _vifVariableNameMap[112] = "AVERAGING_DURATION";
-  _vifUnit[112] = "s";
-  _vifVariableNameMap[113] = "AVERAGING_DURATION";
-  _vifUnit[113] = "m";
-  _vifVariableNameMap[114] = "AVERAGING_DURATION";
-  _vifUnit[114] = "h";
-  _vifVariableNameMap[115] = "AVERAGING_DURATION";
-  _vifUnit[115] = "d";
+  vif_info_[112] = VifInfo("AVERAGING_DURATION", "s", BaseLib::DeviceDescription::UnitCode::kSeconds);
+  vif_info_[113] = VifInfo("AVERAGING_DURATION", "m", BaseLib::DeviceDescription::UnitCode::kMinutes);
+  vif_info_[114] = VifInfo("AVERAGING_DURATION", "h", BaseLib::DeviceDescription::UnitCode::kHours);
+  vif_info_[115] = VifInfo("AVERAGING_DURATION", "d", BaseLib::DeviceDescription::UnitCode::kDays);
 
-  _vifVariableNameMap[116] = "ACTUALITY_DURATION";
-  _vifUnit[116] = "s";
-  _vifVariableNameMap[117] = "ACTUALITY_DURATION";
-  _vifUnit[117] = "m";
-  _vifVariableNameMap[118] = "ACTUALITY_DURATION";
-  _vifUnit[118] = "h";
-  _vifVariableNameMap[119] = "ACTUALITY_DURATION";
-  _vifUnit[119] = "d";
+  vif_info_[116] = VifInfo("ACTUALITY_DURATION", "s", BaseLib::DeviceDescription::UnitCode::kSeconds);
+  vif_info_[117] = VifInfo("ACTUALITY_DURATION", "m", BaseLib::DeviceDescription::UnitCode::kMinutes);
+  vif_info_[118] = VifInfo("ACTUALITY_DURATION", "h", BaseLib::DeviceDescription::UnitCode::kHours);
+  vif_info_[119] = VifInfo("ACTUALITY_DURATION", "d", BaseLib::DeviceDescription::UnitCode::kDays);
 
-  _vifVariableNameMap[120] = "FABRICATION_NO";
-  _vifVariableNameMap[121] = "ENHANCED_IDENTIFICATION";
-  _vifVariableNameMap[122] = "BUS_ADDRESS";
+  vif_info_[120] = VifInfo("FABRICATION_NO", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_info_[121] = VifInfo("ENHANCED_IDENTIFICATION", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_info_[122] = VifInfo("BUS_ADDRESS", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
 
-  _vifVariableNameMap[0x7C] = "CUSTOM_STRING";
-  _vifVariableNameMap[0xFC] = "CUSTOM_STRING";
-  _vifVariableNameMap[0x7E] = "ANY_VIF";
-  _vifVariableNameMap[0xFE] = "ANY_VIF";
-  _vifVariableNameMap[0x7F] = "MANUFACTURER_SPECIFIC";
-  _vifVariableNameMap[0xFF] = "MANUFACTURER_SPECIFIC";
+  vif_info_[0x7C] = VifInfo("CUSTOM_STRING", "", BaseLib::DeviceDescription::UnitCode::kUndefined);
+  vif_info_[0xFC] = VifInfo("CUSTOM_STRING", "", BaseLib::DeviceDescription::UnitCode::kUndefined);
+  vif_info_[0x7E] = VifInfo("ANY_VIF", "", BaseLib::DeviceDescription::UnitCode::kUndefined);
+  vif_info_[0xFE] = VifInfo("ANY_VIF", "", BaseLib::DeviceDescription::UnitCode::kUndefined);
+  vif_info_[0x7F] = VifInfo("MANUFACTURER_SPECIFIC", "", BaseLib::DeviceDescription::UnitCode::kUndefined);
+  vif_info_[0xFF] = VifInfo("MANUFACTURER_SPECIFIC", "", BaseLib::DeviceDescription::UnitCode::kUndefined);
 
-  _vifFbVariableNameMap[0] = "ENERGY";
-  _vifFbUnit[0] = "10⁻¹ MWh";
-  _vifFbVariableNameMap[1] = "ENERGY";
-  _vifFbUnit[1] = "MWh";
+  //10^-1 MWh
+  vif_fb_info_[0] = VifInfo("ENERGY", "MWh", BaseLib::DeviceDescription::UnitCode::kMegawattHours, 10, VifScaleOperation::kDivision);
+  //MWh
+  vif_fb_info_[1] = VifInfo("ENERGY", "MWh", BaseLib::DeviceDescription::UnitCode::kMegawattHours);
 
   //2 to 7 reserved
 
-  _vifFbVariableNameMap[8] = "ENERGY";
-  _vifFbUnit[8] = "10⁻¹ GJ";
-  _vifFbVariableNameMap[9] = "ENERGY";
-  _vifFbUnit[9] = "GJ";
+  //10^-1 GJ
+  vif_fb_info_[8] = VifInfo("ENERGY", "", BaseLib::DeviceDescription::UnitCode::kMegajoules, 100, VifScaleOperation::kMultiplication);
+  //GJ
+  vif_fb_info_[9] = VifInfo("ENERGY", "", BaseLib::DeviceDescription::UnitCode::kMegajoules, 1000, VifScaleOperation::kMultiplication);
 
   //10 to 15 reserved
 
-  _vifFbVariableNameMap[16] = "VOLUME";
-  _vifFbUnit[16] = "10² m³";
-  _vifFbVariableNameMap[17] = "VOLUME";
-  _vifFbUnit[17] = "10³ m³";
+  //10^2 m^2
+  vif_fb_info_[16] = VifInfo("VOLUME", "m³", BaseLib::DeviceDescription::UnitCode::kCubicMeters, 100, VifScaleOperation::kMultiplication);
+  //10^3 m^3
+  vif_fb_info_[17] = VifInfo("VOLUME", "m³", BaseLib::DeviceDescription::UnitCode::kCubicMeters, 1000, VifScaleOperation::kMultiplication);
 
   //18 to 23 reserved
 
-  _vifFbVariableNameMap[24] = "MASS";
-  _vifFbUnit[24] = "10² t";
-  _vifFbVariableNameMap[25] = "MASS";
-  _vifFbUnit[25] = "10³ t";
+  //10^2 t
+  vif_fb_info_[24] = VifInfo("MASS", "t", BaseLib::DeviceDescription::UnitCode::kTons, 100, VifScaleOperation::kMultiplication);
+  //10^3 t
+  vif_fb_info_[25] = VifInfo("MASS", "t", BaseLib::DeviceDescription::UnitCode::kTons, 1000, VifScaleOperation::kMultiplication);
 
   //26 to 32 reserved
 
-  _vifFbVariableNameMap[33] = "VOLUME";
-  _vifFbUnit[33] = "10⁻¹ feet³";
-  _vifFbVariableNameMap[34] = "VOLUME";
-  _vifFbUnit[34] = "10⁻¹ american gallons";
-  _vifFbVariableNameMap[35] = "VOLUME";
-  _vifFbUnit[35] = "american gallon";
+  //10^-1 feet^3
+  vif_fb_info_[33] = VifInfo("VOLUME", "feet³", BaseLib::DeviceDescription::UnitCode::kCubicFeet, 10, VifScaleOperation::kDivision);
+  //10^-1 american gallons
+  vif_fb_info_[34] = VifInfo("VOLUME", "american gallons", BaseLib::DeviceDescription::UnitCode::kUsGallons, 10, VifScaleOperation::kDivision);
+  //american gallons
+  vif_fb_info_[35] = VifInfo("VOLUME", "american gallons", BaseLib::DeviceDescription::UnitCode::kUsGallons);
 
-  _vifFbVariableNameMap[36] = "VOLUME_FLOW";
-  _vifFbUnit[36] = "10⁻³ american gallons/min";
-  _vifFbVariableNameMap[37] = "VOLUME_FLOW";
-  _vifFbUnit[37] = "american gallons/min";
-  _vifFbVariableNameMap[38] = "VOLUME_FLOW";
-  _vifFbUnit[38] = "american gallons/hour";
+  //10⁻³ american gallons/min
+  vif_fb_info_[36] = VifInfo("VOLUME_FLOW", "american gallons/min", BaseLib::DeviceDescription::UnitCode::kUsGallonsPerMinute, 1000, VifScaleOperation::kDivision);
+  //american gallons/min
+  vif_fb_info_[37] = VifInfo("VOLUME_FLOW", "american gallons/min", BaseLib::DeviceDescription::UnitCode::kUsGallonsPerMinute);
+  //american gallons/hour
+  vif_fb_info_[38] = VifInfo("VOLUME_FLOW", "american gallons/h", BaseLib::DeviceDescription::UnitCode::kUsGallonsPerHours);
 
   //39 reserved
 
-  _vifFbVariableNameMap[40] = "POWER";
-  _vifFbUnit[40] = "10⁻¹ MW";
-  _vifFbVariableNameMap[41] = "POWER";
-  _vifFbUnit[41] = "MW";
+  //10^-1 MW
+  vif_fb_info_[40] = VifInfo("POWER", "MW", BaseLib::DeviceDescription::UnitCode::kMegawatts, 10, VifScaleOperation::kDivision);
+  //MW
+  vif_fb_info_[41] = VifInfo("POWER", "MW", BaseLib::DeviceDescription::UnitCode::kMegawatts);
 
   //42 to 87 reserved
 
-  _vifFbVariableNameMap[88] = "FLOW_TEMPERATURE";
-  _vifFbUnit[88] = "10⁻³ °F";
-  _vifFbVariableNameMap[89] = "FLOW_TEMPERATURE";
-  _vifFbUnit[89] = "10⁻² °F";
-  _vifFbVariableNameMap[90] = "FLOW_TEMPERATURE";
-  _vifFbUnit[90] = "10⁻¹ °F";
-  _vifFbVariableNameMap[91] = "FLOW_TEMPERATURE";
-  _vifFbUnit[91] = "°F";
+  vif_fb_info_[88] = VifInfo("FLOW_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 1000, VifScaleOperation::kDivision);
+  vif_fb_info_[89] = VifInfo("FLOW_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 100, VifScaleOperation::kDivision);
+  vif_fb_info_[90] = VifInfo("FLOW_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 10, VifScaleOperation::kDivision);
+  vif_fb_info_[91] = VifInfo("FLOW_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit);
 
-  _vifFbVariableNameMap[92] = "RETURN_TEMPERATURE";
-  _vifFbUnit[92] = "10⁻³ °F";
-  _vifFbVariableNameMap[93] = "RETURN_TEMPERATURE";
-  _vifFbUnit[93] = "10⁻² °F";
-  _vifFbVariableNameMap[94] = "RETURN_TEMPERATURE";
-  _vifFbUnit[94] = "10⁻¹ °F";
-  _vifFbVariableNameMap[95] = "RETURN_TEMPERATURE";
-  _vifFbUnit[95] = "°F";
+  vif_fb_info_[92] = VifInfo("RETURN_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 1000, VifScaleOperation::kDivision);
+  vif_fb_info_[93] = VifInfo("RETURN_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 100, VifScaleOperation::kDivision);
+  vif_fb_info_[94] = VifInfo("RETURN_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 10, VifScaleOperation::kDivision);
+  vif_fb_info_[95] = VifInfo("RETURN_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit);
 
-  _vifFbVariableNameMap[96] = "TEMPERATURE_DIFFERENCE";
-  _vifFbUnit[96] = "10⁻³ °F";
-  _vifFbVariableNameMap[97] = "TEMPERATURE_DIFFERENCE";
-  _vifFbUnit[97] = "10⁻² °F";
-  _vifFbVariableNameMap[98] = "TEMPERATURE_DIFFERENCE";
-  _vifFbUnit[98] = "10⁻¹ °F";
-  _vifFbVariableNameMap[99] = "TEMPERATURE_DIFFERENCE";
-  _vifFbUnit[99] = "°F";
+  vif_fb_info_[96] = VifInfo("TEMPERATURE_DIFFERENCE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 1000, VifScaleOperation::kDivision);
+  vif_fb_info_[97] = VifInfo("TEMPERATURE_DIFFERENCE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 100, VifScaleOperation::kDivision);
+  vif_fb_info_[98] = VifInfo("TEMPERATURE_DIFFERENCE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 10, VifScaleOperation::kDivision);
+  vif_fb_info_[99] = VifInfo("TEMPERATURE_DIFFERENCE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit);
 
-  _vifFbVariableNameMap[100] = "EXTERNAL_TEMPERATURE";
-  _vifFbUnit[100] = "10⁻³ °F";
-  _vifFbVariableNameMap[101] = "EXTERNAL_TEMPERATURE";
-  _vifFbUnit[101] = "10⁻² °F";
-  _vifFbVariableNameMap[102] = "EXTERNAL_TEMPERATURE";
-  _vifFbUnit[102] = "10⁻¹ °F";
-  _vifFbVariableNameMap[103] = "EXTERNAL_TEMPERATURE";
-  _vifFbUnit[103] = "°F";
+  vif_fb_info_[100] = VifInfo("EXTERNAL_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 1000, VifScaleOperation::kDivision);
+  vif_fb_info_[101] = VifInfo("EXTERNAL_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 100, VifScaleOperation::kDivision);
+  vif_fb_info_[102] = VifInfo("EXTERNAL_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 10, VifScaleOperation::kDivision);
+  vif_fb_info_[103] = VifInfo("EXTERNAL_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit);
 
-  //104 to 111
+  //104 to 111 reserved
 
-  _vifFbVariableNameMap[112] = "COLD_WARM_TEMPERATURE_LIMIT";
-  _vifFbUnit[112] = "10⁻³ °F";
-  _vifFbVariableNameMap[113] = "COLD_WARM_TEMPERATURE_LIMIT";
-  _vifFbUnit[113] = "10⁻² °F";
-  _vifFbVariableNameMap[114] = "COLD_WARM_TEMPERATURE_LIMIT";
-  _vifFbUnit[114] = "10⁻¹ °F";
-  _vifFbVariableNameMap[115] = "COLD_WARM_TEMPERATURE_LIMIT";
-  _vifFbUnit[115] = "°F";
+  vif_fb_info_[112] = VifInfo("COLD_WARM_TEMPERATURE_LIMIT", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 1000, VifScaleOperation::kDivision);
+  vif_fb_info_[113] = VifInfo("COLD_WARM_TEMPERATURE_LIMIT", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 100, VifScaleOperation::kDivision);
+  vif_fb_info_[114] = VifInfo("COLD_WARM_TEMPERATURE_LIMIT", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 10, VifScaleOperation::kDivision);
+  vif_fb_info_[115] = VifInfo("COLD_WARM_TEMPERATURE_LIMIT", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit);
 
-  _vifFbVariableNameMap[116] = "COLD_WARM_TEMPERATURE_LIMIT";
-  _vifFbUnit[116] = "10⁻³ °C";
-  _vifFbVariableNameMap[117] = "COLD_WARM_TEMPERATURE_LIMIT";
-  _vifFbUnit[117] = "10⁻² °C";
-  _vifFbVariableNameMap[118] = "COLD_WARM_TEMPERATURE_LIMIT";
-  _vifFbUnit[118] = "10⁻¹ °C";
-  _vifFbVariableNameMap[119] = "COLD_WARM_TEMPERATURE_LIMIT";
-  _vifFbUnit[119] = "°C";
+  vif_fb_info_[116] = VifInfo("COLD_WARM_TEMPERATURE_LIMIT", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 1000, VifScaleOperation::kDivision);
+  vif_fb_info_[117] = VifInfo("COLD_WARM_TEMPERATURE_LIMIT", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 100, VifScaleOperation::kDivision);
+  vif_fb_info_[118] = VifInfo("COLD_WARM_TEMPERATURE_LIMIT", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 10, VifScaleOperation::kDivision);
+  vif_fb_info_[119] = VifInfo("COLD_WARM_TEMPERATURE_LIMIT", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius);
 
-  _vifFbVariableNameMap[120] = "MAX_POWER_COUNT";
-  _vifFbUnit[120] = "mW";
-  _vifFbVariableNameMap[121] = "MAX_POWER_COUNT";
-  _vifFbUnit[121] = "10⁻² W";
-  _vifFbVariableNameMap[122] = "MAX_POWER_COUNT";
-  _vifFbUnit[122] = "10⁻¹ W";
-  _vifFbVariableNameMap[123] = "MAX_POWER_COUNT";
-  _vifFbUnit[123] = "W";
-  _vifFbVariableNameMap[124] = "MAX_POWER_COUNT";
-  _vifFbUnit[124] = "10⁻² kW";
-  _vifFbVariableNameMap[125] = "MAX_POWER_COUNT";
-  _vifFbUnit[125] = "10⁻¹ kW";
-  _vifFbVariableNameMap[126] = "MAX_POWER_COUNT";
-  _vifFbUnit[126] = "kW";
-  _vifFbVariableNameMap[127] = "MAX_POWER_COUNT";
-  _vifFbUnit[127] = "10¹ kW";
+  //mW
+  vif_fb_info_[120] = VifInfo("MAX_POWER_COUNT", "W", BaseLib::DeviceDescription::UnitCode::kWatts, 1000, VifScaleOperation::kDivision);
+  //10^-2 W
+  vif_fb_info_[121] = VifInfo("MAX_POWER_COUNT", "W", BaseLib::DeviceDescription::UnitCode::kWatts, 100, VifScaleOperation::kDivision);
+  //10^-1 W
+  vif_fb_info_[122] = VifInfo("MAX_POWER_COUNT", "W", BaseLib::DeviceDescription::UnitCode::kWatts, 10, VifScaleOperation::kDivision);
+  //W
+  vif_fb_info_[123] = VifInfo("MAX_POWER_COUNT", "W", BaseLib::DeviceDescription::UnitCode::kWatts);
+  //10^-2 kW
+  vif_fb_info_[124] = VifInfo("MAX_POWER_COUNT", "kW", BaseLib::DeviceDescription::UnitCode::kKilowatts, 100, VifScaleOperation::kDivision);
+  //10^-1 kW
+  vif_fb_info_[125] = VifInfo("MAX_POWER_COUNT", "kW", BaseLib::DeviceDescription::UnitCode::kKilowatts, 10, VifScaleOperation::kDivision);
+  //kW
+  vif_fb_info_[126] = VifInfo("MAX_POWER_COUNT", "kW", BaseLib::DeviceDescription::UnitCode::kKilowatts);
+  //10^1 kW
+  vif_fb_info_[127] = VifInfo("MAX_POWER_COUNT", "kW", BaseLib::DeviceDescription::UnitCode::kKilowatts, 10, VifScaleOperation::kMultiplication);
 
-  _vifFdVariableNameMap[0] = "CREDIT";
-  _vifFdUnit[0] = "10⁻³ Currency Units";
-  _vifFdVariableNameMap[1] = "CREDIT";
-  _vifFdUnit[1] = "10⁻² Currency Units";
-  _vifFdVariableNameMap[2] = "CREDIT";
-  _vifFdUnit[2] = "10⁻¹ Currency Units";
-  _vifFdVariableNameMap[3] = "CREDIT";
-  _vifFdUnit[3] = "Currency Units";
+  vif_fd_info_[0] = VifInfo("CREDIT", "", BaseLib::DeviceDescription::UnitCode::kCurrency1, 1000, VifScaleOperation::kDivision);
+  vif_fd_info_[1] = VifInfo("CREDIT", "", BaseLib::DeviceDescription::UnitCode::kCurrency1, 100, VifScaleOperation::kDivision);
+  vif_fd_info_[2] = VifInfo("CREDIT", "", BaseLib::DeviceDescription::UnitCode::kCurrency1, 10, VifScaleOperation::kDivision);
+  vif_fd_info_[3] = VifInfo("CREDIT", "", BaseLib::DeviceDescription::UnitCode::kCurrency1);
 
-  _vifFdVariableNameMap[4] = "DEBIT";
-  _vifFdUnit[4] = "10⁻³ Currency Units";
-  _vifFdVariableNameMap[5] = "DEBIT";
-  _vifFdUnit[5] = "10⁻² Currency Units";
-  _vifFdVariableNameMap[6] = "DEBIT";
-  _vifFdUnit[6] = "10⁻¹ Currency Units";
-  _vifFdVariableNameMap[7] = "DEBIT";
-  _vifFdUnit[7] = "Currency Units";
+  vif_fd_info_[4] = VifInfo("DEBIT", "", BaseLib::DeviceDescription::UnitCode::kCurrency1, 1000, VifScaleOperation::kDivision);
+  vif_fd_info_[5] = VifInfo("DEBIT", "", BaseLib::DeviceDescription::UnitCode::kCurrency1, 100, VifScaleOperation::kDivision);
+  vif_fd_info_[6] = VifInfo("DEBIT", "", BaseLib::DeviceDescription::UnitCode::kCurrency1, 10, VifScaleOperation::kDivision);
+  vif_fd_info_[7] = VifInfo("DEBIT", "", BaseLib::DeviceDescription::UnitCode::kCurrency1);
 
-  _vifFdVariableNameMap[8] = "ACCESS_NUMBER";
-  _vifFdVariableNameMap[9] = "MEDIUM";
-  _vifFdVariableNameMap[10] = "MANUFACTURER";
-  _vifFdVariableNameMap[11] = "PARAMETER_SET_IDENTIFICATION";
-  _vifFdVariableNameMap[12] = "MODEL";
-  _vifFdVariableNameMap[13] = "HARDWARE_VERSION";
-  _vifFdVariableNameMap[14] = "FIRMWARE_VERSION";
-  _vifFdVariableNameMap[15] = "SOFTWARE_VERSION";
-  _vifFdVariableNameMap[16] = "CUSTOMER_LOCATION";
-  _vifFdVariableNameMap[17] = "CUSTOMER";
-  _vifFdVariableNameMap[18] = "ACCESS_CODE_USER";
-  _vifFdVariableNameMap[19] = "ACCESS_CODE_OPERATOR";
-  _vifFdVariableNameMap[20] = "ACCESS_CODE_SYSTEM_OPERATOR";
-  _vifFdVariableNameMap[21] = "ACCESS_CODE_DEVELOPER";
-  _vifFdVariableNameMap[22] = "PASSWORD";
-  _vifFdVariableNameMap[23] = "ERROR_FLAGS_BINARY";
-  _vifFdVariableNameMap[24] = "ERROR_MASK";
-  _vifFdVariableNameMap[26] = "DIGITAL_OUTPUT_BINARY";
-  _vifFdVariableNameMap[27] = "DIGITAL_INPUT_BINARY";
-  _vifFdVariableNameMap[28] = "BAUDRATE";
-  _vifFdVariableNameMap[29] = "RESPONSE_DELAY";
-  _vifFdVariableNameMap[30] = "RETRY";
-  _vifFdVariableNameMap[32] = "FIRST_STORAGE_NUMBER";
-  _vifFdVariableNameMap[33] = "LAST_STORAGE_NUMBER";
-  _vifFdVariableNameMap[34] = "STORAGE_BLOCK_SIZE";
+  vif_fd_info_[8] = VifInfo("ACCESS_NUMBER", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[9] = VifInfo("MEDIUM", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[10] = VifInfo("MANUFACTURER", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[11] = VifInfo("PARAMETER_SET_IDENTIFICATION", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[12] = VifInfo("MODEL", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[13] = VifInfo("HARDWARE_VERSION", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[14] = VifInfo("FIRMWARE_VERSION", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[15] = VifInfo("SOFTWARE_VERSION", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[16] = VifInfo("CUSTOMER_LOCATION", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[17] = VifInfo("CUSTOMER", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[18] = VifInfo("ACCESS_CODE_USER", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[19] = VifInfo("ACCESS_CODE_OPERATOR", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[20] = VifInfo("ACCESS_CODE_SYSTEM_OPERATOR", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[21] = VifInfo("ACCESS_CODE_DEVELOPER", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[22] = VifInfo("PASSWORD", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[23] = VifInfo("ERROR_FLAGS_BINARY", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[24] = VifInfo("ERROR_MASK", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[26] = VifInfo("DIGITAL_OUTPUT_BINARY", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[27] = VifInfo("DIGITAL_INPUT_BINARY", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[28] = VifInfo("BAUDRATE", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[29] = VifInfo("RESPONSE_DELAY", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[30] = VifInfo("RETRY", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[32] = VifInfo("FIRST_STORAGE_NUMBER", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[33] = VifInfo("LAST_STORAGE_NUMBER", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[34] = VifInfo("STORAGE_BLOCK_SIZE", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
 
-  _vifFdVariableNameMap[36] = "STORAGE_INTERVAL";
-  _vifFdUnit[36] = "s";
-  _vifFdVariableNameMap[37] = "STORAGE_INTERVAL";
-  _vifFdUnit[37] = "m";
-  _vifFdVariableNameMap[38] = "STORAGE_INTERVAL";
-  _vifFdUnit[38] = "h";
-  _vifFdVariableNameMap[39] = "STORAGE_INTERVAL";
-  _vifFdUnit[39] = "d";
+  vif_fd_info_[36] = VifInfo("STORAGE_INTERVAL", "s", BaseLib::DeviceDescription::UnitCode::kSeconds);
+  vif_fd_info_[37] = VifInfo("STORAGE_INTERVAL", "m", BaseLib::DeviceDescription::UnitCode::kMinutes);
+  vif_fd_info_[38] = VifInfo("STORAGE_INTERVAL", "h", BaseLib::DeviceDescription::UnitCode::kHours);
+  vif_fd_info_[39] = VifInfo("STORAGE_INTERVAL", "d", BaseLib::DeviceDescription::UnitCode::kDays);
+  vif_fd_info_[40] = VifInfo("STORAGE_INTERVAL", "months", BaseLib::DeviceDescription::UnitCode::kMonths);
+  vif_fd_info_[41] = VifInfo("STORAGE_INTERVAL", "years", BaseLib::DeviceDescription::UnitCode::kYears);
 
-  _vifFdVariableNameMap[40] = "STORAGE_INTERVAL_MONTHS";
-  _vifFdVariableNameMap[41] = "STORAGE_INTERVAL_YEARS";
+  vif_fd_info_[44] = VifInfo("DURATION_SINCE_LAST_READOUT", "s", BaseLib::DeviceDescription::UnitCode::kSeconds);
+  vif_fd_info_[45] = VifInfo("DURATION_SINCE_LAST_READOUT", "m", BaseLib::DeviceDescription::UnitCode::kMinutes);
+  vif_fd_info_[46] = VifInfo("DURATION_SINCE_LAST_READOUT", "h", BaseLib::DeviceDescription::UnitCode::kHours);
+  vif_fd_info_[47] = VifInfo("DURATION_SINCE_LAST_READOUT", "d", BaseLib::DeviceDescription::UnitCode::kDays);
 
-  _vifFdVariableNameMap[44] = "DURATION_SINCE_LAST_READOUT";
-  _vifFdUnit[44] = "s";
-  _vifFdVariableNameMap[45] = "DURATION_SINCE_LAST_READOUT";
-  _vifFdUnit[45] = "m";
-  _vifFdVariableNameMap[46] = "DURATION_SINCE_LAST_READOUT";
-  _vifFdUnit[46] = "h";
-  _vifFdVariableNameMap[47] = "DURATION_SINCE_LAST_READOUT";
-  _vifFdUnit[47] = "d";
+  vif_fd_info_[48] = VifInfo("TARIFF_START_DATETIME", "s", BaseLib::DeviceDescription::UnitCode::kTimestampSeconds);
 
-  _vifFdVariableNameMap[48] = "TARIFF_START_DATETIME";
+  vif_fd_info_[49] = VifInfo("TARIFF_DURATION", "s", BaseLib::DeviceDescription::UnitCode::kSeconds);
+  vif_fd_info_[50] = VifInfo("TARIFF_DURATION", "m", BaseLib::DeviceDescription::UnitCode::kMinutes);
+  vif_fd_info_[51] = VifInfo("TARIFF_DURATION", "h", BaseLib::DeviceDescription::UnitCode::kHours);
+  vif_fd_info_[52] = VifInfo("TARIFF_DURATION", "d", BaseLib::DeviceDescription::UnitCode::kDays);
 
-  _vifFdVariableNameMap[49] = "TARIFF_DURATION";
-  _vifFdUnit[49] = "s";
-  _vifFdVariableNameMap[50] = "TARIFF_DURATION";
-  _vifFdUnit[50] = "m";
-  _vifFdVariableNameMap[51] = "TARIFF_DURATION";
-  _vifFdUnit[51] = "h";
-  _vifFdVariableNameMap[52] = "TARIFF_DURATION";
-  _vifFdUnit[52] = "d";
+  vif_fd_info_[53] = VifInfo("TARIFF_PERIOD", "s", BaseLib::DeviceDescription::UnitCode::kSeconds);
+  vif_fd_info_[54] = VifInfo("TARIFF_PERIOD", "m", BaseLib::DeviceDescription::UnitCode::kMinutes);
+  vif_fd_info_[55] = VifInfo("TARIFF_PERIOD", "h", BaseLib::DeviceDescription::UnitCode::kHours);
+  vif_fd_info_[56] = VifInfo("TARIFF_PERIOD", "d", BaseLib::DeviceDescription::UnitCode::kDays);
+  vif_fd_info_[57] = VifInfo("TARIFF_PERIOD", "months", BaseLib::DeviceDescription::UnitCode::kMonths);
+  vif_fd_info_[58] = VifInfo("TARIFF_PERIOD", "years", BaseLib::DeviceDescription::UnitCode::kYears);
 
-  _vifFdVariableNameMap[53] = "TARIFF_PERIOD";
-  _vifFdUnit[53] = "s";
-  _vifFdVariableNameMap[54] = "TARIFF_PERIOD";
-  _vifFdUnit[54] = "m";
-  _vifFdVariableNameMap[55] = "TARIFF_PERIOD";
-  _vifFdUnit[55] = "h";
-  _vifFdVariableNameMap[56] = "TARIFF_PERIOD";
-  _vifFdUnit[56] = "d";
+  vif_fd_info_[59] = VifInfo("DIMENSIONLESS", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
 
-  _vifFdVariableNameMap[57] = "TARIFF_PERIOD_MONTHS";
-  _vifFdVariableNameMap[58] = "TARIFF_PERIOD_YEARS";
-  _vifFdVariableNameMap[59] = "DIMENSIONLESS";
+  vif_fd_info_[64] = VifInfo("VOLTAGE", "mV", BaseLib::DeviceDescription::UnitCode::kMillivolts, 1000000, VifScaleOperation::kDivision);
+  vif_fd_info_[65] = VifInfo("VOLTAGE", "mV", BaseLib::DeviceDescription::UnitCode::kMillivolts, 100000, VifScaleOperation::kDivision);
+  vif_fd_info_[66] = VifInfo("VOLTAGE", "mV", BaseLib::DeviceDescription::UnitCode::kMillivolts, 10000, VifScaleOperation::kDivision);
+  vif_fd_info_[67] = VifInfo("VOLTAGE", "mV", BaseLib::DeviceDescription::UnitCode::kMillivolts, 1000, VifScaleOperation::kDivision);
+  vif_fd_info_[68] = VifInfo("VOLTAGE", "mV", BaseLib::DeviceDescription::UnitCode::kMillivolts, 100, VifScaleOperation::kDivision);
+  vif_fd_info_[69] = VifInfo("VOLTAGE", "mV", BaseLib::DeviceDescription::UnitCode::kMillivolts, 10, VifScaleOperation::kDivision);
+  vif_fd_info_[70] = VifInfo("VOLTAGE", "mV", BaseLib::DeviceDescription::UnitCode::kMillivolts);
+  vif_fd_info_[71] = VifInfo("VOLTAGE", "V", BaseLib::DeviceDescription::UnitCode::kVolts, 100, VifScaleOperation::kDivision);
+  vif_fd_info_[72] = VifInfo("VOLTAGE", "V", BaseLib::DeviceDescription::UnitCode::kVolts, 10, VifScaleOperation::kDivision);
+  vif_fd_info_[73] = VifInfo("VOLTAGE", "V", BaseLib::DeviceDescription::UnitCode::kVolts);
+  vif_fd_info_[74] = VifInfo("VOLTAGE", "kV", BaseLib::DeviceDescription::UnitCode::kKilovolts, 100, VifScaleOperation::kDivision);
+  vif_fd_info_[75] = VifInfo("VOLTAGE", "kV", BaseLib::DeviceDescription::UnitCode::kKilovolts, 10, VifScaleOperation::kDivision);
+  vif_fd_info_[76] = VifInfo("VOLTAGE", "kV", BaseLib::DeviceDescription::UnitCode::kKilovolts);
+  vif_fd_info_[77] = VifInfo("VOLTAGE", "MV", BaseLib::DeviceDescription::UnitCode::kMegavolts, 100, VifScaleOperation::kDivision);
+  vif_fd_info_[78] = VifInfo("VOLTAGE", "MV", BaseLib::DeviceDescription::UnitCode::kMegavolts, 10, VifScaleOperation::kDivision);
+  vif_fd_info_[79] = VifInfo("VOLTAGE", "MV", BaseLib::DeviceDescription::UnitCode::kMegavolts);
 
-  _vifFdVariableNameMap[64] = "VOLTAGE";
-  _vifFdUnit[64] = "nV";
-  _vifFdVariableNameMap[65] = "VOLTAGE";
-  _vifFdUnit[65] = "10⁻² µV";
-  _vifFdVariableNameMap[66] = "VOLTAGE";
-  _vifFdUnit[66] = "10⁻¹ µV";
-  _vifFdVariableNameMap[67] = "VOLTAGE";
-  _vifFdUnit[67] = "µV";
-  _vifFdVariableNameMap[68] = "VOLTAGE";
-  _vifFdUnit[68] = "10⁻² mV";
-  _vifFdVariableNameMap[69] = "VOLTAGE";
-  _vifFdUnit[69] = "10⁻¹ mV";
-  _vifFdVariableNameMap[70] = "VOLTAGE";
-  _vifFdUnit[70] = "mV";
-  _vifFdVariableNameMap[71] = "VOLTAGE";
-  _vifFdUnit[71] = "10⁻² V";
-  _vifFdVariableNameMap[72] = "VOLTAGE";
-  _vifFdUnit[72] = "10⁻¹ V";
-  _vifFdVariableNameMap[73] = "VOLTAGE";
-  _vifFdUnit[73] = "V";
-  _vifFdVariableNameMap[74] = "VOLTAGE";
-  _vifFdUnit[74] = "10⁻² kV";
-  _vifFdVariableNameMap[75] = "VOLTAGE";
-  _vifFdUnit[75] = "10⁻¹ kV";
-  _vifFdVariableNameMap[76] = "VOLTAGE";
-  _vifFdUnit[76] = "kV";
-  _vifFdVariableNameMap[77] = "VOLTAGE";
-  _vifFdUnit[77] = "10⁻² MV";
-  _vifFdVariableNameMap[78] = "VOLTAGE";
-  _vifFdUnit[78] = "10⁻¹ MV";
-  _vifFdVariableNameMap[79] = "VOLTAGE";
-  _vifFdUnit[79] = "MV";
+  vif_fd_info_[80] = VifInfo("CURRENT", "mA", BaseLib::DeviceDescription::UnitCode::kMilliamperes, 1000000000, VifScaleOperation::kDivision);
+  vif_fd_info_[81] = VifInfo("CURRENT", "mA", BaseLib::DeviceDescription::UnitCode::kMilliamperes, 100000000, VifScaleOperation::kDivision);
+  vif_fd_info_[82] = VifInfo("CURRENT", "mA", BaseLib::DeviceDescription::UnitCode::kMilliamperes, 10000000, VifScaleOperation::kDivision);
+  vif_fd_info_[83] = VifInfo("CURRENT", "mA", BaseLib::DeviceDescription::UnitCode::kMilliamperes, 1000000, VifScaleOperation::kDivision);
+  vif_fd_info_[84] = VifInfo("CURRENT", "mA", BaseLib::DeviceDescription::UnitCode::kMilliamperes, 100000, VifScaleOperation::kDivision);
+  vif_fd_info_[85] = VifInfo("CURRENT", "mA", BaseLib::DeviceDescription::UnitCode::kMilliamperes, 10000, VifScaleOperation::kDivision);
+  vif_fd_info_[86] = VifInfo("CURRENT", "mA", BaseLib::DeviceDescription::UnitCode::kMilliamperes, 1000, VifScaleOperation::kDivision);
+  vif_fd_info_[87] = VifInfo("CURRENT", "mA", BaseLib::DeviceDescription::UnitCode::kMilliamperes, 100, VifScaleOperation::kDivision);
+  vif_fd_info_[88] = VifInfo("CURRENT", "mA", BaseLib::DeviceDescription::UnitCode::kMilliamperes, 10, VifScaleOperation::kDivision);
+  vif_fd_info_[89] = VifInfo("CURRENT", "mA", BaseLib::DeviceDescription::UnitCode::kMilliamperes);
+  vif_fd_info_[90] = VifInfo("CURRENT", "A", BaseLib::DeviceDescription::UnitCode::kAmperes, 100, VifScaleOperation::kDivision);
+  vif_fd_info_[91] = VifInfo("CURRENT", "A", BaseLib::DeviceDescription::UnitCode::kAmperes, 10, VifScaleOperation::kDivision);
+  vif_fd_info_[92] = VifInfo("CURRENT", "A", BaseLib::DeviceDescription::UnitCode::kAmperes);
+  vif_fd_info_[93] = VifInfo("CURRENT", "A", BaseLib::DeviceDescription::UnitCode::kAmperes, 10, VifScaleOperation::kMultiplication);
+  vif_fd_info_[94] = VifInfo("CURRENT", "A", BaseLib::DeviceDescription::UnitCode::kAmperes, 100, VifScaleOperation::kMultiplication);
+  vif_fd_info_[95] = VifInfo("CURRENT", "A", BaseLib::DeviceDescription::UnitCode::kAmperes, 1000, VifScaleOperation::kMultiplication);
 
-  _vifFdVariableNameMap[80] = "CURRENT";
-  _vifFdUnit[80] = "pA";
-  _vifFdVariableNameMap[81] = "CURRENT";
-  _vifFdUnit[81] = "10⁻² nA";
-  _vifFdVariableNameMap[82] = "CURRENT";
-  _vifFdUnit[82] = "10⁻¹ nA";
-  _vifFdVariableNameMap[83] = "CURRENT";
-  _vifFdUnit[83] = "nA";
-  _vifFdVariableNameMap[84] = "CURRENT";
-  _vifFdUnit[84] = "10⁻² µA";
-  _vifFdVariableNameMap[85] = "CURRENT";
-  _vifFdUnit[85] = "10⁻¹ µA";
-  _vifFdVariableNameMap[86] = "CURRENT";
-  _vifFdUnit[86] = "µA";
-  _vifFdVariableNameMap[87] = "CURRENT";
-  _vifFdUnit[87] = "10⁻² mA";
-  _vifFdVariableNameMap[88] = "CURRENT";
-  _vifFdUnit[88] = "10⁻¹ mA";
-  _vifFdVariableNameMap[89] = "CURRENT";
-  _vifFdUnit[89] = "mA";
-  _vifFdVariableNameMap[90] = "CURRENT";
-  _vifFdUnit[90] = "10⁻² A";
-  _vifFdVariableNameMap[91] = "CURRENT";
-  _vifFdUnit[91] = "10⁻¹ A";
-  _vifFdVariableNameMap[92] = "CURRENT";
-  _vifFdUnit[92] = "A";
-  _vifFdVariableNameMap[93] = "CURRENT";
-  _vifFdUnit[93] = "10⁻² kA";
-  _vifFdVariableNameMap[94] = "CURRENT";
-  _vifFdUnit[94] = "10⁻¹ kA";
-  _vifFdVariableNameMap[95] = "CURRENT";
-  _vifFdUnit[95] = "kA";
+  vif_fd_info_[96] = VifInfo("RESET_COUNTER", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[97] = VifInfo("CUMULATION_COUNTER", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[98] = VifInfo("CONTROL_SIGNAL", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[99] = VifInfo("DAY_OF_WEEK", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[100] = VifInfo("WEEK_NUMBER", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[101] = VifInfo("DAY_CHANGE_TIMEPOINT", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[102] = VifInfo("PARAMETER_ACTIVATION_STATE", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_fd_info_[103] = VifInfo("SPECIAL_SUPPLIER_INFORMATION", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
 
-  _vifFdVariableNameMap[96] = "RESET_COUNTER";
-  _vifFdVariableNameMap[97] = "CUMULATION_COUNTER";
-  _vifFdVariableNameMap[98] = "CONTROL_SIGNAL";
-  _vifFdVariableNameMap[99] = "DAY_OF_WEEK";
-  _vifFdVariableNameMap[100] = "WEEK_NUMBER";
-  _vifFdVariableNameMap[101] = "DAY_CHANGE_TIMEPOINT";
-  _vifFdVariableNameMap[102] = "PARAMETER_ACTIVATION_STATE";
-  _vifFdVariableNameMap[103] = "SPECIAL_SUPPLIER_INFORMATION";
+  vif_fd_info_[104] = VifInfo("DURATION_SINCE_LAST_CUMULATION", "h", BaseLib::DeviceDescription::UnitCode::kHours);
+  vif_fd_info_[105] = VifInfo("DURATION_SINCE_LAST_CUMULATION", "d", BaseLib::DeviceDescription::UnitCode::kDays);
+  vif_fd_info_[106] = VifInfo("DURATION_SINCE_LAST_CUMULATION", "m", BaseLib::DeviceDescription::UnitCode::kMonths);
+  vif_fd_info_[107] = VifInfo("DURATION_SINCE_LAST_CUMULATION", "y", BaseLib::DeviceDescription::UnitCode::kYears);
 
-  _vifFdVariableNameMap[104] = "DURATION_SINCE_LAST_CUMULATION";
-  _vifFdUnit[104] = "h";
-  _vifFdVariableNameMap[105] = "DURATION_SINCE_LAST_CUMULATION";
-  _vifFdUnit[105] = "d";
-  _vifFdVariableNameMap[106] = "DURATION_SINCE_LAST_CUMULATION";
-  _vifFdUnit[106] = "m";
-  _vifFdVariableNameMap[107] = "DURATION_SINCE_LAST_CUMULATION";
-  _vifFdUnit[107] = "y";
+  vif_fd_info_[108] = VifInfo("BATTERY_OPERATING_TIME", "h", BaseLib::DeviceDescription::UnitCode::kHours);
+  vif_fd_info_[109] = VifInfo("BATTERY_OPERATING_TIME", "d", BaseLib::DeviceDescription::UnitCode::kDays);
+  vif_fd_info_[110] = VifInfo("BATTERY_OPERATING_TIME", "m", BaseLib::DeviceDescription::UnitCode::kMonths);
+  vif_fd_info_[111] = VifInfo("BATTERY_OPERATING_TIME", "y", BaseLib::DeviceDescription::UnitCode::kYears);
 
-  _vifFdVariableNameMap[108] = "BATTERY_OPERATING_TIME";
-  _vifFdUnit[108] = "h";
-  _vifFdVariableNameMap[109] = "BATTERY_OPERATING_TIME";
-  _vifFdUnit[109] = "d";
-  _vifFdVariableNameMap[110] = "BATTERY_OPERATING_TIME";
-  _vifFdUnit[110] = "m";
-  _vifFdVariableNameMap[111] = "BATTERY_OPERATING_TIME";
-  _vifFdUnit[111] = "y";
-
-  _vifFdVariableNameMap[112] = "BATTERY_CHANGE_DATETIME";
+  vif_fd_info_[112] = VifInfo("BATTERY_CHANGE_DATETIME", "s", BaseLib::DeviceDescription::UnitCode::kTimestampSeconds);
 }
 
-DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(PMbusPacket packet) {
+DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPacket &packet) {
   try {
     createDirectories();
 
@@ -782,8 +677,9 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, MbusPa
     uint8_t dif = dataRecord.difs.front() & 0x0Fu;
     parameter->metadata = BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
 
-    ParameterCast::PGeneric cast = std::make_shared<ParameterCast::Generic>(Gd::bl);
-    cast->type = "0x" + BaseLib::HelperFunctions::getHexString(dif, 2);
+    ParameterCast::PGeneric cast1 = std::make_shared<ParameterCast::Generic>(Gd::bl);
+    cast1->type = "0x" + BaseLib::HelperFunctions::getHexString(dif, 2);
+    parameter->casts.push_back(cast1);
 
     parameter->physical = std::make_shared<PhysicalInteger>(Gd::bl);
     parameter->physical->operationType = IPhysical::OperationType::Enum::command;
@@ -803,27 +699,18 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, MbusPa
     if (!dataRecord.vifCustomName.empty()) {
       parameter->id = dataRecord.vifCustomName;
     } else if (dataRecord.vifs.size() == 1) {
-      auto vifIterator = _vifVariableNameMap.find(dataRecord.vifs.front());
-      if (vifIterator == _vifVariableNameMap.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.front(), 2);
-      else parameter->id = vifIterator->second;
-
-      auto unitIterator = _vifUnit.find(dataRecord.vifs.front());
-      if (unitIterator != _vifUnit.end()) parameter->unit = unitIterator->second;
+      auto vifIterator = vif_info_.find(dataRecord.vifs.front());
+      if (vifIterator == vif_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.front(), 2);
+      else setVifInfo(parameter, vifIterator->second);
     } else if (dataRecord.vifs.size() == 2) {
       if (dataRecord.vifs.front() == 0xFB) {
-        auto vifIterator = _vifFbVariableNameMap.find(dataRecord.vifs.at(1));
-        if (vifIterator == _vifFbVariableNameMap.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
-        else parameter->id = vifIterator->second;
-
-        auto unitIterator = _vifFbUnit.find(dataRecord.vifs.at(1));
-        if (unitIterator != _vifFbUnit.end()) parameter->unit = unitIterator->second;
+        auto vifIterator = vif_fb_info_.find(dataRecord.vifs.at(1));
+        if (vifIterator == vif_fb_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
+        else setVifInfo(parameter, vifIterator->second);
       } else if (dataRecord.vifs.front() == 0xFD) {
-        auto vifIterator = _vifFdVariableNameMap.find(dataRecord.vifs.at(1));
-        if (vifIterator == _vifFdVariableNameMap.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
-        else parameter->id = vifIterator->second;
-
-        auto unitIterator = _vifFdUnit.find(dataRecord.vifs.at(1));
-        if (unitIterator != _vifFdUnit.end()) parameter->unit = unitIterator->second;
+        auto vifIterator = vif_fd_info_.find(dataRecord.vifs.at(1));
+        if (vifIterator == vif_fd_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
+        else setVifInfo(parameter, vifIterator->second);
       } else if (dataRecord.vifs.front() == 0xFF) {
         //Manufacturer specific
         if (manufacturer == "KAM") {
@@ -856,8 +743,24 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, MbusPa
     payload->metaInteger4 = dataRecord.tariff;
     payload->parameterId = parameter->id;
     packet->binaryPayloads.push_back(payload);
+  }
+  catch (const std::exception &ex) {
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+  }
+}
 
-    parameter->casts.push_back(cast);
+void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_info) {
+  try {
+    parameter->id = vif_info.name;
+    parameter->unit = vif_info.unit;
+    parameter->unit_code = vif_info.unit_code;
+
+    if (vif_info.unit_scale_factor != 1) {
+      auto cast2 = std::make_shared<DecimalIntegerScale>(Gd::bl);
+      if (vif_info.unit_scale_operation == VifScaleOperation::kDivision) cast2->factor = vif_info.unit_scale_factor;
+      else cast2->factor = 1.0 / (double)vif_info.unit_scale_factor;
+      parameter->casts.emplace_back(std::move(cast2));
+    }
   }
   catch (const std::exception &ex) {
     Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());

@@ -462,20 +462,21 @@ void MbusPeer::packetReceived(PMbusPacket &packet) {
 
       for (auto i = frameValue.values.begin(); i != frameValue.values.end(); ++i) {
         for (std::list<uint32_t>::const_iterator j = frameValue.paramsetChannels.begin(); j != frameValue.paramsetChannels.end(); ++j) {
-          if (std::find(i->second.channels.begin(), i->second.channels.end(), *j) == i->second.channels.end()) continue;
-          if (!valueKeys[*j] || !rpcValues[*j]) {
-            valueKeys[*j].reset(new std::vector<std::string>());
-            rpcValues[*j].reset(new std::vector<PVariable>());
+          auto channel = (int32_t)*j;
+          if (std::find(i->second.channels.begin(), i->second.channels.end(), channel) == i->second.channels.end()) continue;
+          if (!valueKeys[channel] || !rpcValues[channel]) {
+            valueKeys[channel].reset(new std::vector<std::string>());
+            rpcValues[channel].reset(new std::vector<PVariable>());
           }
 
-          BaseLib::Systems::RpcConfigurationParameter &parameter = valuesCentral[*j][i->first];
+          BaseLib::Systems::RpcConfigurationParameter &parameter = valuesCentral[channel][i->first];
           //if (parameter.equals(i->second.value)) continue;
           parameter.setBinaryData(i->second.value);
           if (parameter.databaseId > 0) saveParameter(parameter.databaseId, i->second.value);
-          else saveParameter(0, ParameterGroup::Type::Enum::variables, *j, i->first, i->second.value);
+          else saveParameter(0, ParameterGroup::Type::Enum::variables, channel, i->first, i->second.value);
           if (_bl->debugLevel >= 4)
             Gd::out.printInfo(
-                "Info: " + i->first + " on channel " + std::to_string(*j) + " of peer " + std::to_string(_peerID) + " with serial number " + _serialNumber + " was set to 0x" + BaseLib::HelperFunctions::getHexString(i->second.value) + ".");
+                "Info: " + i->first + " on channel " + std::to_string(channel) + " of peer " + std::to_string(_peerID) + " with serial number " + _serialNumber + " was set to 0x" + BaseLib::HelperFunctions::getHexString(i->second.value) + ".");
 
           if (parameter.rpcParameter) {
             if (parameter.rpcParameter->casts.empty()) continue;
@@ -483,32 +484,40 @@ void MbusPeer::packetReceived(PMbusPacket &packet) {
             if (!parameterCast) continue;
 
             uint8_t type = BaseLib::Math::getUnsignedNumber(parameterCast->type);
-            std::vector<uint8_t> vifs = _bl->hf.getUBinary(parameter.rpcParameter->metadata);
+            std::vector<uint8_t> vifs = BaseLib::HelperFunctions::getUBinary(parameter.rpcParameter->metadata);
+
+            BaseLib::PVariable value = VifConverter::getVariable(type, vifs, i->second.value);
+
+            if (parameter.rpcParameter->casts.size() > 1) {
+              for (auto k = parameter.rpcParameter->casts.begin() + 1; k != parameter.rpcParameter->casts.end(); k++) {
+                (*k)->fromPacket(value);
+              }
+            }
 
             //Process service messages
             if (parameter.rpcParameter->service && !i->second.value.empty()) {
               if (parameter.rpcParameter->logical->type == ILogical::Type::Enum::tEnum) {
-                serviceMessages->set(i->first, i->second.value.at(0), *j);
-              } else if (parameter.rpcParameter->logical->type == ILogical::Type::Enum::tBoolean) {
-                serviceMessages->set(i->first, VifConverter::getVariable(type, vifs, i->second.value)->booleanValue);
+                serviceMessages->set(i->first, i->second.value.at(0), channel);
+              } else if (channel == 0 && parameter.rpcParameter->logical->type == ILogical::Type::Enum::tBoolean) {
+                serviceMessages->set(i->first, (bool)(*value));
+              } else {
+                serviceMessages->set(i->first, value->integerValue, channel);
               }
             }
 
-            BaseLib::PVariable value = VifConverter::getVariable(type, vifs, i->second.value);
-
             if (i->first == "DATE" || i->first == "DATETIME") {
-              int32_t time = BaseLib::HelperFunctions::getTimeSeconds();
-              if (packet->wireless() && (value->integerValue < time - (86400 * 2) || value->integerValue > time + (86400 * 2))) {
+              int64_t time = BaseLib::HelperFunctions::getTimeSeconds();
+              if (packet->wireless() && (value->integerValue64 < time - (86400 * 2) || value->integerValue64 > time + (86400 * 2))) {
                 serviceMessages->set("POSSIBLE_HACKING_ATTEMPT", true);
                 Gd::out.printWarning("Warning: Possible hacking attempt. Date in packet deviates more than two days from current date.");
-              } else if (packet->wireless() && value->integerValue < _lastTime) {
+              } else if (packet->wireless() && value->integerValue64 < _lastTime) {
                 serviceMessages->set("POSSIBLE_HACKING_ATTEMPT", true);
                 Gd::out.printWarning("Warning: Possible hacking attempt. Date in packet is older than in last packet.");
-              } else _lastTime = value->integerValue;
+              } else _lastTime = value->integerValue64;
             }
 
-            valueKeys[*j]->push_back(i->first);
-            rpcValues[*j]->push_back(value);
+            valueKeys[channel]->push_back(i->first);
+            rpcValues[channel]->push_back(value);
           }
         }
       }
@@ -587,6 +596,12 @@ bool MbusPeer::convertFromPacketHook(BaseLib::Systems::RpcConfigurationParameter
     std::vector<uint8_t> vifs = BaseLib::HelperFunctions::getUBinary(parameter.rpcParameter->metadata);
 
     result = VifConverter::getVariable(type, vifs, data);
+
+    if (parameter.rpcParameter->casts.size() > 1) {
+      for (auto i = parameter.rpcParameter->casts.begin() + 1; i != parameter.rpcParameter->casts.end(); i++) {
+        (*i)->fromPacket(result);
+      }
+    }
   }
   catch (const std::exception &ex) {
     Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());

@@ -419,7 +419,7 @@ std::vector<uint8_t> MbusPacket::getBinary() {
   catch (const std::exception &ex) {
     Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
-  return std::vector<uint8_t>();
+  return {};
 }
 
 std::string MbusPacket::getMediumString(uint8_t medium) {
@@ -440,10 +440,10 @@ std::string MbusPacket::getMediumString(uint8_t medium) {
     case 0x0D:return "Heat / cooling load meter";
     case 0x0E:return "Bus / system";
     case 0x0F:return "Unknown";
-    case 0x10:return "Reserved for consumption meter";
-    case 0x11:return "Reserved for consumption meter";
-    case 0x12:return "Reserved for consumption meter";
-    case 0x13:return "Reserved for consumption meter";
+    case 0x10:return "Reserved for consumption meter (1)";
+    case 0x11:return "Reserved for consumption meter (2)";
+    case 0x12:return "Reserved for consumption meter (3)";
+    case 0x13:return "Reserved for consumption meter (4)";
     case 0x14:return "Calorific value";
     case 0x15:return "Hot water (≥ 90 °C)";
     case 0x16:return "Cold water";
@@ -453,41 +453,41 @@ std::string MbusPacket::getMediumString(uint8_t medium) {
     case 0x1A:return "Smoke detector";
     case 0x1B:return "Room sensor (e. g. temperature or humidity)";
     case 0x1C:return "Gas detector";
-    case 0x1D:return "Reserved for sensors";
-    case 0x1E:return "Reserved for sensors";
-    case 0x1F:return "Reserved for sensors";
+    case 0x1D:return "Reserved for sensors (1)";
+    case 0x1E:return "Reserved for sensors (2)";
+    case 0x1F:return "Reserved for sensors (3)";
     case 0x20:return "Breaker (electricity)";
     case 0x21:return "Valve (gas or water)";
-    case 0x22:return "Reserved for switching devices";
-    case 0x23:return "Reserved for switching devices";
-    case 0x24:return "Reserved for switching devices";
+    case 0x22:return "Reserved for switching devices (1)";
+    case 0x23:return "Reserved for switching devices (2)";
+    case 0x24:return "Reserved for switching devices (3)";
     case 0x25:return "Customer unit (display device)";
-    case 0x26:return "Reserved for customer units";
-    case 0x27:return "Reserved for customer units";
+    case 0x26:return "Reserved for customer units (1)";
+    case 0x27:return "Reserved for customer units (2)";
     case 0x28:return "Waste water";
     case 0x29:return "Garbage";
     case 0x2A:return "Reserved for carbon dioxide";
-    case 0x2B:return "Reserved for environmental meter";
-    case 0x2C:return "Reserved for environmental meter";
-    case 0x2D:return "Reserved for environmental meter";
-    case 0x2E:return "Reserved for environmental meter";
-    case 0x2F:return "Reserved for environmental meter";
+    case 0x2B:return "Reserved for environmental meter (1)";
+    case 0x2C:return "Reserved for environmental meter (2)";
+    case 0x2D:return "Reserved for environmental meter (3)";
+    case 0x2E:return "Reserved for environmental meter (4)";
+    case 0x2F:return "Reserved for environmental meter (5)";
     case 0x30:return "Reserved for system devices";
     case 0x31:return "Reserved for communication controller";
     case 0x32:return "Reserved for unidirectional repeater";
     case 0x33:return "Reserved for bidirectional repeater";
-    case 0x34:return "Reserved for system devices";
-    case 0x35:return "Reserved for system devices";
+    case 0x34:return "Reserved for system devices (1)";
+    case 0x35:return "Reserved for system devices (2)";
     case 0x36:return "Radio converter (system side)";
     case 0x37:return "Radio converter (meter side)";
-    case 0x38:return "Reserved for system devices";
-    case 0x39:return "Reserved for system devices";
-    case 0x3A:return "Reserved for system devices";
-    case 0x3B:return "Reserved for system devices";
-    case 0x3C:return "Reserved for system devices";
-    case 0x3D:return "Reserved for system devices";
-    case 0x3E:return "Reserved for system devices";
-    case 0x3F:return "Reserved for system devices";
+    case 0x38:return "Reserved for system devices (1)";
+    case 0x39:return "Reserved for system devices (2)";
+    case 0x3A:return "Reserved for system devices (3)";
+    case 0x3B:return "Reserved for system devices (4)";
+    case 0x3C:return "Reserved for system devices (5)";
+    case 0x3D:return "Reserved for system devices (6)";
+    case 0x3E:return "Reserved for system devices (7)";
+    case 0x3F:return "Reserved for system devices (8)";
     default:return "Unknown";
   }
 }
