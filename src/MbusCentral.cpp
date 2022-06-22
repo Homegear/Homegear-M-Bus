@@ -1024,7 +1024,11 @@ BaseLib::PVariable MbusCentral::poll(const PRpcClientInfo &clientInfo, const PAr
       }
 
       if (use_secondary_address) interface->Poll(std::vector<uint8_t>{}, std::vector<int32_t>{mbus_peer->getAddress()});
-      else interface->Poll(std::vector<uint8_t>{(uint8_t)mbus_peer->getPrimaryAddress()}, std::vector<int32_t>{});
+      else {
+        auto primary_address = mbus_peer->getPrimaryAddress();
+        if (primary_address == -1) continue;
+        interface->Poll(std::vector<uint8_t>{(uint8_t)primary_address}, std::vector<int32_t>{});
+      }
     }
 
     return std::make_shared<BaseLib::Variable>();
