@@ -673,6 +673,7 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice &device) {
   parameter->physical = std::make_shared<PhysicalInteger>(Gd::bl);
   parameter->physical->groupId = parameter->id;
   parameter->physical->operationType = IPhysical::OperationType::internal;
+  parameter->roles.emplace(800002, Role(800002, RoleDirection::input, false, false, {}));
 
   parameter.reset(new Parameter(Gd::bl, function->variables));
   parameter->id = "STICKY_UNREACH";
