@@ -51,6 +51,16 @@ void MbusCentral::init() {
     _stopWorkerThread = false;
     _timeLeftInPairingMode = 0;
 
+    _localRpcMethods.insert(std::pair<std::string, std::function<BaseLib::PVariable(const BaseLib::PRpcClientInfo &clientInfo, const BaseLib::PArray &parameters)>>("getPrimaryAddress",
+                                                                                                                                                                    std::bind(&MbusCentral::getPrimaryAddress,
+                                                                                                                                                                              this,
+                                                                                                                                                                              std::placeholders::_1,
+                                                                                                                                                                              std::placeholders::_2)));
+    _localRpcMethods.insert(std::pair<std::string, std::function<BaseLib::PVariable(const BaseLib::PRpcClientInfo &clientInfo, const BaseLib::PArray &parameters)>>("setPrimaryAddress",
+                                                                                                                                                                    std::bind(&MbusCentral::setPrimaryAddress,
+                                                                                                                                                                              this,
+                                                                                                                                                                              std::placeholders::_1,
+                                                                                                                                                                              std::placeholders::_2)));
     _localRpcMethods.insert(std::pair<std::string, std::function<BaseLib::PVariable(const BaseLib::PRpcClientInfo &clientInfo, const BaseLib::PArray &parameters)>>("poll",
                                                                                                                                                                     std::bind(&MbusCentral::poll,
                                                                                                                                                                               this,
@@ -1006,6 +1016,45 @@ PVariable MbusCentral::stopSniffing(BaseLib::PRpcClientInfo clientInfo) {
 }
 
 //{{{ Family RPC methods
+BaseLib::PVariable MbusCentral::getPrimaryAddress(const PRpcClientInfo &clientInfo, const PArray &parameters) {
+  try {
+    if (parameters->empty()) return BaseLib::Variable::createError(-1, "Wrong parameter count.");
+    if (parameters->at(0)->type != BaseLib::VariableType::tInteger && parameters->at(0)->type != BaseLib::VariableType::tInteger64) return BaseLib::Variable::createError(-1, "Parameter 1 is not of type Integer.");
+
+    auto peerId = (uint64_t)parameters->at(0)->integerValue64;
+    auto peer = getPeer(peerId);
+    if (!peer) return BaseLib::Variable::createError(-1, "Unknown peer.");
+
+    return std::make_shared<BaseLib::Variable>(peer->getPrimaryAddress());
+  }
+  catch (const std::exception &ex) {
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+  }
+  return Variable::createError(-32500, "Unknown application error.");
+}
+
+BaseLib::PVariable MbusCentral::setPrimaryAddress(const PRpcClientInfo &clientInfo, const PArray &parameters) {
+  try {
+    if (parameters->size() != 2) return BaseLib::Variable::createError(-1, "Wrong parameter count.");
+    if (parameters->at(0)->type != BaseLib::VariableType::tInteger && parameters->at(0)->type != BaseLib::VariableType::tInteger64) return BaseLib::Variable::createError(-1, "Parameter 1 is not of type Integer.");
+    if (parameters->at(1)->type != BaseLib::VariableType::tInteger && parameters->at(1)->type != BaseLib::VariableType::tInteger64) return BaseLib::Variable::createError(-1, "Parameter 2 is not of type Integer.");
+
+    auto primary_address = parameters->at(1)->integerValue;
+    if (primary_address < 0 || primary_address >= 0xFC)  return BaseLib::Variable::createError(-1, "Invalid primary address.");
+
+    auto peerId = (uint64_t)parameters->at(0)->integerValue64;
+    auto peer = getPeer(peerId);
+    if (!peer) return BaseLib::Variable::createError(-1, "Unknown peer.");
+    peer->setPrimaryAddress(primary_address);
+
+    return std::make_shared<BaseLib::Variable>();
+  }
+  catch (const std::exception &ex) {
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+  }
+  return Variable::createError(-32500, "Unknown application error.");
+}
+
 BaseLib::PVariable MbusCentral::poll(const PRpcClientInfo &clientInfo, const PArray &parameters) {
   try {
     if (parameters->empty()) return BaseLib::Variable::createError(-1, "Wrong parameter count.");

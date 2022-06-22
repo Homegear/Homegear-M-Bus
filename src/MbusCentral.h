@@ -71,6 +71,8 @@ class MbusCentral : public BaseLib::Systems::ICentral {
   void pairDevice(const PMbusPacket& packet, std::vector<uint8_t> &key);
 
   //{{{ Family RPC methods
+  BaseLib::PVariable getPrimaryAddress(const BaseLib::PRpcClientInfo &clientInfo, const BaseLib::PArray &parameters);
+  BaseLib::PVariable setPrimaryAddress(const BaseLib::PRpcClientInfo &clientInfo, const BaseLib::PArray &parameters);
   BaseLib::PVariable poll(const BaseLib::PRpcClientInfo &clientInfo, const BaseLib::PArray &parameters);
   BaseLib::PVariable processPacket(const BaseLib::PRpcClientInfo &clientInfo, const BaseLib::PArray &parameters);
   //}}}
