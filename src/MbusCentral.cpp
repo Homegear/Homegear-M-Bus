@@ -1040,7 +1040,7 @@ BaseLib::PVariable MbusCentral::setPrimaryAddress(const PRpcClientInfo &clientIn
     if (parameters->at(1)->type != BaseLib::VariableType::tInteger && parameters->at(1)->type != BaseLib::VariableType::tInteger64) return BaseLib::Variable::createError(-1, "Parameter 2 is not of type Integer.");
 
     auto primary_address = parameters->at(1)->integerValue;
-    if (primary_address < 0 || primary_address >= 0xFC)  return BaseLib::Variable::createError(-1, "Invalid primary address.");
+    if (primary_address < 0 || primary_address >= 0xFC) return BaseLib::Variable::createError(-1, "Invalid primary address.");
 
     auto peerId = (uint64_t)parameters->at(0)->integerValue64;
     auto peer = getPeer(peerId);
@@ -1058,26 +1058,49 @@ BaseLib::PVariable MbusCentral::setPrimaryAddress(const PRpcClientInfo &clientIn
 BaseLib::PVariable MbusCentral::poll(const PRpcClientInfo &clientInfo, const PArray &parameters) {
   try {
     if (parameters->empty()) return BaseLib::Variable::createError(-1, "Wrong parameter count.");
-    if (parameters->at(0)->type != BaseLib::VariableType::tBoolean) return BaseLib::Variable::createError(-1, "Parameter 1 is not of type Boolean.");
+    if (parameters->at(0)->type != BaseLib::VariableType::tBoolean && parameters->at(0)->type != BaseLib::VariableType::tArray) return BaseLib::Variable::createError(-1, "Parameter 1 is not of type Boolean or Array.");
+    if (parameters->size() > 1 && parameters->at(1)->type != BaseLib::VariableType::tString) return BaseLib::Variable::createError(-1, "Parameter 2 is not of type Boolean or String.");
 
-    auto use_secondary_address = parameters->at(0)->booleanValue;
+    if (parameters->at(0)->type == BaseLib::VariableType::tBoolean) {
+      auto use_secondary_address = parameters->at(0)->booleanValue;
 
-    auto peers = getPeers();
-    for (auto &peer: peers) {
-      auto mbus_peer = std::dynamic_pointer_cast<MbusPeer>(peer);
-      auto interface = Gd::interfaces->getInterface(mbus_peer->getPhysicalInterfaceId());
-      if (!interface) {
-        if (Gd::interfaces->count() == 0 || Gd::interfaces->count() > 1) continue;
-        interface = Gd::interfaces->getDefaultInterface();
-        if (!interface) continue;
+      auto peers = getPeers();
+      for (auto &peer: peers) {
+        auto mbus_peer = std::dynamic_pointer_cast<MbusPeer>(peer);
+        auto interface = Gd::interfaces->getInterface(mbus_peer->getPhysicalInterfaceId());
+        if (!interface) {
+          if (Gd::interfaces->count() == 0 || Gd::interfaces->count() > 1) continue;
+          interface = Gd::interfaces->getDefaultInterface();
+          if (!interface) continue;
+        }
+
+        if (use_secondary_address) interface->Poll(std::vector<uint8_t>{}, std::vector<int32_t>{mbus_peer->getAddress()});
+        else {
+          auto primary_address = mbus_peer->getPrimaryAddress();
+          if (primary_address == -1) continue;
+          interface->Poll(std::vector<uint8_t>{(uint8_t)primary_address}, std::vector<int32_t>{});
+        }
       }
+    } else {
+      std::shared_ptr<IMbusInterface> interface;
+      if (parameters->size() > 1) interface = Gd::interfaces->getInterface(parameters->at(1)->stringValue);
+      else interface = Gd::interfaces->getDefaultInterface();
 
-      if (use_secondary_address) interface->Poll(std::vector<uint8_t>{}, std::vector<int32_t>{mbus_peer->getAddress()});
-      else {
-        auto primary_address = mbus_peer->getPrimaryAddress();
-        if (primary_address == -1) continue;
-        interface->Poll(std::vector<uint8_t>{(uint8_t)primary_address}, std::vector<int32_t>{});
+      std::vector<uint8_t> primary_addresses;
+      std::vector<int32_t> secondary_addresses;
+      primary_addresses.reserve(parameters->at(0)->arrayValue->size());
+      secondary_addresses.reserve(parameters->at(0)->arrayValue->size());
+      for (auto &element: *parameters->at(0)->arrayValue) {
+        if (element->type == BaseLib::VariableType::tString) {
+          auto address = BaseLib::Math::getNumber(element->stringValue);
+          if (address != 0) secondary_addresses.emplace_back(address);
+        }
+        else {
+          auto address = element->integerValue;
+          if (address > 0 && address < 0xFD) primary_addresses.emplace_back(address);
+        }
       }
+      interface->Poll(primary_addresses, secondary_addresses);
     }
 
     return std::make_shared<BaseLib::Variable>();
