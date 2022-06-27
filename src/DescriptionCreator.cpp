@@ -763,6 +763,7 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, uint8_
 
       for (uint32_t i = 2; i < dataRecord.vifs.size(); i += 2) {
         //Manufacturer specific VIFE after standard VIF
+        //Example packet: FF00874487052913010004027A2801000003FDC6FF00A4910304FDD9FF000000000002FF84FF00E80306A8FF00290E0000000002FF94FF50F4010682FF80FF009EA2320100000682FF80FF82FF000000000000000DFF550A4144355236353031323201FF560E01FF570302FF58690002FF59020001FF620002FF7300000DFF6504414C474F01FF66010000
         auto vif_iterator = vif_ff_info_.find(manufacturer);
         if (vif_iterator != vif_ff_info_.end()) {
           auto vif_iterator2 = vif_iterator->second.find(dataRecord.vifs.at(i) & 0x7F);
@@ -773,13 +774,13 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, uint8_
       }
     } else if (dataRecord.vifs.size() == 2 || (dataRecord.vifs.size() == 4 && dataRecord.vifs.at(2) == 0xFF) || (dataRecord.vifs.size() == 6 && dataRecord.vifs.at(2) == 0xFF && dataRecord.vifs.at(4) == 0xFF)) {
       if (dataRecord.vifs.front() == 0xFB) {
-        auto vifIterator = vif_fb_info_.find(dataRecord.vifs.at(1) & 0x7F);
-        if (vifIterator == vif_fb_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
-        else setVifInfo(parameter, vifIterator->second, dataRecord, medium);
+        auto vif_iterator = vif_fb_info_.find(dataRecord.vifs.at(1) & 0x7F);
+        if (vif_iterator == vif_fb_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
+        else setVifInfo(parameter, vif_iterator->second, dataRecord, medium);
       } else if (dataRecord.vifs.front() == 0xFD) {
-        auto vifIterator = vif_fd_info_.find(dataRecord.vifs.at(1) & 0x7F);
-        if (vifIterator == vif_fd_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
-        else setVifInfo(parameter, vifIterator->second, dataRecord, medium);
+        auto vif_iterator = vif_fd_info_.find(dataRecord.vifs.at(1) & 0x7F);
+        if (vif_iterator == vif_fd_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
+        else setVifInfo(parameter, vif_iterator->second, dataRecord, medium);
       } else if (dataRecord.vifs.front() == 0xFF) {
         //Manufacturer specific
         auto vif_iterator = vif_ff_info_.find(manufacturer);
@@ -790,11 +791,21 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, uint8_
           else parameter->id = "MANUFACTURER_SPECIFIC_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
         } else parameter->id = "MANUFACTURER_SPECIFIC_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
       } else {
-        parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
+        //Example packet: FF003944A51143782464A00A7AE10000000C07550300000C13006693120B3B0000000C2B000000000A5A39010A5E61018C1007000000000AA61800020000
+        auto vif_iterator = vif_info_.find(dataRecord.vifs.front() & 0x7F);
+        if (vif_iterator == vif_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.front(), 2);
+        else parameter->id = vif_iterator->second.name;
+
+        auto vif_iterator2 = vif_fd_info_.find(dataRecord.vifs.at(1) & 0x7F);
+        if (vif_iterator2 != vif_fd_info_.end()) {
+          setVifInfo(parameter, vif_iterator2->second, dataRecord, medium);
+        }
+
       }
 
       for (uint32_t i = 3; i < dataRecord.vifs.size(); i += 2) {
         //Manufacturer specific VIFE after standard VIFE
+        //Example packet: FF00874487052913010004027A2801000003FDC6FF00A4910304FDD9FF000000000002FF84FF00E80306A8FF00290E0000000002FF94FF50F4010682FF80FF009EA2320100000682FF80FF82FF000000000000000DFF550A4144355236353031323201FF560E01FF570302FF58690002FF59020001FF620002FF7300000DFF6504414C474F01FF66010000
         auto vif_iterator = vif_ff_info_.find(manufacturer);
         if (vif_iterator != vif_ff_info_.end()) {
           auto vif_iterator2 = vif_iterator->second.find(dataRecord.vifs.at(i) & 0x7F);
@@ -834,7 +845,7 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, uint8_
 
 void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_info, const MbusPacket::DataRecord &dataRecord, uint8_t medium) {
   try {
-    parameter->id = vif_info.name;
+    parameter->id = parameter->id.empty() ? vif_info.name : parameter->id + "_" + vif_info.name;
     parameter->unit = vif_info.unit;
     parameter->unit_code = vif_info.unit_code;
 
