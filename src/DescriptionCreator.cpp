@@ -24,7 +24,7 @@ DescriptionCreator::DescriptionCreator() {
   vif_info_[6] = VifInfo("ENERGY", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours);
   //10^1 kWh
   vif_info_[7] = VifInfo("ENERGY", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 10, VifScaleOperation::kMultiplication);
-  for(uint32_t i = 0; i <= 7; i++) {
+  for (uint32_t i = 0; i <= 7; i++) {
     vif_info_.at(i).medium_role_map.emplace(0x02, 900201);
     vif_info_.at(i).medium_role_map.emplace(0x04, 900401);
     vif_info_.at(i).medium_role_map.emplace(0x0C, 900401);
@@ -63,7 +63,7 @@ DescriptionCreator::DescriptionCreator() {
   vif_info_[22] = VifInfo("VOLUME", "m³", BaseLib::DeviceDescription::UnitCode::kCubicMeters);
   //10^1 m^3
   vif_info_[23] = VifInfo("VOLUME", "m³", BaseLib::DeviceDescription::UnitCode::kCubicMeters, 10, VifScaleOperation::kMultiplication);
-  for(uint32_t i = 16; i <= 23; i++) {
+  for (uint32_t i = 16; i <= 23; i++) {
     vif_info_.at(i).medium_role_map.emplace(0x03, 900301);
     vif_info_.at(i).medium_role_map.emplace(0x04, 900101);
     vif_info_.at(i).medium_role_map.emplace(0x0C, 900101);
@@ -152,7 +152,7 @@ DescriptionCreator::DescriptionCreator() {
   vif_info_[62] = VifInfo("VOLUME_FLOW", "m³/h", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerHour);
   //10^1 m^3/h
   vif_info_[63] = VifInfo("VOLUME_FLOW", "m³/h", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerHour, 10, VifScaleOperation::kMultiplication);
-  for(uint32_t i = 56; i <= 63; i++) {
+  for (uint32_t i = 56; i <= 63; i++) {
     vif_info_.at(i).medium_role_map.emplace(0x04, 900403);
     vif_info_.at(i).medium_role_map.emplace(0x0C, 900403);
   }
@@ -216,7 +216,7 @@ DescriptionCreator::DescriptionCreator() {
   vif_info_[90] = VifInfo("FLOW_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 10, VifScaleOperation::kDivision);
   //°C
   vif_info_[91] = VifInfo("FLOW_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius);
-  for(uint32_t i = 88; i <= 91; i++) {
+  for (uint32_t i = 88; i <= 91; i++) {
     vif_info_.at(i).medium_role_map.emplace(0x04, 900404);
     vif_info_.at(i).medium_role_map.emplace(0x0C, 900404);
   }
@@ -229,7 +229,7 @@ DescriptionCreator::DescriptionCreator() {
   vif_info_[94] = VifInfo("RETURN_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 10, VifScaleOperation::kDivision);
   //°C
   vif_info_[95] = VifInfo("RETURN_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius);
-  for(uint32_t i = 92; i <= 95; i++) {
+  for (uint32_t i = 92; i <= 95; i++) {
     vif_info_.at(i).medium_role_map.emplace(0x04, 900405);
     vif_info_.at(i).medium_role_map.emplace(0x0C, 900405);
   }
@@ -344,7 +344,7 @@ DescriptionCreator::DescriptionCreator() {
   vif_fb_info_[89] = VifInfo("FLOW_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 100, VifScaleOperation::kDivision);
   vif_fb_info_[90] = VifInfo("FLOW_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 10, VifScaleOperation::kDivision);
   vif_fb_info_[91] = VifInfo("FLOW_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit);
-  for(uint32_t i = 88; i <= 91; i++) {
+  for (uint32_t i = 88; i <= 91; i++) {
     vif_fb_info_.at(i).medium_role_map.emplace(0x04, 900404);
     vif_fb_info_.at(i).medium_role_map.emplace(0x0C, 900404);
   }
@@ -353,7 +353,7 @@ DescriptionCreator::DescriptionCreator() {
   vif_fb_info_[93] = VifInfo("RETURN_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 100, VifScaleOperation::kDivision);
   vif_fb_info_[94] = VifInfo("RETURN_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 10, VifScaleOperation::kDivision);
   vif_fb_info_[95] = VifInfo("RETURN_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit);
-  for(uint32_t i = 92; i <= 95; i++) {
+  for (uint32_t i = 92; i <= 95; i++) {
     vif_fb_info_.at(i).medium_role_map.emplace(0x04, 900405);
     vif_fb_info_.at(i).medium_role_map.emplace(0x0C, 900405);
   }
@@ -515,6 +515,26 @@ DescriptionCreator::DescriptionCreator() {
   vif_fd_info_[111] = VifInfo("BATTERY_OPERATING_TIME", "y", BaseLib::DeviceDescription::UnitCode::kYears);
 
   vif_fd_info_[112] = VifInfo("BATTERY_CHANGE_DATETIME", "s", BaseLib::DeviceDescription::UnitCode::kTimestampSeconds);
+
+  vif_ff_info_["ALG"][0x00] = VifInfo("3_PHASE", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_ff_info_["ALG"][0x50] = VifInfo("FREQUENCY", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_ff_info_["ALG"][0x55] = VifInfo("SERIAL_NUMBER", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_ff_info_["ALG"][0x56] = VifInfo("MODEL", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_ff_info_["ALG"][0x57] = VifInfo("TYPE", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_ff_info_["ALG"][0x58] = VifInfo("FIRMWARE_RELEASE", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_ff_info_["ALG"][0x59] = VifInfo("HARDWARE_RELEASE", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_ff_info_["ALG"][0x60] = VifInfo("WIRING_MODE", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_ff_info_["ALG"][0x61] = VifInfo("PRIMARY_OR_SECONDARY_VALUE", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_ff_info_["ALG"][0x62] = VifInfo("ERROR_CODE", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_ff_info_["ALG"][0x63] = VifInfo("OUT_OF_RANGE", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_ff_info_["ALG"][0x64] = VifInfo("FSA_VALUE", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_ff_info_["ALG"][0x65] = VifInfo("MANUFACTURER", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_ff_info_["ALG"][0x73] = VifInfo("PARTIAL_COUNTER_STATUS", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_ff_info_["ALG"][0x82] = VifInfo("PARTIAL", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_ff_info_["ALG"][0x84] = VifInfo("POWER_FACTOR", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+  vif_ff_info_["ALG"][0x94] = VifInfo("UNIT_HERTZ_TIMES_10^-3", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+
+  vif_ff_info_["KAM"][0x20] = VifInfo("INFO_CODE", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
 }
 
 DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPacket &packet) {
@@ -735,27 +755,53 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, uint8_
 
     if (!dataRecord.vifCustomName.empty()) {
       parameter->id = dataRecord.vifCustomName;
-    } else if (dataRecord.vifs.size() == 1) {
-      auto vifIterator = vif_info_.find(dataRecord.vifs.front());
+    } else if (dataRecord.vifs.size() == 1 || (dataRecord.vifs.size() == 3 && dataRecord.vifs.at(1) == 0xFF) || (dataRecord.vifs.size() == 5 && dataRecord.vifs.at(1) == 0xFF && dataRecord.vifs.at(3) == 0xFF)
+        || (dataRecord.vifs.size() == 7 && dataRecord.vifs.at(1) == 0xFF && dataRecord.vifs.at(3) == 0xFF && dataRecord.vifs.at(5) == 0xFF)) {
+      auto vifIterator = vif_info_.find(dataRecord.vifs.front() & 0x7F);
       if (vifIterator == vif_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.front(), 2);
       else setVifInfo(parameter, vifIterator->second, dataRecord, medium);
-    } else if (dataRecord.vifs.size() == 2) {
+
+      for (uint32_t i = 2; i < dataRecord.vifs.size(); i += 2) {
+        //Manufacturer specific VIFE after standard VIF
+        auto vif_iterator = vif_ff_info_.find(manufacturer);
+        if (vif_iterator != vif_ff_info_.end()) {
+          auto vif_iterator2 = vif_iterator->second.find(dataRecord.vifs.at(i) & 0x7F);
+          if (vif_iterator2 == vif_iterator->second.end()) vif_iterator2 = vif_iterator->second.find(dataRecord.vifs.at(i));
+          if (vif_iterator2 != vif_iterator->second.end()) parameter->id += "_" + vif_iterator2->second.name;
+          else parameter->id += "_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.at(i) & 0x7F);
+        } else parameter->id += "_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.at(i) & 0x7F);
+      }
+    } else if (dataRecord.vifs.size() == 2 || (dataRecord.vifs.size() == 4 && dataRecord.vifs.at(2) == 0xFF) || (dataRecord.vifs.size() == 6 && dataRecord.vifs.at(2) == 0xFF && dataRecord.vifs.at(4) == 0xFF)) {
       if (dataRecord.vifs.front() == 0xFB) {
-        auto vifIterator = vif_fb_info_.find(dataRecord.vifs.at(1));
+        auto vifIterator = vif_fb_info_.find(dataRecord.vifs.at(1) & 0x7F);
         if (vifIterator == vif_fb_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
         else setVifInfo(parameter, vifIterator->second, dataRecord, medium);
       } else if (dataRecord.vifs.front() == 0xFD) {
-        auto vifIterator = vif_fd_info_.find(dataRecord.vifs.at(1));
+        auto vifIterator = vif_fd_info_.find(dataRecord.vifs.at(1) & 0x7F);
         if (vifIterator == vif_fd_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
         else setVifInfo(parameter, vifIterator->second, dataRecord, medium);
       } else if (dataRecord.vifs.front() == 0xFF) {
         //Manufacturer specific
-        if (manufacturer == "KAM") {
-          if (dataRecord.vifs.at(1) == 0x20) parameter->id = "INFOCODE";
+        auto vif_iterator = vif_ff_info_.find(manufacturer);
+        if (vif_iterator != vif_ff_info_.end()) {
+          auto vif_iterator2 = vif_iterator->second.find(dataRecord.vifs.at(1) & 0x7F);
+          if (vif_iterator2 == vif_iterator->second.end()) vif_iterator2 = vif_iterator->second.find(dataRecord.vifs.at(1));
+          if (vif_iterator2 != vif_iterator->second.end()) setVifInfo(parameter, vif_iterator2->second, dataRecord, medium);
           else parameter->id = "MANUFACTURER_SPECIFIC_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
         } else parameter->id = "MANUFACTURER_SPECIFIC_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
       } else {
         parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
+      }
+
+      for (uint32_t i = 3; i < dataRecord.vifs.size(); i += 2) {
+        //Manufacturer specific VIFE after standard VIFE
+        auto vif_iterator = vif_ff_info_.find(manufacturer);
+        if (vif_iterator != vif_ff_info_.end()) {
+          auto vif_iterator2 = vif_iterator->second.find(dataRecord.vifs.at(i) & 0x7F);
+          if (vif_iterator2 == vif_iterator->second.end()) vif_iterator2 = vif_iterator->second.find(dataRecord.vifs.at(i));
+          if (vif_iterator2 != vif_iterator->second.end()) parameter->id += "_" + vif_iterator2->second.name;
+          else parameter->id += "_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.at(i) & 0x7F);
+        } else parameter->id += "_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.at(i) & 0x7F);
       }
     } else if (dataRecord.difs.front() == 0xF) { //Manufacturer specific
       parameter->id = "UNKNOWN_MANUFACTURER_SPECIFIC";
