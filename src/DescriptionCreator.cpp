@@ -856,7 +856,7 @@ void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_in
       parameter->casts.emplace_back(std::move(cast2));
     }
 
-    if (dataRecord.difFunction == MbusPacket::DifFunction::instantaneousValue && dataRecord.subunit == 0 && dataRecord.storageNumber == 0 && dataRecord.tariff == 0) {
+    if (dataRecord.difFunction == MbusPacket::DifFunction::instantaneousValue && dataRecord.subunit == -1 && dataRecord.storageNumber == 0 && dataRecord.tariff == -1) {
       auto role_iterator = vif_info.medium_role_map.find(medium);
       if (role_iterator != vif_info.medium_role_map.end()) {
         parameter->roles.emplace(role_iterator->second, Role(role_iterator->second, RoleDirection::input, false, false, {}));
