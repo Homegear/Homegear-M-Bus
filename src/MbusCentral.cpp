@@ -85,6 +85,20 @@ void MbusCentral::worker() {
   try {
     std::chrono::milliseconds sleepingTime(1000);
     uint64_t lastPeer = 0;
+    PollingInterval polling_interval = PollingInterval::kOff;
+
+    {
+      auto setting = Gd::family->getFamilySetting("pollinginterval");
+      if (setting) {
+        if (setting->stringValue == "quarter-hourly") polling_interval = PollingInterval::kQuarterHourly;
+        else if (setting->stringValue == "hourly") polling_interval = PollingInterval::kHourly;
+        else if (setting->stringValue == "daily") polling_interval = PollingInterval::kDaily;
+        else if (setting->stringValue == "weekly") polling_interval = PollingInterval::kWeekly;
+        else if (setting->stringValue == "monthly") polling_interval = PollingInterval::kMonthly;
+        else if (setting->stringValue == "off" || setting->stringValue.empty()) polling_interval = PollingInterval::kOff;
+        else Gd::out.printError("Error: Invalid value for setting \"pollingInterval\": " + setting->stringValue);
+      }
+    }
 
     while (!_stopWorkerThread && !Gd::bl->shuttingDown) {
       try {
@@ -97,7 +111,7 @@ void MbusCentral::worker() {
           std::lock_guard<std::mutex> peersGuard(_peersMutex);
           if (!_peersById.empty()) {
             if (!_peersById.empty()) {
-              std::map<uint64_t, std::shared_ptr<BaseLib::Systems::Peer>>::iterator nextPeer = _peersById.find(lastPeer);
+              auto nextPeer = _peersById.find(lastPeer);
               if (nextPeer != _peersById.end()) {
                 nextPeer++;
                 if (nextPeer == _peersById.end()) nextPeer = _peersById.begin();
@@ -110,6 +124,43 @@ void MbusCentral::worker() {
 
         if (peer && !peer->deleting) peer->worker();
         Gd::interfaces->worker();
+
+        //{{{ Poll M-Bus devices
+        if (polling_interval != PollingInterval::kOff) {
+          bool poll_peers = false;
+          auto time = BaseLib::HelperFunctions::getLocalTime();
+          int64_t modulo = 0;
+          if (polling_interval == PollingInterval::kQuarterHourly) modulo = 900000;
+          else if (polling_interval == PollingInterval::kHourly) modulo = 3600000;
+          else if (polling_interval == PollingInterval::kDaily) modulo = 86400000;
+
+          if (modulo != 0) {
+            int64_t last_period_start = last_poll_ - (last_poll_ % modulo);
+            int64_t current_period_start = time - (time % modulo);
+            Gd::out.printInfo(std::to_string(last_period_start) + " " + std::to_string(current_period_start));
+
+            poll_peers = last_period_start < current_period_start;
+          } else {
+            std::time_t t(last_poll_.load() / 1000);
+            std::tm last_local_time{};
+            localtime_r(&t, &last_local_time);
+
+            t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+            std::tm current_local_time{};
+            localtime_r(&t, &current_local_time);
+
+            if (polling_interval == PollingInterval::kWeekly && ((current_local_time.tm_wday == 1 && time - last_poll_ >= 86400000) || time - last_poll_ >= 604800000)) {
+              poll_peers = true;
+            } else if (polling_interval == PollingInterval::kMonthly && ((current_local_time.tm_mday == 1 && time - last_poll_ >= 86400000) || time - last_poll_ >= 2678400000)) {
+              poll_peers = true;
+            }
+          }
+
+          if (poll_peers) {
+            PollPeers();
+          }
+        }
+        //}}}
       }
       catch (const std::exception &ex) {
         Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
@@ -124,10 +175,10 @@ void MbusCentral::worker() {
 void MbusCentral::loadPeers() {
   try {
     std::shared_ptr<BaseLib::Database::DataTable> rows = _bl->db->getPeers(_deviceId);
-    for (BaseLib::Database::DataTable::iterator row = rows->begin(); row != rows->end(); ++row) {
-      int32_t peerID = row->second.at(0)->intValue;
+    for (auto &row: *rows) {
+      uint64_t peerID = (uint64_t)row.second.at(0)->intValue;
       Gd::out.printMessage("Loading M-Bus peer " + std::to_string(peerID));
-      std::shared_ptr<MbusPeer> peer(new MbusPeer(peerID, row->second.at(2)->intValue, row->second.at(3)->textValue, _deviceId, this));
+      std::shared_ptr<MbusPeer> peer(new MbusPeer(peerID, row.second.at(2)->intValue, row.second.at(3)->textValue, _deviceId, this));
       if (!peer->load(this)) continue;
       if (!peer->getRpcDevice()) continue;
       std::lock_guard<std::mutex> peersGuard(_peersMutex);
@@ -155,6 +206,34 @@ void MbusCentral::loadPeers() {
   }
 }
 
+void MbusCentral::saveVariables() {
+  try {
+    if (_deviceId == 0) return;
+    saveVariable(2, last_poll_.load()); //2
+  }
+  catch (const std::exception &ex) {
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+  }
+}
+
+void MbusCentral::loadVariables() {
+  try {
+    std::shared_ptr<BaseLib::Database::DataTable> rows = _bl->db->getDeviceVariables(_deviceId);
+    for (auto &row: *rows) {
+      _variableDatabaseIds[row.second.at(2)->intValue] = row.second.at(0)->intValue;
+      switch (row.second.at(2)->intValue) {
+        case 2: {
+          last_poll_ = row.second.at(3)->intValue;
+          break;
+        }
+      }
+    }
+  }
+  catch (const std::exception &ex) {
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+  }
+}
+
 std::shared_ptr<MbusPeer> MbusCentral::getPeer(uint64_t id) {
   try {
     std::lock_guard<std::mutex> peersGuard(_peersMutex);
@@ -166,7 +245,7 @@ std::shared_ptr<MbusPeer> MbusCentral::getPeer(uint64_t id) {
   catch (const std::exception &ex) {
     Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
-  return std::shared_ptr<MbusPeer>();
+  return {};
 }
 
 std::shared_ptr<MbusPeer> MbusCentral::getPeer(int32_t address) {
@@ -181,7 +260,7 @@ std::shared_ptr<MbusPeer> MbusCentral::getPeer(int32_t address) {
   catch (const std::exception &ex) {
     Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
-  return std::shared_ptr<MbusPeer>();
+  return {};
 }
 
 std::shared_ptr<MbusPeer> MbusCentral::getPeer(std::string serialNumber) {
@@ -195,7 +274,7 @@ std::shared_ptr<MbusPeer> MbusCentral::getPeer(std::string serialNumber) {
   catch (const std::exception &ex) {
     Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
-  return std::shared_ptr<MbusPeer>();
+  return {};
 }
 
 bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLib::Systems::Packet> packet) {
@@ -445,6 +524,37 @@ void MbusCentral::deletePeer(uint64_t id) {
   }
 }
 
+void MbusCentral::PollPeers() {
+  try {
+    Gd::out.printInfo("Info: Polling wired M-Bus peers...");
+    auto peers = getPeers();
+    for (auto &peer: peers) {
+      auto mbus_peer = std::dynamic_pointer_cast<MbusPeer>(peer);
+      if (mbus_peer->wireless()) continue;
+      auto interface = Gd::interfaces->getInterface(mbus_peer->getPhysicalInterfaceId());
+      if (!interface) {
+        if (Gd::interfaces->count() == 0 || Gd::interfaces->count() > 1) continue;
+        interface = Gd::interfaces->getDefaultInterface();
+        if (!interface) continue;
+      }
+
+      if (mbus_peer->getPrimaryAddress() > -1 && mbus_peer->getPrimaryAddress() < 253) {
+        Gd::out.printInfo("Info: Polling wired M-Bus peer " + std::to_string(mbus_peer->getID()) + " using primary address " + std::to_string(mbus_peer->getPrimaryAddress()) + "...");
+        interface->Poll(std::vector<uint8_t>{(uint8_t)mbus_peer->getPrimaryAddress()}, std::vector<int32_t>{});
+      } else {
+        Gd::out.printInfo("Info: Polling wired M-Bus peer " + std::to_string(mbus_peer->getID()) + " using secondary address " + BaseLib::HelperFunctions::getHexString(mbus_peer->getAddress(), 8) + "...");
+        interface->Poll(std::vector<uint8_t>{}, std::vector<int32_t>{mbus_peer->getAddress()});
+      }
+    }
+
+    last_poll_ = BaseLib::HelperFunctions::getLocalTime();
+    saveVariable(2, last_poll_.load());
+  }
+  catch (const std::exception &ex) {
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+  }
+}
+
 std::string MbusCentral::handleCliCommand(std::string command) {
   try {
     std::ostringstream stringStream;
@@ -668,51 +778,52 @@ std::string MbusCentral::handleCliCommand(std::string command) {
       return stringStream.str();
     } else if (BaseLib::HelperFunctions::checkCliCommand(command, "packetunittests", "", "", 0, arguments, showHelp)) {
       //C1 long
-      std::vector<uint8_t> data = _bl->hf.getUBinary(
+      std::vector<uint8_t> data = BaseLib::HelperFunctions::getUBinary(
           "FF039C46C5142527706403077225277064C5140007900B00002F2F426C000044130000000001FD171084011300000000C401130000000084021300000000C402130000000084031300000000C403130000000084041300000000C404130000000084051300000000C405130000000084061300000000C406130000000084071300000000C407130000000084081300000000046D1B2F332C04132900000012FF");
       MbusPacket packet(data);
       stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
       stringStream << packet.getInfoString() << std::endl << std::endl;
 
       //C1 long compact format
-      data = _bl->hf.getUBinary("FF035446C5142527706403076B25277064C5140007970B00002F2F3A2D05426C441301FD17840113C40113840213C40213840313C40313840413C40413840513C40513840613C40613840713C40713840813046D04131229");
+      data = BaseLib::HelperFunctions::getUBinary("FF035446C5142527706403076B25277064C5140007970B00002F2F3A2D05426C441301FD17840113C40113840213C40213840313C40313840413C40413840513C40513840613C40613840713C40713840813046D04131229");
       packet = MbusPacket(data);
       stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
       stringStream << packet.getInfoString() << std::endl << std::endl;
 
       //C1 long compact data
       data =
-          _bl->hf.getUBinary("FF036846C5142527706403077325277064C5140007980B00002F2F2D052549000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001D2F332C290000001273");
+          BaseLib::HelperFunctions::getUBinary(
+              "FF036846C5142527706403077325277064C5140007980B00002F2F2D052549000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001D2F332C290000001273");
       packet = MbusPacket(data);
       stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
       stringStream << packet.getInfoString() << std::endl << std::endl;
 
       //C1 short
-      data = _bl->hf.getUBinary("FF032946C5142527706403077225277064C5140007A22B00202F2F046D202F332C04132900000001FD171012E5");
+      data = BaseLib::HelperFunctions::getUBinary("FF032946C5142527706403077225277064C5140007A22B00202F2F046D202F332C04132900000001FD171012E5");
       packet = MbusPacket(data);
       stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
       stringStream << packet.getInfoString() << std::endl << std::endl;
 
       //C1 short compact format
-      data = _bl->hf.getUBinary("FF032346C5142527706403076B25277064C5140007A92B00202F2F0911F6046D041301FD17123A");
+      data = BaseLib::HelperFunctions::getUBinary("FF032346C5142527706403076B25277064C5140007A92B00202F2F0911F6046D041301FD17123A");
       packet = MbusPacket(data);
       stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
       stringStream << packet.getInfoString() << std::endl << std::endl;
 
       //C1 short compact data
-      data = _bl->hf.getUBinary("FF032646C5142527706403077325277064C5140007AA2B00202F2F11F605EC232F332C2900000010127B");
+      data = BaseLib::HelperFunctions::getUBinary("FF032646C5142527706403077325277064C5140007AA2B00202F2F11F605EC232F332C2900000010127B");
       packet = MbusPacket(data);
       stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
       stringStream << packet.getInfoString() << std::endl << std::endl;
 
       //C1 short with VIF 7C (not sure, if the packet really looks this way)
-      data = _bl->hf.getUBinary("FF033746C5142527706403077225277064C5140007A22B00202F2F046D202F332C04132900000001FD17100D7C0C48656C6C6F20576F726C642112E5");
+      data = BaseLib::HelperFunctions::getUBinary("FF033746C5142527706403077225277064C5140007A22B00202F2F046D202F332C04132900000001FD17100D7C0C48656C6C6F20576F726C642112E5");
       packet = MbusPacket(data);
       stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
       stringStream << packet.getInfoString() << std::endl << std::endl;
 
       //C1 short format with security mode 7
-      data = _bl->hf.getUBinary(
+      data = BaseLib::HelperFunctions::getUBinary(
           "FF037246C5143803607403078C0013900F002C250D0000004B5184889B76884D6B38036074C51400071300400710E1E27070E1D6452826C8DD482AA0419872968AB3FB1CD18A91F80CE4F338E78BE8ED2DD0FE29EC20B8479005E378B875D596F85804689FA938582548407F4BB303FD0C02FD0B1250");
       packet = MbusPacket(data);
       stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
@@ -1067,6 +1178,7 @@ BaseLib::PVariable MbusCentral::poll(const PRpcClientInfo &clientInfo, const PAr
       auto peers = getPeers();
       for (auto &peer: peers) {
         auto mbus_peer = std::dynamic_pointer_cast<MbusPeer>(peer);
+        if (mbus_peer->wireless()) continue;
         auto interface = Gd::interfaces->getInterface(mbus_peer->getPhysicalInterfaceId());
         if (!interface) {
           if (Gd::interfaces->count() == 0 || Gd::interfaces->count() > 1) continue;
@@ -1094,8 +1206,7 @@ BaseLib::PVariable MbusCentral::poll(const PRpcClientInfo &clientInfo, const PAr
         if (element->type == BaseLib::VariableType::tString) {
           auto address = BaseLib::Math::getNumber(element->stringValue);
           if (address != 0) secondary_addresses.emplace_back(address);
-        }
-        else {
+        } else {
           auto address = element->integerValue;
           if (address > 0 && address < 0xFD) primary_addresses.emplace_back(address);
         }

@@ -20,20 +20,9 @@ class Tcp : public IMbusInterface {
   bool isOpen() override { return !_stopped && _initComplete; }
   void Poll(const std::vector<uint8_t>& primary_addresses, const std::vector<int32_t>& secondary_addresses) override;
  protected:
-  enum class PollingInterval {
-    off,
-    hourly,
-    daily,
-    weekly,
-    monthly
-  };
-
   std::atomic_bool _initComplete{false};
   std::thread listen_thread_;
   std::shared_ptr<BaseLib::TcpSocket> socket_;
-  PollingInterval polling_interval_ = PollingInterval::daily;
-  int64_t last_polling_ = 0;
-  bool polled_ = false;
 
   void RawSend(std::vector<uint8_t> &packet) override;
   void listen();

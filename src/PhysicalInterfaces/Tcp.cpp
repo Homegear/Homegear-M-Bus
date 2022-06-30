@@ -33,16 +33,6 @@ void Tcp::startListening() {
       return;
     }
 
-    std::string settingName = "pollinginterval";
-    auto setting = Gd::family->getFamilySetting(settingName);
-    if (setting) {
-      if (setting->stringValue == "hourly") polling_interval_ = PollingInterval::hourly;
-      else if (setting->stringValue == "daily") polling_interval_ = PollingInterval::daily;
-      else if (setting->stringValue == "weekly") polling_interval_ = PollingInterval::weekly;
-      else if (setting->stringValue == "monthly") polling_interval_ = PollingInterval::monthly;
-      else polling_interval_ = PollingInterval::off;
-    }
-
     socket_ = std::make_shared<BaseLib::TcpSocket>(Gd::bl, _settings->host, _settings->port, !_settings->caFile.empty(), _settings->caFile, true);
     socket_->setConnectionRetries(1);
     socket_->setReadTimeout(100000);

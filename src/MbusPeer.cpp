@@ -25,7 +25,7 @@ MbusPeer::MbusPeer(uint32_t parentID, IPeerEventSink *eventHandler) : BaseLib::S
   init();
 }
 
-MbusPeer::MbusPeer(int32_t id, int32_t address, std::string serialNumber, uint32_t parentID, IPeerEventSink *eventHandler) : BaseLib::Systems::Peer(Gd::bl, id, address, serialNumber, parentID, eventHandler) {
+MbusPeer::MbusPeer(uint64_t id, int32_t address, std::string serialNumber, uint32_t parentID, IPeerEventSink *eventHandler) : BaseLib::Systems::Peer(Gd::bl, id, address, serialNumber, parentID, eventHandler) {
   init();
 }
 
