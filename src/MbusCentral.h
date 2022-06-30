@@ -83,7 +83,7 @@ class MbusCentral : public BaseLib::Systems::ICentral {
   void pairingModeTimer(int32_t duration, bool debugOutput = true);
   void pairDevice(const PMbusPacket& packet, std::vector<uint8_t> &key);
 
-  void PollPeers();
+  void PollPeers(bool use_secondary_address);
 
   //{{{ Family RPC methods
   BaseLib::PVariable getPrimaryAddress(const BaseLib::PRpcClientInfo &clientInfo, const BaseLib::PArray &parameters);

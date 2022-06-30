@@ -86,6 +86,7 @@ void MbusCentral::worker() {
     std::chrono::milliseconds sleepingTime(1000);
     uint64_t lastPeer = 0;
     PollingInterval polling_interval = PollingInterval::kOff;
+    bool use_secondary_address = true;
 
     {
       auto setting = Gd::family->getFamilySetting("pollinginterval");
@@ -97,6 +98,12 @@ void MbusCentral::worker() {
         else if (setting->stringValue == "monthly") polling_interval = PollingInterval::kMonthly;
         else if (setting->stringValue == "off" || setting->stringValue.empty()) polling_interval = PollingInterval::kOff;
         else Gd::out.printError("Error: Invalid value for setting \"pollingInterval\": " + setting->stringValue);
+      }
+
+      setting = Gd::family->getFamilySetting("pollingaddress");
+      if (setting) {
+        if (setting->stringValue == "primary") use_secondary_address = false;
+        else if (setting->stringValue != "secondary") Gd::out.printError("Error: Invalid value for setting \"pollingAddress\": " + setting->stringValue);
       }
     }
 
@@ -137,7 +144,6 @@ void MbusCentral::worker() {
           if (modulo != 0) {
             int64_t last_period_start = last_poll_ - (last_poll_ % modulo);
             int64_t current_period_start = time - (time % modulo);
-            Gd::out.printInfo(std::to_string(last_period_start) + " " + std::to_string(current_period_start));
 
             poll_peers = last_period_start < current_period_start;
           } else {
@@ -157,7 +163,7 @@ void MbusCentral::worker() {
           }
 
           if (poll_peers) {
-            PollPeers();
+            PollPeers(use_secondary_address);
           }
         }
         //}}}
@@ -524,7 +530,7 @@ void MbusCentral::deletePeer(uint64_t id) {
   }
 }
 
-void MbusCentral::PollPeers() {
+void MbusCentral::PollPeers(bool use_secondary_address) {
   try {
     Gd::out.printInfo("Info: Polling wired M-Bus peers...");
     auto peers = getPeers();
@@ -538,7 +544,7 @@ void MbusCentral::PollPeers() {
         if (!interface) continue;
       }
 
-      if (mbus_peer->getPrimaryAddress() > -1 && mbus_peer->getPrimaryAddress() < 253) {
+      if (!use_secondary_address && mbus_peer->getPrimaryAddress() > -1 && mbus_peer->getPrimaryAddress() < 253) {
         Gd::out.printInfo("Info: Polling wired M-Bus peer " + std::to_string(mbus_peer->getID()) + " using primary address " + std::to_string(mbus_peer->getPrimaryAddress()) + "...");
         interface->Poll(std::vector<uint8_t>{(uint8_t)mbus_peer->getPrimaryAddress()}, std::vector<int32_t>{});
       } else {
@@ -1204,7 +1210,7 @@ BaseLib::PVariable MbusCentral::poll(const PRpcClientInfo &clientInfo, const PAr
       secondary_addresses.reserve(parameters->at(0)->arrayValue->size());
       for (auto &element: *parameters->at(0)->arrayValue) {
         if (element->type == BaseLib::VariableType::tString) {
-          auto address = BaseLib::Math::getNumber(element->stringValue);
+          auto address = BaseLib::Math::getNumber(element->stringValue, true);
           if (address != 0) secondary_addresses.emplace_back(address);
         } else {
           auto address = element->integerValue;
