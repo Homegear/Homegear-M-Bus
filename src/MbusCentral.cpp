@@ -352,7 +352,10 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
       if (_bl->debugLevel >= 5) _bl->out.printDebug("Extended packet info:\n" + myPacket->getInfoString());
     }
 
-    if (peer->getControlInformation() != (int32_t)myPacket->getControlInformation() || peer->getDataRecordCount() != myPacket->dataRecordCount() || (myPacket->isFormatTelegram() && peer->getFormatCrc() != myPacket->getFormatCrc())) {
+    if (peer->getControlInformation() != (int32_t)myPacket->getControlInformation() ||
+        peer->getDataRecordCount() != myPacket->dataRecordCount() ||
+        (myPacket->isFormatTelegram() && peer->getFormatCrc() != myPacket->getFormatCrc()) ||
+        peer->getRpcTypeString() == BaseLib::HelperFunctions::getHexString(myPacket->secondaryAddress(), 8)) { //Convert old IDs into new ones
       if (myPacket->isEncrypted() || senderId == "ExternalInterface" || !myPacket->wireless()) {
         if ((myPacket->isFormatTelegram() || (myPacket->isDataTelegram() && !myPacket->isCompactDataTelegram()))) {
           _bl->out.printInfo(
