@@ -392,6 +392,7 @@ void MbusCentral::pairDevice(const PMbusPacket &packet, std::vector<uint8_t> &ke
 
     bool newPeer = true;
     auto peer = getPeer(packet->secondaryAddress());
+
     std::unique_lock<std::mutex> lockGuard(_peersMutex);
     if (peer) {
       if (peer->getEncryptionMode() != packet->getEncryptionMode()) {
@@ -411,6 +412,8 @@ void MbusCentral::pairDevice(const PMbusPacket &packet, std::vector<uint8_t> &ke
         i++;
       }
       if (i == 600) Gd::out.printError("Error: Peer deletion took too long.");
+
+      BaseLib::Io::deleteFile(peer->getRpcDevice()->getPath());
     } else lockGuard.unlock();
 
     auto peerInfo = _descriptionCreator.CreateDescription(packet);
@@ -876,7 +879,7 @@ std::string MbusCentral::handleCliCommand(std::string command) {
   return "Error executing command. See log file for more details.\n";
 }
 
-std::shared_ptr<MbusPeer> MbusCentral::createPeer(uint32_t deviceType, int32_t address, std::string serialNumber, bool save) {
+std::shared_ptr<MbusPeer> MbusCentral::createPeer(uint64_t deviceType, int32_t address, std::string serialNumber, bool save) {
   try {
     std::shared_ptr<MbusPeer> peer(new MbusPeer(_deviceId, this));
     peer->setDeviceType(deviceType);

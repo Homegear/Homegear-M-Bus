@@ -118,6 +118,7 @@ class MbusPacket : public BaseLib::Systems::Packet {
   int32_t getRssi() { return _rssi; }
   uint8_t getControl() { return _control; }
   std::string getManufacturer() { return _manufacturer; }
+  uint32_t getManufacturerCode() { return _manufacturerCode; }
   uint8_t getVersion() { return _version; }
   uint8_t getMedium() { return _medium; }
   uint8_t getControlInformation() { return _controlInformation; }
@@ -161,6 +162,7 @@ class MbusPacket : public BaseLib::Systems::Packet {
   int32_t _rssi = 0;
   uint8_t _command = 0;
   uint8_t _control = 0;
+  uint32_t _manufacturerCode = 0;
   std::string _manufacturer;
   uint8_t _version = 0;
   uint8_t _medium = 0;

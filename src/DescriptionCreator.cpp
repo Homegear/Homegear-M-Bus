@@ -541,15 +541,17 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPa
   try {
     createDirectories();
 
-    std::string id = BaseLib::HelperFunctions::getHexString(packet->secondaryAddress(), 8);
+    std::string id = packet->getManufacturer() + "-" + BaseLib::HelperFunctions::getHexString(packet->secondaryAddress(), 8) + "-" + std::to_string(packet->getVersion()) + "-" + std::to_string(packet->getMedium());
 
     std::shared_ptr<HomegearDevice> device = std::make_shared<HomegearDevice>(Gd::bl);
     device->version = 1;
     device->timeout = 86400;
     PSupportedDevice supportedDevice = std::make_shared<SupportedDevice>(Gd::bl);
     supportedDevice->id = id;
+    supportedDevice->hardwareVersion = packet->getVersion();
+    supportedDevice->manufacturer = packet->getManufacturer();
     supportedDevice->description = packet->getMediumString(packet->getMedium());
-    supportedDevice->typeNumber = (uint32_t)packet->secondaryAddress();
+    supportedDevice->typeNumber = ((uint64_t)packet->getManufacturerCode() << 48u) | ((uint64_t)packet->getVersion() << 40u) | ((uint64_t)packet->getMedium() << 32u) | (uint32_t)packet->secondaryAddress() ;
     device->supportedDevices.push_back(supportedDevice);
 
     createXmlMaintenanceChannel(device);
@@ -586,8 +588,8 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPa
 
     PeerInfo peerInfo;
     peerInfo.secondary_address = packet->secondaryAddress();
-    peerInfo.serialNumber = "MBUS" + id;
-    peerInfo.type = packet->secondaryAddress();
+    peerInfo.serialNumber = "MBUS" + BaseLib::HelperFunctions::getHexString(packet->secondaryAddress(), 8);
+    peerInfo.type = supportedDevice->typeNumber;
     return peerInfo;
   }
   catch (const std::exception &ex) {
@@ -631,8 +633,8 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateEmptyDescription(int32_t 
 
     PeerInfo peerInfo;
     peerInfo.secondary_address = secondary_address;
-    peerInfo.serialNumber = "MBUS" + id;
-    peerInfo.type = secondary_address;
+    peerInfo.serialNumber = "MBUS" + BaseLib::HelperFunctions::getHexString(secondary_address, 8);
+    peerInfo.type = supportedDevice->typeNumber;
     return peerInfo;
   }
   catch (const std::exception &ex) {

@@ -77,7 +77,7 @@ class MbusCentral : public BaseLib::Systems::ICentral {
   void savePeers(bool full) override;
   void loadVariables() override;
   void saveVariables() override;
-  std::shared_ptr<MbusPeer> createPeer(uint32_t deviceType, int32_t address, std::string serialNumber, bool save = true);
+  std::shared_ptr<MbusPeer> createPeer(uint64_t deviceType, int32_t address, std::string serialNumber, bool save = true);
   void deletePeer(uint64_t id);
 
   void pairingModeTimer(int32_t duration, bool debugOutput = true);

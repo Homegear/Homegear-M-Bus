@@ -38,12 +38,12 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
     _command = packet.at(1);
     _length = packet.at(2);
     _control = packet.at(3);
-    uint32_t value = (((uint32_t)packet.at(5)) << 8u) | packet.at(4);
+    _manufacturerCode = (((uint32_t)packet.at(5)) << 8u) | packet.at(4);
     _manufacturer.clear();
     _manufacturer.reserve(3);
-    _manufacturer.push_back((char)(((value >> 10u) & 0x1Fu) + 64));
-    _manufacturer.push_back((char)(((value >> 5u) & 0x1Fu) + 64));
-    _manufacturer.push_back((char)((value & 0x1Fu) + 64));
+    _manufacturer.push_back((char)(((_manufacturerCode >> 10u) & 0x1Fu) + 64));
+    _manufacturer.push_back((char)(((_manufacturerCode >> 5u) & 0x1Fu) + 64));
+    _manufacturer.push_back((char)((_manufacturerCode & 0x1Fu) + 64));
     _iv.clear();
     _iv.reserve(16);
     _iv.insert(_iv.end(), packet.begin() + 4, packet.begin() + 12);
@@ -205,12 +205,12 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       {
         _tpduStart = ciStart;
         _secondaryAddress = (((uint32_t)packet.at(ciStart + 4)) << 24) | (((uint32_t)packet.at(ciStart + 3)) << 16) | (((uint32_t)packet.at(ciStart + 2)) << 8) | ((uint32_t)packet.at(ciStart + 1));
-        uint32_t value = (((uint32_t)packet.at(ciStart + 6)) << 8) | packet.at(ciStart + 5);
+        _manufacturerCode = (((uint32_t)packet.at(ciStart + 6)) << 8) | packet.at(ciStart + 5);
         _manufacturer.clear();
         _manufacturer.reserve(3);
-        _manufacturer.push_back((char)(((value >> 10) & 0x1F) + 64));
-        _manufacturer.push_back((char)(((value >> 5) & 0x1F) + 64));
-        _manufacturer.push_back((char)((value & 0x1F) + 64));
+        _manufacturer.push_back((char)(((_manufacturerCode >> 10) & 0x1F) + 64));
+        _manufacturer.push_back((char)(((_manufacturerCode >> 5) & 0x1F) + 64));
+        _manufacturer.push_back((char)((_manufacturerCode & 0x1F) + 64));
         _version = packet.at(ciStart + 7);
         _medium = packet.at(ciStart + 8);
 
@@ -249,12 +249,12 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
         break; //No more CIs after payload
       } else if (hasShortTplHeader()) {
         _tpduStart = ciStart;
-        uint32_t value = (((uint32_t)packet.at(5)) << 8) | packet.at(4);
+        _manufacturerCode = (((uint32_t)packet.at(5)) << 8) | packet.at(4);
         _manufacturer.clear();
         _manufacturer.reserve(3);
-        _manufacturer.push_back((char)(((value >> 10) & 0x1F) + 64));
-        _manufacturer.push_back((char)(((value >> 5) & 0x1F) + 64));
-        _manufacturer.push_back((char)((value & 0x1F) + 64));
+        _manufacturer.push_back((char)(((_manufacturerCode >> 10) & 0x1F) + 64));
+        _manufacturer.push_back((char)(((_manufacturerCode >> 5) & 0x1F) + 64));
+        _manufacturer.push_back((char)((_manufacturerCode & 0x1F) + 64));
         _secondaryAddress = (((uint32_t)packet.at(9)) << 24u) | (((uint32_t)packet.at(8)) << 16u) | (((uint32_t)packet.at(7)) << 8u) | ((uint32_t)packet.at(6));
         _version = packet.at(10);
         _medium = packet.at(11);
