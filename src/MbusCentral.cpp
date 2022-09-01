@@ -430,6 +430,7 @@ void MbusCentral::pairDevice(const PMbusPacket &packet, std::vector<uint8_t> &ke
         return;
       }
     } else {
+      peer->setDeviceType(peerInfo.type);
       peer->setRpcDevice(Gd::family->getRpcDevices()->find(peerInfo.type, 0x10, -1));
       if (!peer->getRpcDevice()) {
         Gd::out.printError("Error: RPC device could not be found anymore.");
