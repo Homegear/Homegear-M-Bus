@@ -17,7 +17,7 @@ class Tcp : public IMbusInterface {
   void startListening() override;
   void stopListening() override;
 
-  bool isOpen() override { return !_stopped && _initComplete; }
+  bool isOpen() override { return !_stopped && socket_ && socket_->connected(); }
   void Poll(const std::vector<uint8_t>& primary_addresses, const std::vector<int32_t>& secondary_addresses) override;
  protected:
   std::atomic_bool _initComplete{false};
