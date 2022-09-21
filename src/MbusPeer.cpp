@@ -613,7 +613,9 @@ PVariable MbusPeer::getDeviceInfo(BaseLib::PRpcClientInfo clientInfo, std::map<s
   try {
     PVariable info(Peer::getDeviceInfo(clientInfo, fields));
 
-    info->structValue->emplace("INTERFACE", std::make_shared<Variable>(std::to_string(MY_FAMILY_ID) + ".virtual"));
+    auto interface = Gd::interfaces->getInterface(_physicalInterfaceId);
+    if (interface->getID().empty()) info->structValue->emplace("INTERFACE", std::make_shared<Variable>(std::to_string(MY_FAMILY_ID) + ".virtual"));
+    else info->structValue->emplace("INTERFACE", std::make_shared<Variable>(interface->getID()));
 
     return info;
   }
