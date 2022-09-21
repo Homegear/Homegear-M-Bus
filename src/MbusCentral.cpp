@@ -905,7 +905,7 @@ PVariable MbusCentral::createDevice(BaseLib::PRpcClientInfo clientInfo, int32_t 
     auto secondary_address = BaseLib::Math::getNumber(secondary_address_hex, true);
 
     if (peerExists(secondary_address)) return Variable::createError(-5, "This peer is already paired to this central.");
-    if (Gd::interfaces->count() == 1) interfaceId = Gd::interfaces->getDefaultInterface()->getID();
+    if (interfaceId.empty()) interfaceId = Gd::interfaces->getDefaultInterface()->getID();
     else if (!Gd::interfaces->hasInterface(interfaceId)) return Variable::createError(-5, "Unknown interface.");
 
     auto peerInfo = _descriptionCreator.CreateEmptyDescription(secondary_address);
