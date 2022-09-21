@@ -65,14 +65,14 @@ DescriptionCreator::DescriptionCreator() {
   vif_info_[23] = VifInfo("VOLUME", "m³", BaseLib::DeviceDescription::UnitCode::kCubicMeters, 10, VifScaleOperation::kMultiplication);
   for (uint32_t i = 16; i <= 23; i++) {
     vif_info_.at(i).medium_role_map.emplace(0x03, 900301);
-    vif_info_.at(i).medium_role_map.emplace(0x04, 900101);
-    vif_info_.at(i).medium_role_map.emplace(0x0C, 900101);
-    vif_info_.at(i).medium_role_map.emplace(0x06, 900101);
+    vif_info_.at(i).medium_role_map.emplace(0x04, 900406);
+    vif_info_.at(i).medium_role_map.emplace(0x0C, 900406);
+    vif_info_.at(i).medium_role_map.emplace(0x06, 900601);
     vif_info_.at(i).medium_role_map.emplace(0x07, 900101);
-    vif_info_.at(i).medium_role_map.emplace(0x15, 900101);
-    vif_info_.at(i).medium_role_map.emplace(0x16, 900101);
+    vif_info_.at(i).medium_role_map.emplace(0x15, 900601);
+    vif_info_.at(i).medium_role_map.emplace(0x16, 900701);
     vif_info_.at(i).medium_role_map.emplace(0x17, 900101);
-    vif_info_.at(i).medium_role_map.emplace(0x28, 900101);
+    vif_info_.at(i).medium_role_map.emplace(0x28, 900801);
   }
 
   //g
