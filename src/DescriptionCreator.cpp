@@ -545,7 +545,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPa
 
     std::shared_ptr<HomegearDevice> device = std::make_shared<HomegearDevice>(Gd::bl);
     device->version = 1;
-    device->timeout = 86400;
+    device->timeout = 176400; //2 days 1 hour => some devices can only be polled once per day
     PSupportedDevice supportedDevice = std::make_shared<SupportedDevice>(Gd::bl);
     supportedDevice->id = id;
     supportedDevice->hardwareVersion = packet->getVersion();
@@ -607,7 +607,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateEmptyDescription(int32_t 
 
     std::shared_ptr<HomegearDevice> device = std::make_shared<HomegearDevice>(Gd::bl);
     device->version = 1;
-    device->timeout = 86400;
+    device->timeout = 176400; //2 days 1 hour => some devices can only be polled once per day
     PSupportedDevice supportedDevice = std::make_shared<SupportedDevice>(Gd::bl);
     supportedDevice->id = id;
     supportedDevice->typeNumber = (uint32_t)secondary_address;
