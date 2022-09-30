@@ -166,7 +166,7 @@ void Tcp::listen() {
                 processed_bytes++;
                 continue;
               } else if (buffer.at(0 + processed_bytes) == 0x10) {
-                if (processed_bytes - bytes_received < 5) {
+                if (bytes_received - processed_bytes < 5) {
                   data.insert(data.end(), buffer.begin() + processed_bytes, buffer.begin() + processed_bytes + (bytes_received - processed_bytes));
                   processed_bytes += bytes_received;
                 } else {
@@ -174,12 +174,12 @@ void Tcp::listen() {
                   processed_bytes += 5;
                 }
               } else if (buffer.at(0 + processed_bytes) == 0x68) {
-                if (processed_bytes - bytes_received < 2) {
+                if (bytes_received - processed_bytes < 2) {
                   data.insert(data.end(), buffer.begin() + processed_bytes, buffer.begin() + processed_bytes + (bytes_received - processed_bytes));
                   processed_bytes += bytes_received;
                 } else {
                   uint32_t packet_size = buffer.at(1 + processed_bytes) + 6;
-                  if (processed_bytes - bytes_received < packet_size) {
+                  if (bytes_received - processed_bytes < packet_size) {
                     data.insert(data.end(), buffer.begin() + processed_bytes, buffer.begin() + processed_bytes + (bytes_received - processed_bytes));
                     processed_bytes += bytes_received;
                   } else {
