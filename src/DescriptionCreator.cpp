@@ -570,12 +570,13 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPa
     devicePacket->type = 1;
 
     auto dataRecords = packet->getDataRecords();
+    std::unordered_set<uint64_t> used_roles;
     for (auto &dataRecord: dataRecords) {
       PParameter parameter = std::make_shared<Parameter>(Gd::bl, function->variables);
       parameter->readable = true;
       parameter->writeable = false;
 
-      parseDataRecord(packet->getManufacturer(), packet->getMedium(), dataRecord, parameter, function, devicePacket);
+      parseDataRecord(packet->getManufacturer(), packet->getMedium(), dataRecord, parameter, function, devicePacket, used_roles);
 
       if (!parameter->casts.empty()) {
         function->variables->parametersOrdered.push_back(parameter);
@@ -731,7 +732,7 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice &device) {
   // }}}
 }
 
-void DescriptionCreator::parseDataRecord(const std::string &manufacturer, uint8_t medium, MbusPacket::DataRecord &dataRecord, PParameter &parameter, PFunction &function, PPacket &packet) {
+void DescriptionCreator::parseDataRecord(const std::string &manufacturer, uint8_t medium, MbusPacket::DataRecord &dataRecord, PParameter &parameter, PFunction &function, PPacket &packet, std::unordered_set<uint64_t> &used_roles) {
   try {
     uint8_t dif = dataRecord.difs.front() & 0x0Fu;
     parameter->metadata = BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
@@ -845,7 +846,7 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, uint8_
   }
 }
 
-void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_info, const MbusPacket::DataRecord &dataRecord, uint8_t medium) {
+void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_info, const MbusPacket::DataRecord &dataRecord, uint8_t medium, std::unordered_set<uint64_t> &used_roles) {
   try {
     parameter->id = parameter->id.empty() ? vif_info.name : parameter->id + "_" + vif_info.name;
     parameter->unit = vif_info.unit;
@@ -858,10 +859,13 @@ void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_in
       parameter->casts.emplace_back(std::move(cast2));
     }
 
-    if (dataRecord.difFunction == MbusPacket::DifFunction::instantaneousValue && dataRecord.subunit == -1 && dataRecord.storageNumber == 0 && dataRecord.tariff == -1) {
+    if (dataRecord.difFunction == MbusPacket::DifFunction::instantaneousValue && dataRecord.subunit == -1 && dataRecord.storageNumber == 0 && (dataRecord.tariff == -1 || dataRecord.tariff == 1)) {
       auto role_iterator = vif_info.medium_role_map.find(medium);
       if (role_iterator != vif_info.medium_role_map.end()) {
-        parameter->roles.emplace(role_iterator->second, Role(role_iterator->second, RoleDirection::input, false, false, {}));
+        if (dataRecord.tariff == -1 || used_roles.find(role_iterator->second) == used_roles.end()) {
+          parameter->roles.emplace(role_iterator->second, Role(role_iterator->second, RoleDirection::input, false, false, {}));
+          used_roles.emplace(role_iterator->second);
+        }
       }
     }
   }
