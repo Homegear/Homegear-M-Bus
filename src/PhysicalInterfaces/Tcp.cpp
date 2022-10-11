@@ -122,6 +122,11 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
 
 void Tcp::RawSend(std::vector<uint8_t> &packet) {
   try {
+    if (!socket_) {
+      _out.printWarning("Warning: Could not send packet as the socket is not open.");
+      return;
+    }
+
     if (Gd::bl->debugLevel >= 5) _out.printDebug("Debug: Sending packet " + BaseLib::HelperFunctions::getHexString(packet));
     socket_->proofwrite((char *)packet.data(), packet.size());
   }

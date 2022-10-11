@@ -541,14 +541,15 @@ void MbusCentral::PollPeers(bool use_secondary_address) {
   try {
     Gd::out.printInfo("Info: Polling wired M-Bus peers...");
     auto peers = getPeers();
+    bool polled = false;
     for (auto &peer: peers) {
       auto mbus_peer = std::dynamic_pointer_cast<MbusPeer>(peer);
       if (mbus_peer->wireless()) continue;
       auto interface = Gd::interfaces->getInterface(mbus_peer->getPhysicalInterfaceId());
-      if (!interface) {
+      if (!interface || !interface->isOpen()) {
         if (Gd::interfaces->count() == 0 || Gd::interfaces->count() > 1) continue;
         interface = Gd::interfaces->getDefaultInterface();
-        if (!interface) continue;
+        if (!interface || !interface->isOpen()) continue;
       }
 
       if (!use_secondary_address && mbus_peer->getPrimaryAddress() > -1 && mbus_peer->getPrimaryAddress() < 253) {
@@ -558,10 +559,14 @@ void MbusCentral::PollPeers(bool use_secondary_address) {
         Gd::out.printInfo("Info: Polling wired M-Bus peer " + std::to_string(mbus_peer->getID()) + " using secondary address " + BaseLib::HelperFunctions::getHexString(mbus_peer->getAddress(), 8) + "...");
         interface->Poll(std::vector<uint8_t>{}, std::vector<int32_t>{mbus_peer->getAddress()});
       }
+
+      polled = true;
     }
 
-    last_poll_ = BaseLib::HelperFunctions::getLocalTime();
-    saveVariable(2, last_poll_.load());
+    if (polled) {
+      last_poll_ = BaseLib::HelperFunctions::getLocalTime();
+      saveVariable(2, last_poll_.load());
+    }
   }
   catch (const std::exception &ex) {
     Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
