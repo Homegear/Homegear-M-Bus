@@ -341,10 +341,12 @@ void MbusPeer::getValuesFromPacket(const PMbusPacket &packet, std::vector<FrameV
     if (!_rpcDevice) return;
 
     //Check for low battery
-    if (packet->batteryEmpty()) {
-      serviceMessages->set("LOWBAT", true);
-      if (_bl->debugLevel >= 4) Gd::out.printInfo("Info: LOWBAT of peer " + std::to_string(_peerID) + " with serial number " + _serialNumber + " was set to \"true\".");
-    } else serviceMessages->set("LOWBAT", false);
+    if (wireless()) {
+      if (packet->batteryEmpty()) {
+        serviceMessages->set("LOWBAT", true);
+        if (_bl->debugLevel >= 4) Gd::out.printInfo("Info: LOWBAT of peer " + std::to_string(_peerID) + " with serial number " + _serialNumber + " was set to \"true\".");
+      } else serviceMessages->set("LOWBAT", false);
+    }
 
     //equal_range returns all elements with "0" or an unknown element as argument
     if (_rpcDevice->packetsByMessageType.find(1) == _rpcDevice->packetsByMessageType.end()) return;
