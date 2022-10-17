@@ -547,12 +547,6 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPa
     device->version = 1;
     device->timeout = 176400; //2 days 1 hour => some devices can only be polled once per day
 
-    auto setting = Gd::family->getFamilySetting("pollinginterval");
-    if (setting) {
-      if (setting->stringValue == "weekly") device->timeout = 608400;
-      else if (setting->stringValue == "monthly") device->timeout = 2682000;
-    }
-
     PSupportedDevice supportedDevice = std::make_shared<SupportedDevice>(Gd::bl);
     supportedDevice->id = id;
     supportedDevice->hardwareVersion = packet->getVersion();

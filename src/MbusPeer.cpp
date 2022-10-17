@@ -297,6 +297,12 @@ bool MbusPeer::load(BaseLib::Systems::ICentral *central) {
     serviceMessages.reset(new BaseLib::Systems::ServiceMessages(_bl, _peerID, _serialNumber, this));
     serviceMessages->load();
 
+    auto setting = Gd::family->getFamilySetting("pollinginterval");
+    if (setting) {
+      if (setting->stringValue == "weekly") _rpcDevice->timeout = 608400;
+      else if (setting->stringValue == "monthly") _rpcDevice->timeout = 2682000;
+    }
+
     return true;
   }
   catch (const std::exception &ex) {
