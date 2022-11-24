@@ -168,6 +168,7 @@ void Tcp::listen() {
           while (processed_bytes < bytes_received) {
             if (data.empty()) {
               if (buffer.at(0 + processed_bytes) == 0xE5) {
+                if (Gd::bl->debugLevel >= 4) _out.printDebug("Info: E5 packet received.");
                 processed_bytes++;
                 continue;
               } else if (buffer.at(0 + processed_bytes) == 0x10) {
