@@ -127,7 +127,7 @@ void Tcp::RawSend(std::vector<uint8_t> &packet) {
       return;
     }
 
-    if (Gd::bl->debugLevel >= 5) _out.printDebug("Debug: Sending packet " + BaseLib::HelperFunctions::getHexString(packet));
+    if (Gd::bl->debugLevel >= 4) _out.printInfo("Info: Sending packet " + BaseLib::HelperFunctions::getHexString(packet));
     socket_->proofwrite((char *)packet.data(), packet.size());
   }
   catch (const std::exception &ex) {
