@@ -136,7 +136,7 @@ bool Amber::setParameter(uint8_t address, uint8_t value) {
     for (int32_t i = 0; i < 5; i++) {
       std::vector<uint8_t> data{0xFF, CMD_SET_REQ, 0x03, address, 0x01, value, 0x00};
       addAmberCrc8(data);
-      getResponse(data, response);
+      GetSerialResponse(data, response);
       if (response.size() != 5 || response[3] != 0) {
         if (i < 4) continue;
         _out.printError("Error executing CMD_SET_REQ on device. Response was: " + BaseLib::HelperFunctions::getHexString(response));
@@ -162,7 +162,7 @@ void Amber::init() {
     for (int32_t i = 0; i < 5; i++) {
       std::vector<uint8_t> data{0xFF, CMD_GET_REQ, 0x02, 0x00, 80, 0x00};
       addAmberCrc8(data);
-      getResponse(data, response);
+      GetSerialResponse(data, response);
       if (response.size() != 86 || response[3] != 0 || response[4] != 80) {
         if (i < 4) continue;
         _out.printError("Error executing CMD_GET_REQ on device. Response was: " + BaseLib::HelperFunctions::getHexString(response));
@@ -251,7 +251,7 @@ void Amber::init() {
       for (int32_t i = 0; i < 5; i++) {
         std::vector<uint8_t> data{0xFF, CMD_RESET_REQ, 0x00, 0x00};
         addAmberCrc8(data);
-        getResponse(data, response);
+        GetSerialResponse(data, response);
         if (response.size() != 5 || response[3] != 0) {
           if (i < 4) continue;
           _out.printError("Error executing CMD_RESET_REQ on device. Response was: " + BaseLib::HelperFunctions::getHexString(response));
@@ -368,9 +368,9 @@ void Amber::processPacket(std::vector<uint8_t> &data) {
 
     uint8_t packetType = data[1];
 
-    std::unique_lock<std::mutex> requestsGuard(_requestsMutex);
-    std::map<uint8_t, std::shared_ptr<Request>>::iterator requestIterator = _requests.find(packetType);
-    if (requestIterator != _requests.end()) {
+    std::unique_lock<std::mutex> requestsGuard(requests_mutex_);
+    auto requestIterator = requests_.find(packetType);
+    if (requestIterator != requests_.end()) {
       std::shared_ptr<Request> request = requestIterator->second;
       requestsGuard.unlock();
       request->response = data;

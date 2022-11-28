@@ -5,7 +5,7 @@
 
 namespace Mbus {
 
-Tcp::Tcp(std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> settings) : IMbusInterface(settings) {
+Tcp::Tcp(const std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings>& settings) : IMbusInterface(settings) {
   _settings = settings;
   _out.init(Gd::bl);
   _out.setPrefix(_out.getPrefix() + "Tcp \"" + settings->id + "\": ");
@@ -21,7 +21,7 @@ Tcp::~Tcp() {
 
 void Tcp::startListening() {
   try {
-    IPhysicalInterface::startListening();
+    IMbusInterface::startListening();
 
     if (_settings->host.empty()) {
       _out.printError("Error: No hostname or ip address specified. Please set it in \"mbus.conf\".");
@@ -40,7 +40,7 @@ void Tcp::startListening() {
     _stopped = false;
 
     if (_listenThread.joinable()) _listenThread.join();
-    listen_thread_ = std::thread(&Tcp::listen, this);
+    listen_thread_ = std::thread(&Tcp::Listen, this);
   }
   catch (const std::exception &ex) {
     _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
@@ -51,7 +51,7 @@ void Tcp::stopListening() {
   try {
     _stopped = true;
     _bl->threadManager.join(listen_thread_);
-    IPhysicalInterface::stopListening();
+    IMbusInterface::stopListening();
   }
   catch (const std::exception &ex) {
     _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
@@ -61,59 +61,107 @@ void Tcp::stopListening() {
 void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<int32_t> &secondary_addresses) {
   try {
     for (auto &address: primary_addresses) {
-      std::vector<uint8_t> packet{0x10, 0x40, address, 0, 0x16};
-      addCrc8(packet);
+      std::vector<uint8_t> request_packet{0x10, 0x40, address, 0, 0x16};
+      addCrc8(request_packet);
 
-      RawSend(packet);
+      std::vector<uint8_t> response_packet;
+      GetMbusResponse(0xE5, request_packet, response_packet);
 
-      for (uint32_t i = 0; i < 10; i++) {
+      for (uint32_t i = 0; i < 50; i++) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         if (_stopped) return;
       }
 
-      packet.at(1) = 0x7B;
-      addCrc8(packet);
+      request_packet.at(1) = 0x7B;
+      addCrc8(request_packet);
 
-      RawSend(packet);
+      response_packet.clear();
+      GetMbusResponse(0x68, request_packet, response_packet);
+      PMbusPacket mbus_packet = std::make_shared<MbusPacket>(response_packet);
+      if (mbus_packet->headerValid()) {
+        raisePacketReceived(mbus_packet);
+      } else _out.printWarning("Warning: Could not parse packet: " + BaseLib::HelperFunctions::getHexString(request_packet));
 
-      for (uint32_t i = 0; i < 30; i++) {
+      for (uint32_t i = 0; i < 50; i++) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         if (_stopped) return;
       }
     }
 
     for (auto &address: secondary_addresses) {
-      std::vector<uint8_t> packet_1{0x10, 0x40, 0xFF, 0, 0x16};
-      addCrc8(packet_1);
+      std::vector<uint8_t> request_packet_1{0x10, 0x40, 0xFF, 0, 0x16};
+      addCrc8(request_packet_1);
 
-      RawSend(packet_1);
+      RawSend(request_packet_1);
 
-      for (uint32_t i = 0; i < 20; i++) {
+      for (uint32_t i = 0; i < 50; i++) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         if (_stopped) return;
       }
 
       //Packet to temporarily set primary address for this device to 0xFD.
-      std::vector<uint8_t> packet_2{0x68, 0x0B, 0x0B, 0x68, 0x73, 0xFD, 0x52, (uint8_t)address, (uint8_t)(address >> 8), (uint8_t)(address >> 16), (uint8_t)(address >> 24), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0x16};
-      addCrc8(packet_2);
+      std::vector<uint8_t> request_packet_2{0x68, 0x0B, 0x0B, 0x68, 0x73, 0xFD, 0x52, (uint8_t)address, (uint8_t)(address >> 8), (uint8_t)(address >> 16), (uint8_t)(address >> 24), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0x16};
+      addCrc8(request_packet_2);
 
-      RawSend(packet_2);
+      std::vector<uint8_t> response_packet;
+      GetMbusResponse(0xE5, request_packet_2, response_packet);
 
-      for (uint32_t i = 0; i < 20; i++) {
+      for (uint32_t i = 0; i < 50; i++) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         if (_stopped) return;
       }
 
-      std::vector<uint8_t> packet_3{0x10, 0x7B, 0xFD, 0, 0x16};
-      addCrc8(packet_3);
+      std::vector<uint8_t> request_packet_3{0x10, 0x7B, 0xFD, 0, 0x16};
+      addCrc8(request_packet_3);
 
-      RawSend(packet_3);
+      response_packet.clear();
+      GetMbusResponse(0x68, request_packet_3, response_packet);
 
-      for (uint32_t i = 0; i < 30; i++) {
+      for (uint32_t i = 0; i < 50; i++) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         if (_stopped) return;
       }
     }
+  }
+  catch (const std::exception &ex) {
+    _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+  }
+}
+
+void Tcp::GetMbusResponse(uint8_t response_type, std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet) {
+  try {
+    if (_stopped || request_packet.empty()) return;
+    response_packet.clear();
+
+    std::lock_guard<std::mutex> get_response_guard(get_response_mutex_);
+    std::shared_ptr<Request> request(new Request());
+    std::unique_lock<std::mutex> requestsGuard(requests_mutex_);
+    requests_[response_type] = request;
+    requestsGuard.unlock();
+    std::unique_lock<std::mutex> wait_lock(request->mutex);
+
+    try {
+      RawSend(request_packet);
+    }
+    catch (const BaseLib::SocketOperationException &ex) {
+      _out.printError("Error sending packet: " + std::string(ex.what()));
+      return;
+    }
+
+    auto start_time = BaseLib::HelperFunctions::getTime();
+    while (!request->conditionVariable.wait_for(wait_lock, std::chrono::milliseconds(1000), [&] {
+      return request->mutexReady || _stopped || BaseLib::HelperFunctions::getTime() - start_time > 30000;
+    }));
+
+    if (!request->mutexReady) {
+      _out.printError("Error: No response received to packet: " + BaseLib::HelperFunctions::getHexString(request_packet));
+    }
+
+    response_packet = request->response;
+
+    requestsGuard.lock();
+    requests_.erase(response_type);
+    requestsGuard.unlock();
   }
   catch (const std::exception &ex) {
     _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
@@ -135,7 +183,7 @@ void Tcp::RawSend(std::vector<uint8_t> &packet) {
   }
 }
 
-void Tcp::listen() {
+void Tcp::Listen() {
   try {
     BaseLib::TcpSocket::TcpPacket data;
     std::vector<uint8_t> buffer(4096);
@@ -157,7 +205,7 @@ void Tcp::listen() {
           _out.printInfo("Info: Connected.");
         }
 
-        bytes_received = socket_->proofread((char *)buffer.data(), buffer.size());
+        bytes_received = socket_->proofread((char *)buffer.data(), (int32_t)buffer.size());
 
         if (BaseLib::HelperFunctions::getTime() - last_activity > 2000) data.clear();
         last_activity = BaseLib::HelperFunctions::getTime();
@@ -168,7 +216,7 @@ void Tcp::listen() {
           while (processed_bytes < bytes_received) {
             if (data.empty()) {
               if (buffer.at(0 + processed_bytes) == 0xE5) {
-                if (Gd::bl->debugLevel >= 4) _out.printInfo("Info: E5 packet received.");
+                ProcessPacket(std::vector<uint8_t>(0xE5));
                 processed_bytes++;
                 continue;
               } else if (buffer.at(0 + processed_bytes) == 0x10) {
@@ -203,7 +251,7 @@ void Tcp::listen() {
                   data.insert(data.end(), buffer.begin() + processed_bytes, buffer.begin() + processed_bytes + (bytes_received - processed_bytes));
                   processed_bytes += bytes_received;
                 } else {
-                  data.insert(data.end(), buffer.begin() + processed_bytes, buffer.begin() + processed_bytes + (5 - data.size()));
+                  data.insert(data.end(), buffer.begin() + processed_bytes, buffer.begin() + processed_bytes + (5 - (int32_t)data.size()));
                   processed_bytes += 5 - data.size();
                   ProcessPacket(data);
                   data.clear();
@@ -214,7 +262,7 @@ void Tcp::listen() {
                   data.insert(data.end(), buffer.begin() + processed_bytes, buffer.begin() + processed_bytes + (bytes_received - processed_bytes));
                   processed_bytes += bytes_received;
                 } else {
-                  data.insert(data.end(), buffer.begin() + processed_bytes, buffer.begin() + processed_bytes + (packet_size - data.size()));
+                  data.insert(data.end(), buffer.begin() + processed_bytes, buffer.begin() + processed_bytes + (packet_size - (int32_t)data.size()));
                   processed_bytes += packet_size - data.size();
                   ProcessPacket(data);
                   data.clear();
@@ -252,6 +300,30 @@ void Tcp::listen() {
 
 void Tcp::ProcessPacket(const std::vector<uint8_t> &packet) {
   try {
+    uint8_t packet_type = packet.at(0);
+
+    std::unique_lock<std::mutex> requests_guard(requests_mutex_);
+    auto request_iterator = requests_.find(packet_type);
+    if (request_iterator != requests_.end()) {
+      std::shared_ptr<Request> request = request_iterator->second;
+      requests_guard.unlock();
+      request->response = packet;
+      {
+        std::lock_guard<std::mutex> lock(request->mutex);
+        request->mutexReady = true;
+      }
+      request->conditionVariable.notify_one();
+      return;
+    } else requests_guard.unlock();
+
+    if (packet_type == 0xE5) {
+      if (Gd::bl->debugLevel >= 4) _out.printInfo("Info: E5 packet received.");
+      return;
+    } else if(packet_type == 0x10) {
+      if (Gd::bl->debugLevel >= 4) _out.printInfo("Info: 0x10 packet received: " + BaseLib::HelperFunctions::getHexString(packet));
+      return;
+    }
+
     PMbusPacket mbus_packet = std::make_shared<MbusPacket>(packet);
     if (mbus_packet->headerValid()) {
       raisePacketReceived(mbus_packet);

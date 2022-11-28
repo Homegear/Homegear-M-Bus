@@ -11,7 +11,7 @@ namespace Mbus {
 
 class Tcp : public IMbusInterface {
  public:
-  explicit Tcp(std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> settings);
+  explicit Tcp(const std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings>& settings);
   ~Tcp() override;
 
   void startListening() override;
@@ -24,8 +24,9 @@ class Tcp : public IMbusInterface {
   std::thread listen_thread_;
   std::shared_ptr<BaseLib::TcpSocket> socket_;
 
+  void GetMbusResponse(uint8_t response_type, std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet);
   void RawSend(std::vector<uint8_t> &packet) override;
-  void listen();
+  void Listen();
   void ProcessPacket(const std::vector<uint8_t> &packet);
 };
 

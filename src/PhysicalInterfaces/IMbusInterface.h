@@ -33,13 +33,12 @@ class IMbusInterface : public BaseLib::Systems::IPhysicalInterface {
   BaseLib::SharedObjects *_bl = nullptr;
   BaseLib::Output _out;
 
-  std::mutex _sendPacketMutex;
-  std::mutex _getResponseMutex;
+  std::mutex get_response_mutex_;
 
-  std::mutex _requestsMutex;
-  std::map<uint8_t, std::shared_ptr<Request>> _requests;
+  std::mutex requests_mutex_;
+  std::map<uint8_t, std::shared_ptr<Request>> requests_;
 
-  void getResponse(std::vector<uint8_t> &requestPacket, std::vector<uint8_t> &responsePacket);
+  void GetSerialResponse(std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet);
   virtual void RawSend(std::vector<uint8_t> &packet) {}
   void addAmberCrc8(std::vector<uint8_t> &packet);
   void addCrc8(std::vector<uint8_t> &packet);
