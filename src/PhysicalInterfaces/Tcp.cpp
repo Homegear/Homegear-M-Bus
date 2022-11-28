@@ -66,6 +66,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
 
       std::vector<uint8_t> response_packet;
       GetMbusResponse(0xE5, request_packet, response_packet);
+      if (response_packet.empty()) continue;
 
       for (uint32_t i = 0; i < 50; i++) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -77,10 +78,12 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
 
       response_packet.clear();
       GetMbusResponse(0x68, request_packet, response_packet);
-      PMbusPacket mbus_packet = std::make_shared<MbusPacket>(response_packet);
-      if (mbus_packet->headerValid()) {
-        raisePacketReceived(mbus_packet);
-      } else _out.printWarning("Warning: Could not parse packet: " + BaseLib::HelperFunctions::getHexString(request_packet));
+      if (!response_packet.empty()) {
+        PMbusPacket mbus_packet = std::make_shared<MbusPacket>(response_packet);
+        if (mbus_packet->headerValid()) {
+          raisePacketReceived(mbus_packet);
+        } else _out.printWarning("Warning: Could not parse packet: " + BaseLib::HelperFunctions::getHexString(response_packet));
+      }
 
       for (uint32_t i = 0; i < 50; i++) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -105,6 +108,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
 
       std::vector<uint8_t> response_packet;
       GetMbusResponse(0xE5, request_packet_2, response_packet);
+      if (response_packet.empty()) continue;
 
       for (uint32_t i = 0; i < 50; i++) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -116,6 +120,12 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
 
       response_packet.clear();
       GetMbusResponse(0x68, request_packet_3, response_packet);
+      if (!response_packet.empty()) {
+        PMbusPacket mbus_packet = std::make_shared<MbusPacket>(response_packet);
+        if (mbus_packet->headerValid()) {
+          raisePacketReceived(mbus_packet);
+        } else _out.printWarning("Warning: Could not parse packet: " + BaseLib::HelperFunctions::getHexString(response_packet));
+      }
 
       for (uint32_t i = 0; i < 50; i++) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -149,11 +159,11 @@ void Tcp::GetMbusResponse(uint8_t response_type, std::vector<uint8_t> &request_p
     }
 
     auto start_time = BaseLib::HelperFunctions::getTime();
-    while (!request->conditionVariable.wait_for(wait_lock, std::chrono::milliseconds(1000), [&] {
-      return request->mutexReady || _stopped || BaseLib::HelperFunctions::getTime() - start_time > 30000;
+    while (!request->condition_variable.wait_for(wait_lock, std::chrono::milliseconds(1000), [&] {
+      return request->mutex_ready || _stopped || BaseLib::HelperFunctions::getTime() - start_time > 30000;
     }));
 
-    if (!request->mutexReady) {
+    if (!request->mutex_ready) {
       _out.printError("Error: No response received to packet: " + BaseLib::HelperFunctions::getHexString(request_packet));
     }
 
@@ -207,7 +217,10 @@ void Tcp::Listen() {
 
         bytes_received = socket_->proofread((char *)buffer.data(), (int32_t)buffer.size());
 
-        if (BaseLib::HelperFunctions::getTime() - last_activity > 2000) data.clear();
+        if (BaseLib::HelperFunctions::getTime() - last_activity > 2000 && !data.empty()) {
+          _out.printWarning("Warning: Discarding packet buffer: " + BaseLib::HelperFunctions::getHexString(data));
+          data.clear();
+        }
         last_activity = BaseLib::HelperFunctions::getTime();
 
         if (bytes_received > 0) {
@@ -216,7 +229,7 @@ void Tcp::Listen() {
           while (processed_bytes < bytes_received) {
             if (data.empty()) {
               if (buffer.at(0 + processed_bytes) == 0xE5) {
-                ProcessPacket(std::vector<uint8_t>(0xE5));
+                ProcessPacket(std::vector<uint8_t>{0xE5});
                 processed_bytes++;
                 continue;
               } else if (buffer.at(0 + processed_bytes) == 0x10) {
@@ -305,14 +318,15 @@ void Tcp::ProcessPacket(const std::vector<uint8_t> &packet) {
     std::unique_lock<std::mutex> requests_guard(requests_mutex_);
     auto request_iterator = requests_.find(packet_type);
     if (request_iterator != requests_.end()) {
+      if (Gd::bl->debugLevel >= 4) _out.printInfo("Info: Processing packet as response: " + BaseLib::HelperFunctions::getHexString(packet));
       std::shared_ptr<Request> request = request_iterator->second;
       requests_guard.unlock();
       request->response = packet;
       {
         std::lock_guard<std::mutex> lock(request->mutex);
-        request->mutexReady = true;
+        request->mutex_ready = true;
       }
-      request->conditionVariable.notify_one();
+      request->condition_variable.notify_one();
       return;
     } else requests_guard.unlock();
 

@@ -288,9 +288,9 @@ void Hgdc::processPacket(int64_t familyId, const std::string &serialNumber, cons
       request->response = data;
       {
         std::lock_guard<std::mutex> lock(request->mutex);
-        request->mutexReady = true;
+        request->mutex_ready = true;
       }
-      request->conditionVariable.notify_one();
+      request->condition_variable.notify_one();
       return;
     } else requestsGuard.unlock();
 

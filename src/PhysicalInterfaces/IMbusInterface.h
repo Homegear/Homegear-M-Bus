@@ -18,16 +18,11 @@ class IMbusInterface : public BaseLib::Systems::IPhysicalInterface {
   void sendPacket(std::shared_ptr<BaseLib::Systems::Packet> packet) override {}
   virtual void Poll(const std::vector<uint8_t>& primary_addresses, const std::vector<int32_t>& secondary_addresses) {}
  protected:
-  class Request {
-   public:
+  struct Request {
     std::mutex mutex;
-    std::condition_variable conditionVariable;
-    bool mutexReady = false;
+    std::condition_variable condition_variable;
+    bool mutex_ready = false;
     std::vector<uint8_t> response;
-
-    Request() = default;
-    virtual ~Request() = default;
-   private:
   };
 
   BaseLib::SharedObjects *_bl = nullptr;

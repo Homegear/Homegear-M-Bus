@@ -376,9 +376,9 @@ void Amber::processPacket(std::vector<uint8_t> &data) {
       request->response = data;
       {
         std::lock_guard<std::mutex> lock(request->mutex);
-        request->mutexReady = true;
+        request->mutex_ready = true;
       }
-      request->conditionVariable.notify_one();
+      request->condition_variable.notify_one();
       return;
     } else requestsGuard.unlock();
 

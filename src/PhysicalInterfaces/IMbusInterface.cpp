@@ -42,7 +42,7 @@ void IMbusInterface::GetSerialResponse(std::vector<uint8_t> &request_packet, std
       return;
     }
 
-    if (!request->conditionVariable.wait_for(lock, std::chrono::milliseconds(10000), [&] { return request->mutexReady; })) {
+    if (!request->condition_variable.wait_for(lock, std::chrono::milliseconds(10000), [&] { return request->mutex_ready; })) {
       _out.printError("Error: No response received to packet: " + BaseLib::HelperFunctions::getHexString(request_packet));
     }
     response_packet = request->response;
