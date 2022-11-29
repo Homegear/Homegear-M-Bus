@@ -30,7 +30,7 @@ class Amber : public IMbusInterface {
   void reconnect();
   void listen();
   bool setParameter(uint8_t address, uint8_t value);
-  void RawSend(std::vector<uint8_t> &packet) override;
+  void RawSend(const std::vector<uint8_t> &packet) override;
   void processPacket(std::vector<uint8_t> &data);
 };
 

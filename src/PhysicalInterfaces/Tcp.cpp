@@ -39,7 +39,7 @@ void Tcp::startListening() {
 
     _stopped = false;
 
-    if (_listenThread.joinable()) _listenThread.join();
+    if (listen_thread_.joinable()) listen_thread_.join();
     listen_thread_ = std::thread(&Tcp::Listen, this);
   }
   catch (const std::exception &ex) {
@@ -138,16 +138,16 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
   }
 }
 
-void Tcp::GetMbusResponse(uint8_t response_type, std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet) {
+void Tcp::GetMbusResponse(uint8_t response_type, const std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet) {
   try {
     if (_stopped || request_packet.empty()) return;
     response_packet.clear();
 
     std::lock_guard<std::mutex> get_response_guard(get_response_mutex_);
     std::shared_ptr<Request> request(new Request());
-    std::unique_lock<std::mutex> requestsGuard(requests_mutex_);
+    std::unique_lock<std::mutex> requests_guard(requests_mutex_);
     requests_[response_type] = request;
-    requestsGuard.unlock();
+    requests_guard.unlock();
     std::unique_lock<std::mutex> wait_lock(request->mutex);
 
     try {
@@ -169,16 +169,16 @@ void Tcp::GetMbusResponse(uint8_t response_type, std::vector<uint8_t> &request_p
 
     response_packet = request->response;
 
-    requestsGuard.lock();
+    requests_guard.lock();
     requests_.erase(response_type);
-    requestsGuard.unlock();
+    requests_guard.unlock();
   }
   catch (const std::exception &ex) {
     _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
-void Tcp::RawSend(std::vector<uint8_t> &packet) {
+void Tcp::RawSend(const std::vector<uint8_t> &packet) {
   try {
     if (!socket_) {
       _out.printWarning("Warning: Could not send packet as the socket is not open.");

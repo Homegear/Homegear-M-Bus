@@ -24,8 +24,8 @@ class Tcp : public IMbusInterface {
   std::thread listen_thread_;
   std::shared_ptr<BaseLib::TcpSocket> socket_;
 
-  void GetMbusResponse(uint8_t response_type, std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet);
-  void RawSend(std::vector<uint8_t> &packet) override;
+  void GetMbusResponse(uint8_t response_type, const std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet);
+  void RawSend(const std::vector<uint8_t> &packet) override;
   void Listen();
   void ProcessPacket(const std::vector<uint8_t> &packet);
 };

@@ -19,6 +19,14 @@ IMbusInterface::~IMbusInterface() {
 
 }
 
+void IMbusInterface::startListening() {
+  IPhysicalInterface::startListening();
+}
+
+void IMbusInterface::stopListening() {
+  IPhysicalInterface::stopListening();
+}
+
 void IMbusInterface::GetSerialResponse(std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet) {
   try {
     if (_stopped || request_packet.size() < 4) return;
@@ -97,4 +105,5 @@ void IMbusInterface::raisePacketReceived(std::shared_ptr<BaseLib::Systems::Packe
     _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
+
 }

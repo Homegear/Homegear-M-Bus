@@ -12,8 +12,8 @@ class IMbusInterface : public BaseLib::Systems::IPhysicalInterface {
   IMbusInterface(std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> settings);
   ~IMbusInterface() override;
 
-  void startListening() override {}
-  void stopListening() override {}
+  void startListening() override;
+  void stopListening() override;
 
   void sendPacket(std::shared_ptr<BaseLib::Systems::Packet> packet) override {}
   virtual void Poll(const std::vector<uint8_t>& primary_addresses, const std::vector<int32_t>& secondary_addresses) {}
@@ -34,7 +34,7 @@ class IMbusInterface : public BaseLib::Systems::IPhysicalInterface {
   std::map<uint8_t, std::shared_ptr<Request>> requests_;
 
   void GetSerialResponse(std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet);
-  virtual void RawSend(std::vector<uint8_t> &packet) {}
+  virtual void RawSend(const std::vector<uint8_t> &packet) {}
   void addAmberCrc8(std::vector<uint8_t> &packet);
   void addCrc8(std::vector<uint8_t> &packet);
 

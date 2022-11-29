@@ -247,7 +247,7 @@ bool Hgdc::setParameter(uint8_t address, uint8_t value) {
   return false;
 }
 
-void Hgdc::RawSend(std::vector<uint8_t> &packet) {
+void Hgdc::RawSend(const std::vector<uint8_t> &packet) {
   try {
     if (!Gd::bl->hgdc->sendPacket(_settings->serialNumber, packet)) {
       _out.printError("Error sending packet " + BaseLib::HelperFunctions::getHexString(packet) + ".");

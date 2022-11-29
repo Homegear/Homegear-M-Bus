@@ -396,7 +396,7 @@ void Amber::processPacket(std::vector<uint8_t> &data) {
   }
 }
 
-void Amber::RawSend(std::vector<uint8_t> &packet) {
+void Amber::RawSend(const std::vector<uint8_t> &packet) {
   try {
     if (!_serial || !_serial->isOpen()) return;
     _serial->writeData(packet);
