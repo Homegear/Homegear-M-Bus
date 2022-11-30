@@ -160,7 +160,7 @@ void Tcp::GetMbusResponse(uint8_t response_type, const std::vector<uint8_t> &req
 
     auto start_time = BaseLib::HelperFunctions::getTime();
     while (!request->condition_variable.wait_for(wait_lock, std::chrono::milliseconds(1000), [&] {
-      return request->mutex_ready || _stopped || BaseLib::HelperFunctions::getTime() - start_time > 30000;
+      return request->mutex_ready || _stopped || BaseLib::HelperFunctions::getTime() - start_time > 60000;
     }));
 
     if (!request->mutex_ready) {
@@ -224,7 +224,7 @@ void Tcp::Listen() {
         last_activity = BaseLib::HelperFunctions::getTime();
 
         if (bytes_received > 0) {
-          if (Gd::bl->debugLevel >= 5) _out.printDebug("Debug: Raw packet received " + BaseLib::HelperFunctions::getHexString(buffer.data(), bytes_received));
+          if (Gd::bl->debugLevel >= 4) _out.printInfo("Info: Raw packet received " + BaseLib::HelperFunctions::getHexString(buffer.data(), bytes_received));
           uint32_t processed_bytes = 0;
           while (processed_bytes < bytes_received) {
             if (data.empty()) {
