@@ -54,7 +54,7 @@ class MbusCentral : public BaseLib::Systems::ICentral {
 
   bool _sniff = false;
   std::mutex _sniffedPacketsMutex;
-  std::map<int32_t, std::vector<PMbusPacket>> _sniffedPackets;
+  std::map<uint64_t, std::vector<PMbusPacket>> _sniffedPackets;
 
   std::atomic_bool _stopPairingModeThread;
   std::mutex _pairingModeThreadMutex;

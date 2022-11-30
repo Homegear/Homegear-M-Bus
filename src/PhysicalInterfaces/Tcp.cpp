@@ -224,7 +224,7 @@ void Tcp::Listen() {
         last_activity = BaseLib::HelperFunctions::getTime();
 
         if (bytes_received > 0) {
-          if (Gd::bl->debugLevel >= 4) _out.printInfo("Info: Raw packet received " + BaseLib::HelperFunctions::getHexString(buffer.data(), bytes_received));
+          if (Gd::bl->debugLevel >= 4) _out.printInfo("Info: Raw packet received: " + BaseLib::HelperFunctions::getHexString(buffer.data(), bytes_received));
           uint32_t processed_bytes = 0;
           while (processed_bytes < bytes_received) {
             if (data.empty()) {

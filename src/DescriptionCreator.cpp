@@ -552,7 +552,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPa
     supportedDevice->hardwareVersion = packet->getVersion();
     supportedDevice->manufacturer = packet->getManufacturer();
     supportedDevice->description = packet->getMediumString(packet->getMedium());
-    supportedDevice->typeNumber = ((uint64_t)packet->getManufacturerCode() << 48u) | ((uint64_t)packet->getVersion() << 40u) | ((uint64_t)packet->getMedium() << 32u) | (uint32_t)packet->secondaryAddress() ;
+    supportedDevice->typeNumber = packet->getDeviceId();
     device->supportedDevices.push_back(supportedDevice);
 
     createXmlMaintenanceChannel(device);
@@ -590,7 +590,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPa
 
     PeerInfo peerInfo;
     peerInfo.secondary_address = packet->secondaryAddress();
-    peerInfo.serialNumber = "MBUS" + BaseLib::HelperFunctions::getHexString(packet->secondaryAddress(), 8);
+    peerInfo.serialNumber = BaseLib::HelperFunctions::getHexString(packet->getDeviceId(), 16);
     peerInfo.type = supportedDevice->typeNumber;
     return peerInfo;
   }
@@ -635,7 +635,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateEmptyDescription(int32_t 
 
     PeerInfo peerInfo;
     peerInfo.secondary_address = secondary_address;
-    peerInfo.serialNumber = "MBUS" + BaseLib::HelperFunctions::getHexString(secondary_address, 8);
+    peerInfo.serialNumber = BaseLib::HelperFunctions::getHexString(secondary_address, 16);
     peerInfo.type = supportedDevice->typeNumber;
     return peerInfo;
   }
