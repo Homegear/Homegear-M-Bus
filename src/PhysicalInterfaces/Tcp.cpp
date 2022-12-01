@@ -85,7 +85,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         } else _out.printWarning("Warning: Could not parse packet: " + BaseLib::HelperFunctions::getHexString(response_packet));
       }
 
-      for (uint32_t i = 0; i < 50; i++) {
+      for (uint32_t i = 0; i < 100; i++) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         if (_stopped) return;
       }
@@ -127,7 +127,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         } else _out.printWarning("Warning: Could not parse packet: " + BaseLib::HelperFunctions::getHexString(response_packet));
       }
 
-      for (uint32_t i = 0; i < 50; i++) {
+      for (uint32_t i = 0; i < 100; i++) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         if (_stopped) return;
       }
