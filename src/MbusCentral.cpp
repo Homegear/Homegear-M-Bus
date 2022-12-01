@@ -558,10 +558,16 @@ void MbusCentral::PollPeers(bool use_secondary_address) {
 
       if (!use_secondary_address && mbus_peer->getPrimaryAddress() > -1 && mbus_peer->getPrimaryAddress() < 253) {
         Gd::out.printInfo("Info: Polling wired M-Bus peer " + std::to_string(mbus_peer->getID()) + " using primary address " + std::to_string(mbus_peer->getPrimaryAddress()) + "...");
-        interface->Poll(std::vector<uint8_t>{(uint8_t)mbus_peer->getPrimaryAddress()}, std::vector<int32_t>{});
+        auto primary_address = mbus_peer->getPrimaryAddress();
+        peer.reset(); //Release peer so readding works in onPacketReceived. Otherwise the peer can't be deleted.
+        mbus_peer.reset();
+        interface->Poll(std::vector<uint8_t>{(uint8_t)primary_address}, std::vector<int32_t>{});
       } else {
         Gd::out.printInfo("Info: Polling wired M-Bus peer " + std::to_string(mbus_peer->getID()) + " using secondary address " + BaseLib::HelperFunctions::getHexString(mbus_peer->getAddress(), 8) + "...");
-        interface->Poll(std::vector<uint8_t>{}, std::vector<int32_t>{mbus_peer->getAddress()});
+        auto secondary_address = mbus_peer->getAddress();
+        peer.reset(); //Release peer so readding works in onPacketReceived. Otherwise the peer can't be deleted.
+        mbus_peer.reset();
+        interface->Poll(std::vector<uint8_t>{}, std::vector<int32_t>{secondary_address});
       }
 
       polled = true;
