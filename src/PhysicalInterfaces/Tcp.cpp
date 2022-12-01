@@ -61,6 +61,7 @@ void Tcp::stopListening() {
 void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<int32_t> &secondary_addresses) {
   try {
     for (auto &address: primary_addresses) {
+      //{{{ Send SND_NKE
       std::vector<uint8_t> request_packet{0x10, 0x40, address, 0, 0x16};
       addCrc8(request_packet);
 
@@ -72,7 +73,20 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         if (_stopped) return;
       }
+      //}}}
 
+      //{{{ Send SND_NKE a second time in case it was not received
+      response_packet.clear();
+      GetMbusResponse(0xE5, request_packet, response_packet);
+      if (response_packet.empty()) continue;
+
+      for (uint32_t i = 0; i < 50; i++) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (_stopped) return;
+      }
+      //}}}
+
+      //{{{ Send REQ_UD2
       request_packet.at(1) = 0x7B;
       addCrc8(request_packet);
 
@@ -89,9 +103,11 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         if (_stopped) return;
       }
+      //}}}
     }
 
     for (auto &address: secondary_addresses) {
+      //{{{ Send SND_NKE
       std::vector<uint8_t> request_packet_1{0x10, 0x40, 0xFF, 0, 0x16};
       addCrc8(request_packet_1);
 
@@ -101,8 +117,18 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         if (_stopped) return;
       }
+      //}}}
 
-      //Packet to temporarily set primary address for this device to 0xFD.
+      //{{{ Send SND_NKE a second time in case it was not received
+      RawSend(request_packet_1);
+
+      for (uint32_t i = 0; i < 50; i++) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (_stopped) return;
+      }
+      //}}}
+
+      //{{{ Packet to temporarily set primary address for this device to 0xFD.
       std::vector<uint8_t> request_packet_2{0x68, 0x0B, 0x0B, 0x68, 0x73, 0xFD, 0x52, (uint8_t)address, (uint8_t)(address >> 8), (uint8_t)(address >> 16), (uint8_t)(address >> 24), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0x16};
       addCrc8(request_packet_2);
 
@@ -114,7 +140,9 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         if (_stopped) return;
       }
+      //}}}
 
+      //{{{ Send REQ_UD2
       std::vector<uint8_t> request_packet_3{0x10, 0x7B, 0xFD, 0, 0x16};
       addCrc8(request_packet_3);
 
@@ -131,6 +159,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         if (_stopped) return;
       }
+      //}}}
     }
   }
   catch (const std::exception &ex) {
