@@ -396,6 +396,7 @@ void MbusCentral::pairDevice(const PMbusPacket &packet, std::vector<uint8_t> &ke
 
     bool newPeer = true;
     auto peer = getPeer(packet->getDeviceId());
+    if (!peer) peer = getPeer(packet->secondaryAddress());
 
     std::unique_lock<std::mutex> lockGuard(_peersMutex);
     if (peer) {
