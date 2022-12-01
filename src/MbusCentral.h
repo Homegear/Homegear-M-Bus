@@ -60,7 +60,7 @@ class MbusCentral : public BaseLib::Systems::ICentral {
   std::mutex _pairingModeThreadMutex;
   std::thread _pairingModeThread;
   std::mutex _devicesToPairMutex;
-  std::unordered_map<int32_t, std::string> _devicesToPair;
+  std::unordered_map<uint64_t, std::string> _devicesToPair;
   std::mutex _pairMutex;
   DescriptionCreator _descriptionCreator;
 

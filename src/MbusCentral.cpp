@@ -293,7 +293,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
       _bl->out.printInfo(BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " M-Bus packet received (" + senderId + std::string(", RSSI: ") + std::to_string(myPacket->getRssi()) + " dBm" + "): "
                              + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: 0x" + BaseLib::HelperFunctions::getHexString(myPacket->getDeviceId(), 16));
 
-    auto peer = getPeer(myPacket->getDeviceId());
+    auto peer = getPeer(BaseLib::HelperFunctions::getHexString(myPacket->getDeviceId(), 16));
     if (!peer) peer = getPeer(myPacket->secondaryAddress());
     if (!peer) {
       if (_sniff) {
@@ -322,7 +322,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
               BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: 0x" + BaseLib::HelperFunctions::getHexString(
                   myPacket->getDeviceId(), 16));
         pairDevice(myPacket, key);
-        peer = getPeer(myPacket->getDeviceId());
+        peer = getPeer(BaseLib::HelperFunctions::getHexString(myPacket->getDeviceId(), 16));
         if (!peer) return false;
       } else if (_pairing) {
         if (myPacket->getEncryptionMode() != 0) {
@@ -331,7 +331,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
         } else {
           std::vector<uint8_t> key;
           pairDevice(myPacket, key);
-          peer = getPeer(myPacket->getDeviceId());
+          peer = getPeer(BaseLib::HelperFunctions::getHexString(myPacket->getDeviceId(), 16));
           if (!peer) return false;
         }
       } else return false;
@@ -367,7 +367,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
 
           //Pair again
           pairDevice(myPacket, key);
-          peer = getPeer(myPacket->getDeviceId());
+          peer = getPeer(BaseLib::HelperFunctions::getHexString(myPacket->getDeviceId(), 16));
           if (!peer) return false;
         }
       } else {
@@ -395,7 +395,7 @@ void MbusCentral::pairDevice(const PMbusPacket &packet, std::vector<uint8_t> &ke
     Gd::out.printInfo("Info: Pairing device 0x" + BaseLib::HelperFunctions::getHexString(packet->getDeviceId(), 16) + "...");
 
     bool newPeer = true;
-    auto peer = getPeer(packet->getDeviceId());
+    auto peer = getPeer(BaseLib::HelperFunctions::getHexString(packet->getDeviceId(), 16));
     if (!peer) peer = getPeer(packet->secondaryAddress());
 
     std::unique_lock<std::mutex> lockGuard(_peersMutex);
