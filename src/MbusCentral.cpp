@@ -426,7 +426,7 @@ void MbusCentral::pairDevice(const PMbusPacket &packet, std::vector<uint8_t> &ke
     Gd::family->reloadRpcDevices();
 
     if (!peer) {
-      peer = createPeer(peerInfo.type, peerInfo.secondary_address, peerInfo.serialNumber, true);
+      peer = createPeer(peerInfo.type, peerInfo.secondary_address, peerInfo.serialNumber, false);
       if (!peer) {
         Gd::out.printError("Error: Could not add device with type " + BaseLib::HelperFunctions::getHexString(peerInfo.type) + ". No matching XML file was found.");
         return;
@@ -438,6 +438,7 @@ void MbusCentral::pairDevice(const PMbusPacket &packet, std::vector<uint8_t> &ke
         Gd::out.printError("Error: RPC device could not be found anymore.");
         return;
       }
+      peer->setSerialNumber(peerInfo.serialNumber);
     }
 
     peer->initializeCentralConfig();
@@ -450,6 +451,7 @@ void MbusCentral::pairDevice(const PMbusPacket &packet, std::vector<uint8_t> &ke
     peer->setWireless(packet->wireless());
     peer->setPrimaryAddress(packet->primaryAddress());
     peer->SetMedium(packet->getMedium());
+    peer->save(true, true, false);
 
     lockGuard.lock();
     _peersBySerial[peer->getSerialNumber()] = peer;
