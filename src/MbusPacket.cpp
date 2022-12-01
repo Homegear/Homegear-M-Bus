@@ -294,7 +294,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
         break; //No more CIs after payload
       } else {
         Gd::out.printWarning("Warning: Unknown CI: " + BaseLib::HelperFunctions::getHexString(controlInformation));
-        break;
+        return;
       }
     }
   }
