@@ -197,7 +197,7 @@ void Tcp::GetMbusResponse(uint8_t response_type, const std::vector<uint8_t> &req
 
     auto start_time = BaseLib::HelperFunctions::getTime();
     while (!request->condition_variable.wait_for(wait_lock, std::chrono::milliseconds(1000), [&] {
-      return request->mutex_ready || _stopped || BaseLib::HelperFunctions::getTime() - start_time > 60000;
+      return request->mutex_ready || _stopped || BaseLib::HelperFunctions::getTime() - start_time > 15000;
     }));
 
     if (!request->mutex_ready) {
