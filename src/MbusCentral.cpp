@@ -291,9 +291,10 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
 
     if (_bl->debugLevel >= 4)
       _bl->out.printInfo(BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " M-Bus packet received (" + senderId + std::string(", RSSI: ") + std::to_string(myPacket->getRssi()) + " dBm" + "): "
-                             + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender address: 0x" + BaseLib::HelperFunctions::getHexString(myPacket->secondaryAddress(), 8));
+                             + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: 0x" + BaseLib::HelperFunctions::getHexString(myPacket->getDeviceId(), 16));
 
     auto peer = getPeer(myPacket->getDeviceId());
+    if (!peer) peer = getPeer(myPacket->secondaryAddress());
     if (!peer) {
       if (_sniff) {
         std::lock_guard<std::mutex> sniffedPacketsGuard(_sniffedPacketsMutex);
@@ -318,7 +319,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
         if (!myPacket->decrypt(key) || !myPacket->dataValid()) return false;
         if (myPacket->isEncrypted() && _bl->debugLevel >= 4)
           _bl->out.printInfo(
-              BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender address: 0x" + BaseLib::HelperFunctions::getHexString(
+              BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: 0x" + BaseLib::HelperFunctions::getHexString(
                   myPacket->getDeviceId(), 16));
         pairDevice(myPacket, key);
         peer = getPeer(myPacket->getDeviceId());
@@ -346,7 +347,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
       if (!myPacket->decrypt(aesKey) || !myPacket->dataValid()) return false;
       if (_bl->debugLevel >= 4)
         _bl->out.printInfo(
-            BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender address: 0x" + BaseLib::HelperFunctions::getHexString(
+            BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: 0x" + BaseLib::HelperFunctions::getHexString(
                 myPacket->getDeviceId(), 16));
       if (_bl->debugLevel >= 5) _bl->out.printDebug("Extended packet info:\n" + myPacket->getInfoString());
     }
