@@ -5,7 +5,7 @@
 
 namespace Mbus {
 
-Tcp::Tcp(const std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings>& settings) : IMbusInterface(settings) {
+Tcp::Tcp(const std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> &settings) : IMbusInterface(settings) {
   _settings = settings;
   _out.init(Gd::bl);
   _out.setPrefix(_out.getPrefix() + "Tcp \"" + settings->id + "\": ");
@@ -61,103 +61,111 @@ void Tcp::stopListening() {
 void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<int32_t> &secondary_addresses) {
   try {
     for (auto &address: primary_addresses) {
-      //{{{ Send SND_NKE
-      std::vector<uint8_t> request_packet{0x10, 0x40, address, 0, 0x16};
-      addCrc8(request_packet);
+      for (unsigned int retries = 0; retries < 3; retries++) {
+        //{{{ Send SND_NKE
+        std::vector<uint8_t> request_packet{0x10, 0x40, address, 0, 0x16};
+        addCrc8(request_packet);
 
-      std::vector<uint8_t> response_packet;
-      GetMbusResponse(0xE5, request_packet, response_packet);
-      if (response_packet.empty()) continue;
+        std::vector<uint8_t> response_packet;
+        GetMbusResponse(0xE5, request_packet, response_packet);
+        if (response_packet.empty()) continue;
 
-      for (uint32_t i = 0; i < 50; i++) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        if (_stopped) return;
-      }
-      //}}}
+        for (uint32_t i = 0; i < 50; i++) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          if (_stopped) return;
+        }
+        //}}}
 
-      //{{{ Send SND_NKE a second time in case it was not received
-      response_packet.clear();
-      GetMbusResponse(0xE5, request_packet, response_packet);
-      if (response_packet.empty()) continue;
+        //{{{ Send SND_NKE a second time in case it was not received
+        response_packet.clear();
+        GetMbusResponse(0xE5, request_packet, response_packet);
+        if (response_packet.empty()) continue;
 
-      for (uint32_t i = 0; i < 50; i++) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        if (_stopped) return;
-      }
-      //}}}
+        for (uint32_t i = 0; i < 50; i++) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          if (_stopped) return;
+        }
+        //}}}
 
-      //{{{ Send REQ_UD2
-      request_packet.at(1) = 0x7B;
-      addCrc8(request_packet);
+        //{{{ Send REQ_UD2
+        request_packet.at(1) = 0x7B;
+        addCrc8(request_packet);
 
-      response_packet.clear();
-      GetMbusResponse(0x68, request_packet, response_packet);
-      if (!response_packet.empty()) {
-        PMbusPacket mbus_packet = std::make_shared<MbusPacket>(response_packet);
-        if (mbus_packet->headerValid()) {
-          raisePacketReceived(mbus_packet);
-        } else _out.printWarning("Warning: Could not parse packet: " + BaseLib::HelperFunctions::getHexString(response_packet));
-      }
+        response_packet.clear();
+        GetMbusResponse(0x68, request_packet, response_packet);
+        if (!response_packet.empty()) {
+          PMbusPacket mbus_packet = std::make_shared<MbusPacket>(response_packet);
+          if (mbus_packet->headerValid()) {
+            raisePacketReceived(mbus_packet);
 
-      for (uint32_t i = 0; i < 100; i++) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        if (_stopped) return;
+            for (uint32_t i = 0; i < 100; i++) {
+              std::this_thread::sleep_for(std::chrono::milliseconds(100));
+              if (_stopped) return;
+            }
+
+            break; //Success - break retry loop
+          } else _out.printWarning("Warning: Could not parse packet: " + BaseLib::HelperFunctions::getHexString(response_packet));
+        }
       }
       //}}}
     }
 
     for (auto &address: secondary_addresses) {
-      //{{{ Send SND_NKE
-      std::vector<uint8_t> request_packet_1{0x10, 0x40, 0xFF, 0, 0x16};
-      addCrc8(request_packet_1);
+      for (unsigned int retries = 0; retries < 3; retries++) {
+        //{{{ Send SND_NKE
+        std::vector<uint8_t> request_packet_1{0x10, 0x40, 0xFF, 0, 0x16};
+        addCrc8(request_packet_1);
 
-      RawSend(request_packet_1);
+        RawSend(request_packet_1);
 
-      for (uint32_t i = 0; i < 50; i++) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        if (_stopped) return;
-      }
-      //}}}
+        for (uint32_t i = 0; i < 50; i++) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          if (_stopped) return;
+        }
+        //}}}
 
-      //{{{ Send SND_NKE a second time in case it was not received
-      RawSend(request_packet_1);
+        //{{{ Send SND_NKE a second time in case it was not received
+        RawSend(request_packet_1);
 
-      for (uint32_t i = 0; i < 50; i++) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        if (_stopped) return;
-      }
-      //}}}
+        for (uint32_t i = 0; i < 50; i++) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          if (_stopped) return;
+        }
+        //}}}
 
-      //{{{ Packet to temporarily set primary address for this device to 0xFD.
-      std::vector<uint8_t> request_packet_2{0x68, 0x0B, 0x0B, 0x68, 0x73, 0xFD, 0x52, (uint8_t)address, (uint8_t)(address >> 8), (uint8_t)(address >> 16), (uint8_t)(address >> 24), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0x16};
-      addCrc8(request_packet_2);
+        //{{{ Packet to temporarily set primary address for this device to 0xFD.
+        std::vector<uint8_t> request_packet_2{0x68, 0x0B, 0x0B, 0x68, 0x73, 0xFD, 0x52, (uint8_t)address, (uint8_t)(address >> 8), (uint8_t)(address >> 16), (uint8_t)(address >> 24), 0xFF, 0xFF, 0xFF, 0xFF, 0, 0x16};
+        addCrc8(request_packet_2);
 
-      std::vector<uint8_t> response_packet;
-      GetMbusResponse(0xE5, request_packet_2, response_packet);
-      if (response_packet.empty()) continue;
+        std::vector<uint8_t> response_packet;
+        GetMbusResponse(0xE5, request_packet_2, response_packet);
+        if (response_packet.empty()) continue;
 
-      for (uint32_t i = 0; i < 50; i++) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        if (_stopped) return;
-      }
-      //}}}
+        for (uint32_t i = 0; i < 50; i++) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          if (_stopped) return;
+        }
+        //}}}
 
-      //{{{ Send REQ_UD2
-      std::vector<uint8_t> request_packet_3{0x10, 0x7B, 0xFD, 0, 0x16};
-      addCrc8(request_packet_3);
+        //{{{ Send REQ_UD2
+        std::vector<uint8_t> request_packet_3{0x10, 0x7B, 0xFD, 0, 0x16};
+        addCrc8(request_packet_3);
 
-      response_packet.clear();
-      GetMbusResponse(0x68, request_packet_3, response_packet);
-      if (!response_packet.empty()) {
-        PMbusPacket mbus_packet = std::make_shared<MbusPacket>(response_packet);
-        if (mbus_packet->headerValid()) {
-          raisePacketReceived(mbus_packet);
-        } else _out.printWarning("Warning: Could not parse packet: " + BaseLib::HelperFunctions::getHexString(response_packet));
-      }
+        response_packet.clear();
+        GetMbusResponse(0x68, request_packet_3, response_packet);
+        if (!response_packet.empty()) {
+          PMbusPacket mbus_packet = std::make_shared<MbusPacket>(response_packet);
+          if (mbus_packet->headerValid()) {
+            raisePacketReceived(mbus_packet);
 
-      for (uint32_t i = 0; i < 100; i++) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        if (_stopped) return;
+            for (uint32_t i = 0; i < 100; i++) {
+              std::this_thread::sleep_for(std::chrono::milliseconds(100));
+              if (_stopped) return;
+            }
+
+            break; //Success - break retry loop
+          } else _out.printWarning("Warning: Could not parse packet: " + BaseLib::HelperFunctions::getHexString(response_packet));
+        }
       }
       //}}}
     }
@@ -362,7 +370,7 @@ void Tcp::ProcessPacket(const std::vector<uint8_t> &packet) {
     if (packet_type == 0xE5) {
       if (Gd::bl->debugLevel >= 4) _out.printInfo("Info: E5 packet received.");
       return;
-    } else if(packet_type == 0x10) {
+    } else if (packet_type == 0x10) {
       if (Gd::bl->debugLevel >= 4) _out.printInfo("Info: 0x10 packet received: " + BaseLib::HelperFunctions::getHexString(packet));
       return;
     }
