@@ -1214,10 +1214,16 @@ BaseLib::PVariable MbusCentral::poll(const PRpcClientInfo &clientInfo, const PAr
           if (!interface) continue;
         }
 
-        if (use_secondary_address) interface->Poll(std::vector<uint8_t>{}, std::vector<int32_t>{mbus_peer->getAddress()});
-        else {
+        if (use_secondary_address) {
+          auto secondary_address = mbus_peer->getAddress();
+          peer.reset(); //Release peer so readding works in onPacketReceived. Otherwise the peer can't be deleted.
+          mbus_peer.reset();
+          interface->Poll(std::vector<uint8_t>{}, std::vector<int32_t>{secondary_address});
+        } else {
           auto primary_address = mbus_peer->getPrimaryAddress();
           if (primary_address == -1) continue;
+          peer.reset(); //Release peer so readding works in onPacketReceived. Otherwise the peer can't be deleted.
+          mbus_peer.reset();
           interface->Poll(std::vector<uint8_t>{(uint8_t)primary_address}, std::vector<int32_t>{});
         }
       }
