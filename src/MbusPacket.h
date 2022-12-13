@@ -116,6 +116,7 @@ class MbusPacket : public BaseLib::Systems::Packet {
   int32_t primaryAddress() { return _primaryAddress; }
   int32_t secondaryAddress() { return _secondaryAddress; }
   uint64_t getDeviceId() { return ((uint64_t)_manufacturerCode << 48u) | ((uint64_t)_version << 40u) | ((uint64_t)_medium << 32u) | (uint32_t)_secondaryAddress; }
+  std::string getDeviceIdString() { return _manufacturer + "-" + BaseLib::HelperFunctions::getHexString(_secondaryAddress, 8) + "-" + std::to_string(_version) + "-" + std::to_string(_medium); }
   int32_t getRssi() { return _rssi; }
   uint8_t getControl() { return _control; }
   std::string getManufacturer() { return _manufacturer; }
