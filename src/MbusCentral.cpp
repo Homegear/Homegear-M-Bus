@@ -203,7 +203,7 @@ void MbusCentral::loadPeers() {
       auto devicesToPair = rpcDecoder.decodeResponse(serializedData);
       for (auto &device: *devicesToPair->arrayValue) {
         if (device->arrayValue->size() != 2 || device->arrayValue->at(0)->integerValue == 0) continue;
-        _devicesToPair.emplace(device->arrayValue->at(0)->integerValue, device->arrayValue->at(1)->stringValue);
+        _devicesToPair.emplace(device->arrayValue->at(0)->integerValue64, device->arrayValue->at(1)->stringValue);
       }
     }
   }
@@ -291,17 +291,18 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
 
     if (_bl->debugLevel >= 4)
       _bl->out.printInfo(BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " M-Bus packet received (" + senderId + std::string(", RSSI: ") + std::to_string(myPacket->getRssi()) + " dBm" + "): "
-                             + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: 0x" + BaseLib::HelperFunctions::getHexString(myPacket->getDeviceId(), 16));
+                             + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: 0x" + myPacket->getDeviceIdString());
 
-    auto peer = getPeer(BaseLib::HelperFunctions::getHexString(myPacket->getDeviceId(), 16));
-    if (!peer) peer = getPeer(myPacket->secondaryAddress());
+    auto peer = getPeer(myPacket->getDeviceIdString());
+    if (!peer) peer = getPeer(BaseLib::HelperFunctions::getHexString(myPacket->getDeviceId(), 16)); //Backwards compatibility
+    if (!peer) peer = getPeer(myPacket->secondaryAddress()); //Backwards compatibility
     if (!peer) {
       if (_sniff) {
         std::lock_guard<std::mutex> sniffedPacketsGuard(_sniffedPacketsMutex);
-        auto sniffedPacketsIterator = _sniffedPackets.find(myPacket->getDeviceId());
+        auto sniffedPacketsIterator = _sniffedPackets.find(myPacket->getDeviceIdString());
         if (sniffedPacketsIterator == _sniffedPackets.end()) {
-          _sniffedPackets[myPacket->getDeviceId()].reserve(100);
-          _sniffedPackets[myPacket->getDeviceId()].push_back(myPacket);
+          _sniffedPackets[myPacket->getDeviceIdString()].reserve(100);
+          _sniffedPackets[myPacket->getDeviceIdString()].push_back(myPacket);
         } else {
           if (sniffedPacketsIterator->second.size() + 1 > sniffedPacketsIterator->second.capacity()) sniffedPacketsIterator->second.reserve(sniffedPacketsIterator->second.capacity() + 100);
           sniffedPacketsIterator->second.push_back(myPacket);
@@ -309,29 +310,27 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
       }
 
       std::lock_guard<std::mutex> devicesToPairGuard(_devicesToPairMutex);
-      auto deviceIterator = _devicesToPair.find(myPacket->getDeviceId());
+      auto deviceIterator = _devicesToPair.find(myPacket->secondaryAddress());
       if (deviceIterator != _devicesToPair.end()) {
         std::vector<uint8_t> key = BaseLib::HelperFunctions::getUBinary(deviceIterator->second);
         if (myPacket->getEncryptionMode() != 0 && key.empty()) {
-          _bl->out.printInfo("Info: Can't pair device " + BaseLib::HelperFunctions::getHexString(myPacket->getDeviceId(), 16) + ", because the communication is encrypted and the key is unknown.");
+          _bl->out.printInfo("Info: Can't pair device " + myPacket->getDeviceIdString() + ", because the communication is encrypted and the key is unknown.");
           return false;
         }
         if (!myPacket->decrypt(key) || !myPacket->dataValid()) return false;
         if (myPacket->isEncrypted() && _bl->debugLevel >= 4)
-          _bl->out.printInfo(
-              BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: 0x" + BaseLib::HelperFunctions::getHexString(
-                  myPacket->getDeviceId(), 16));
+          _bl->out.printInfo(BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: 0x" + myPacket->getDeviceIdString());
         pairDevice(myPacket, key);
-        peer = getPeer(BaseLib::HelperFunctions::getHexString(myPacket->getDeviceId(), 16));
+        peer = getPeer(myPacket->getDeviceIdString());
         if (!peer) return false;
       } else if (_pairing) {
         if (myPacket->getEncryptionMode() != 0) {
-          _bl->out.printInfo("Info: Can't pair device " + BaseLib::HelperFunctions::getHexString(myPacket->getDeviceId(), 16) + ", because the communication is encrypted and the key is unknown.");
+          _bl->out.printInfo("Info: Can't pair device " + myPacket->getDeviceIdString() + ", because the communication is encrypted and the key is unknown.");
           return false;
         } else {
           std::vector<uint8_t> key;
           pairDevice(myPacket, key);
-          peer = getPeer(BaseLib::HelperFunctions::getHexString(myPacket->getDeviceId(), 16));
+          peer = getPeer(myPacket->getDeviceIdString());
           if (!peer) return false;
         }
       } else return false;
@@ -347,8 +346,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
       if (!myPacket->decrypt(aesKey) || !myPacket->dataValid()) return false;
       if (_bl->debugLevel >= 4)
         _bl->out.printInfo(
-            BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: 0x" + BaseLib::HelperFunctions::getHexString(
-                myPacket->getDeviceId(), 16));
+            BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: 0x" + myPacket->getDeviceIdString());
       if (_bl->debugLevel >= 5) _bl->out.printDebug("Extended packet info:\n" + myPacket->getInfoString());
     }
 
@@ -356,7 +354,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
         peer->getDataRecordCount() != myPacket->dataRecordCount() ||
         (myPacket->isFormatTelegram() && peer->getFormatCrc() != myPacket->getFormatCrc()) ||
         peer->getRpcTypeString() == BaseLib::HelperFunctions::getHexString(myPacket->secondaryAddress(), 8) ||  //Convert old IDs into new ones
-        peer->getSerialNumber().compare(0, 4, "MBUS") == 0) { //Convert old serial numbers into new ones
+        peer->getSerialNumber() != myPacket->getDeviceIdString()) { //Convert old serial numbers into new ones
       if (myPacket->isEncrypted() || senderId == "ExternalInterface" || !myPacket->wireless()) {
         if ((myPacket->isFormatTelegram() || (myPacket->isDataTelegram() && !myPacket->isCompactDataTelegram()))) {
           _bl->out.printInfo(
@@ -367,7 +365,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
 
           //Pair again
           pairDevice(myPacket, key);
-          peer = getPeer(BaseLib::HelperFunctions::getHexString(myPacket->getDeviceId(), 16));
+          peer = getPeer(myPacket->getDeviceIdString());
           if (!peer) return false;
         }
       } else {
@@ -392,10 +390,10 @@ void MbusCentral::pairDevice(const PMbusPacket &packet, std::vector<uint8_t> &ke
     if (!packet->isFormatTelegram() && (!packet->isDataTelegram() || packet->isCompactDataTelegram())) return;
 
     std::lock_guard<std::mutex> pairGuard(_pairMutex);
-    Gd::out.printInfo("Info: Pairing device 0x" + BaseLib::HelperFunctions::getHexString(packet->getDeviceId(), 16) + "...");
+    Gd::out.printInfo("Info: Pairing device 0x" + packet->getDeviceIdString() + "...");
 
     bool newPeer = true;
-    auto peer = getPeer(BaseLib::HelperFunctions::getHexString(packet->getDeviceId(), 16));
+    auto peer = getPeer(packet->getDeviceIdString());
     if (!peer) peer = getPeer(packet->secondaryAddress());
 
     std::unique_lock<std::mutex> lockGuard(_peersMutex);
@@ -688,7 +686,7 @@ std::string MbusCentral::handleCliCommand(std::string command) {
         std::string bar(" │ ");
         const int32_t idWidth = 8;
         const int32_t nameWidth = 25;
-        const int32_t serialWidth = 17;
+        const int32_t serialWidth = 19;
         const int32_t addressWidth = 8;
         const int32_t typeWidth1 = 8;
         const int32_t typeWidth2 = 45;
@@ -705,7 +703,7 @@ std::string MbusCentral::handleCliCommand(std::string command) {
                      << std::setw(typeWidth1) << "Type" << bar
                      << typeStringHeader
                      << std::endl;
-        stringStream << "─────────┼───────────────────────────┼───────────────────┼──────────┼──────────┼──────────┼───────────────────────────────────────────────" << std::endl;
+        stringStream << "─────────┼───────────────────────────┼─────────────────────┼──────────┼──────────┼──────────┼───────────────────────────────────────────────" << std::endl;
         stringStream << std::setfill(' ')
                      << std::setw(idWidth) << " " << bar
                      << std::setw(nameWidth) << " " << bar
@@ -762,7 +760,7 @@ std::string MbusCentral::handleCliCommand(std::string command) {
             stringStream << std::endl << std::dec;
           }
         }
-        stringStream << "─────────┴───────────────────────────┴───────────────────┴──────────┴──────────┴──────────┴───────────────────────────────────────────────" << std::endl;
+        stringStream << "─────────┴───────────────────────────┴─────────────────────┴──────────┴──────────┴──────────┴───────────────────────────────────────────────" << std::endl;
 
         return stringStream.str();
       }

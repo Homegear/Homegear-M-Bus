@@ -541,14 +541,12 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPa
   try {
     createDirectories();
 
-    std::string id = packet->getManufacturer() + "-" + BaseLib::HelperFunctions::getHexString(packet->secondaryAddress(), 8) + "-" + std::to_string(packet->getVersion()) + "-" + std::to_string(packet->getMedium());
-
     std::shared_ptr<HomegearDevice> device = std::make_shared<HomegearDevice>(Gd::bl);
     device->version = 1;
     device->timeout = 176400; //2 days 1 hour => some devices can only be polled once per day
 
     PSupportedDevice supportedDevice = std::make_shared<SupportedDevice>(Gd::bl);
-    supportedDevice->id = id;
+    supportedDevice->id = packet->getDeviceIdString();
     supportedDevice->hardwareVersion = packet->getVersion();
     supportedDevice->manufacturer = packet->getManufacturer();
     supportedDevice->description = packet->getMediumString(packet->getMedium());
@@ -585,12 +583,12 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPa
       }
     }
 
-    std::string filename = _xmlPath + id + ".xml";
+    std::string filename = _xmlPath + packet->getDeviceIdString() + ".xml";
     device->save(filename);
 
     PeerInfo peerInfo;
     peerInfo.secondary_address = packet->secondaryAddress();
-    peerInfo.serialNumber = BaseLib::HelperFunctions::getHexString(packet->getDeviceId(), 16);
+    peerInfo.serialNumber = packet->getDeviceIdString();
     peerInfo.type = supportedDevice->typeNumber;
     return peerInfo;
   }
