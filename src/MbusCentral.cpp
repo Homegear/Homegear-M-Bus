@@ -451,7 +451,10 @@ void MbusCentral::pairDevice(const PMbusPacket &packet, std::vector<uint8_t> &ke
     peer->setWireless(packet->wireless());
     peer->setPrimaryAddress(packet->primaryAddress());
     peer->SetMedium(packet->getMedium());
-    peer->save(true, true, false);
+    peer->save(true, true, true);
+
+    //load() does some initializations
+    peer->load(this);
 
     lockGuard.lock();
     _peersBySerial[peer->getSerialNumber()] = peer;

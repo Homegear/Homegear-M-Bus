@@ -693,7 +693,7 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice &device) {
   function->variables->parameters[parameter->id] = parameter;
   parameter->writeable = false;
   parameter->service = true;
-  parameter->logical = std::make_shared<LogicalBoolean>(Gd::bl);;
+  parameter->logical = std::make_shared<LogicalBoolean>(Gd::bl);
   parameter->physical = std::make_shared<PhysicalInteger>(Gd::bl);
   parameter->physical->groupId = parameter->id;
   parameter->physical->operationType = IPhysical::OperationType::internal;
@@ -705,7 +705,7 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice &device) {
   function->variables->parameters[parameter->id] = parameter;
   parameter->sticky = true;
   parameter->service = true;
-  parameter->logical = std::make_shared<LogicalBoolean>(Gd::bl);;
+  parameter->logical = std::make_shared<LogicalBoolean>(Gd::bl);
   parameter->physical = std::make_shared<PhysicalInteger>(Gd::bl);
   parameter->physical->groupId = parameter->id;
   parameter->physical->operationType = IPhysical::OperationType::internal;
@@ -716,7 +716,7 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice &device) {
   function->variables->parameters[parameter->id] = parameter;
   parameter->sticky = true;
   parameter->service = true;
-  parameter->logical = std::make_shared<LogicalBoolean>(Gd::bl);;
+  parameter->logical = std::make_shared<LogicalBoolean>(Gd::bl);
   parameter->physical = std::make_shared<PhysicalInteger>(Gd::bl);
   parameter->physical->groupId = parameter->id;
   parameter->physical->operationType = IPhysical::OperationType::internal;
@@ -726,7 +726,7 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice &device) {
   function->variables->parametersOrdered.push_back(parameter);
   function->variables->parameters[parameter->id] = parameter;
   parameter->service = true;
-  parameter->logical = std::make_shared<LogicalInteger>(Gd::bl);;
+  parameter->logical = std::make_shared<LogicalInteger>(Gd::bl);
   parameter->physical = std::make_shared<PhysicalInteger>(Gd::bl);
   parameter->physical->groupId = parameter->id;
   parameter->physical->operationType = IPhysical::OperationType::internal;
