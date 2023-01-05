@@ -390,7 +390,7 @@ void MbusCentral::pairDevice(const PMbusPacket &packet, std::vector<uint8_t> &ke
     if (!packet->isFormatTelegram() && (!packet->isDataTelegram() || packet->isCompactDataTelegram())) return;
 
     std::lock_guard<std::mutex> pairGuard(_pairMutex);
-    Gd::out.printInfo("Info: Pairing device 0x" + packet->getDeviceIdString() + "...");
+    Gd::out.printInfo("Info: Pairing device " + packet->getDeviceIdString() + "...");
 
     bool newPeer = true;
     auto peer = getPeer(packet->getDeviceIdString());
@@ -398,6 +398,8 @@ void MbusCentral::pairDevice(const PMbusPacket &packet, std::vector<uint8_t> &ke
 
     std::unique_lock<std::mutex> lockGuard(_peersMutex);
     if (peer) {
+      Gd::out.printInfo("Info: Found peer. ID: " + std::to_string(peer->getID()));
+
       if (peer->getEncryptionMode() != packet->getEncryptionMode()) {
         _bl->out.printWarning("Warning: Encryption mode of peer " + std::to_string(peer->getID()) + " differs from encryption mode of packet. Not updating peer.");
         return;
@@ -450,9 +452,6 @@ void MbusCentral::pairDevice(const PMbusPacket &packet, std::vector<uint8_t> &ke
     peer->setPrimaryAddress(packet->primaryAddress());
     peer->SetMedium(packet->getMedium());
     peer->save(true, true, true);
-
-    //load() does some initializations
-    peer->load(this);
 
     lockGuard.lock();
     _peersBySerial[peer->getSerialNumber()] = peer;
