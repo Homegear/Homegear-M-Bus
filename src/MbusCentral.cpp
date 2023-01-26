@@ -543,8 +543,15 @@ void MbusCentral::deletePeer(uint64_t id) {
 
 void MbusCentral::PollPeers(bool use_secondary_address) {
   try {
-    Gd::out.printInfo("Info: Polling wired M-Bus peers...");
     auto peers = getPeers();
+    if (peers.empty()) {
+      last_poll_ = BaseLib::HelperFunctions::getLocalTime();
+      saveVariable(2, last_poll_.load());
+      return;
+    }
+
+    Gd::out.printInfo("Info: Polling wired M-Bus peers...");
+
     bool polled = false;
     for (auto &peer: peers) {
       auto mbus_peer = std::dynamic_pointer_cast<MbusPeer>(peer);
@@ -684,11 +691,11 @@ std::string MbusCentral::handleCliCommand(std::string command) {
         }
         std::string bar(" │ ");
         const int32_t idWidth = 8;
-        const int32_t nameWidth = 25;
+        const int32_t nameWidth = 60;
         const int32_t serialWidth = 19;
-        const int32_t addressWidth = 8;
-        const int32_t typeWidth1 = 8;
-        const int32_t typeWidth2 = 45;
+        const int32_t addressWidth = 3;
+        const int32_t typeWidth1 = 4;
+        const int32_t typeWidth2 = 20;
         std::string nameHeader("Name");
         nameHeader.resize(nameWidth, ' ');
         std::string typeStringHeader("Type Description");
@@ -697,12 +704,12 @@ std::string MbusCentral::handleCliCommand(std::string command) {
                      << std::setw(idWidth) << "ID" << bar
                      << nameHeader << bar
                      << std::setw(serialWidth) << "Serial Number" << bar
-                     << std::setw(addressWidth) << "P. Addr." << bar
-                     << std::setw(addressWidth) << "S. Addr." << bar
+                     << std::setw(addressWidth) << "PrA" << bar
+                     << std::setw(addressWidth) << "SecA" << bar
                      << std::setw(typeWidth1) << "Type" << bar
                      << typeStringHeader
                      << std::endl;
-        stringStream << "─────────┼───────────────────────────┼─────────────────────┼──────────┼──────────┼──────────┼───────────────────────────────────────────────" << std::endl;
+        stringStream << "─────────┼──────────────────────────────────────────────────────────────┼─────────────────────┼─────┼──────────┼──────┼─────────────────────" << std::endl;
         stringStream << std::setfill(' ')
                      << std::setw(idWidth) << " " << bar
                      << std::setw(nameWidth) << " " << bar
@@ -759,7 +766,7 @@ std::string MbusCentral::handleCliCommand(std::string command) {
             stringStream << std::endl << std::dec;
           }
         }
-        stringStream << "─────────┴───────────────────────────┴─────────────────────┴──────────┴──────────┴──────────┴───────────────────────────────────────────────" << std::endl;
+        stringStream << "─────────┴──────────────────────────────────────────────────────────────┴─────────────────────┴─────┴──────────┴──────┴─────────────────────" << std::endl;
 
         return stringStream.str();
       }

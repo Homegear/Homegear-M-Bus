@@ -26,6 +26,8 @@ DescriptionCreator::DescriptionCreator() {
   vif_info_[7] = VifInfo("ENERGY", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 10, VifScaleOperation::kMultiplication);
   for (uint32_t i = 0; i <= 7; i++) {
     vif_info_.at(i).medium_role_map.emplace(0x02, 900201);
+    vif_info_.at(i).medium_role_map.emplace(0x102, 900203);
+    vif_info_.at(i).medium_role_map.emplace(0x202, 900205);
     vif_info_.at(i).medium_role_map.emplace(0x04, 900401);
     vif_info_.at(i).medium_role_map.emplace(0x0C, 900401);
   }
@@ -858,10 +860,12 @@ void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_in
       parameter->casts.emplace_back(std::move(cast2));
     }
 
-    if (dataRecord.difFunction == MbusPacket::DifFunction::instantaneousValue && dataRecord.subunit == -1 && (dataRecord.storageNumber == 0 || dataRecord.storageNumber == 1) && (dataRecord.tariff == -1 || dataRecord.tariff == 1)) {
-      auto role_iterator = vif_info.medium_role_map.find(medium);
+    if (dataRecord.difFunction == MbusPacket::DifFunction::instantaneousValue && dataRecord.subunit == -1 && (dataRecord.storageNumber == 0 || dataRecord.storageNumber == 1)) {
+      auto map_key = medium;
+      if (dataRecord.tariff > 0) medium |= (dataRecord.tariff << 8);
+      auto role_iterator = vif_info.medium_role_map.find(map_key);
       if (role_iterator != vif_info.medium_role_map.end()) {
-        if ((dataRecord.tariff == -1 && dataRecord.storageNumber == 0) || used_roles.find(role_iterator->second) == used_roles.end()) {
+        if (dataRecord.storageNumber == 0 || used_roles.find(role_iterator->second) == used_roles.end()) {
           parameter->roles.emplace(role_iterator->second, Role(role_iterator->second, RoleDirection::input, false, false, {}));
           used_roles.emplace(role_iterator->second);
         }

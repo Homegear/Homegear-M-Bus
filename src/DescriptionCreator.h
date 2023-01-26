@@ -41,7 +41,7 @@ class DescriptionCreator {
     BaseLib::DeviceDescription::UnitCode unit_code = BaseLib::DeviceDescription::UnitCode::kUndefined;
     int32_t unit_scale_factor = 1;
     VifScaleOperation unit_scale_operation = VifScaleOperation::kMultiplication;
-    std::unordered_map<uint8_t, int64_t> medium_role_map;
+    std::unordered_map<uint16_t, int64_t> medium_role_map;
   };
 
   std::map<uint8_t, VifInfo> vif_info_;
