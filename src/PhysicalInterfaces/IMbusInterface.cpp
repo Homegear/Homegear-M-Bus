@@ -41,14 +41,8 @@ void IMbusInterface::GetSerialResponse(std::vector<uint8_t> &request_packet, std
     requestsGuard.unlock();
     std::unique_lock<std::mutex> lock(request->mutex);
 
-    try {
-      if (_bl->debugLevel >= 5) Gd::out.printDebug("Debug: Sending packet " + BaseLib::HelperFunctions::getHexString(request_packet));
-      RawSend(request_packet);
-    }
-    catch (const BaseLib::SocketOperationException &ex) {
-      _out.printError("Error sending packet: " + std::string(ex.what()));
-      return;
-    }
+    if (_bl->debugLevel >= 5) Gd::out.printDebug("Debug: Sending packet " + BaseLib::HelperFunctions::getHexString(request_packet));
+    RawSend(request_packet);
 
     if (!request->condition_variable.wait_for(lock, std::chrono::milliseconds(10000), [&] { return request->mutex_ready; })) {
       _out.printError("Error: No response received to packet: " + BaseLib::HelperFunctions::getHexString(request_packet));

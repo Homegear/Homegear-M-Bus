@@ -33,9 +33,18 @@ void Tcp::startListening() {
       return;
     }
 
-    socket_ = std::make_shared<BaseLib::TcpSocket>(Gd::bl, _settings->host, _settings->port, !_settings->caFile.empty(), _settings->caFile, true);
-    socket_->setConnectionRetries(1);
-    socket_->setReadTimeout(100000);
+    C1Net::TcpSocketInfo tcp_socket_info;
+
+    C1Net::TcpSocketHostInfo tcp_socket_host_info{
+        .host = _settings->host,
+        .port = (uint16_t)BaseLib::Math::getUnsignedNumber(_settings->port),
+        .tls = !_settings->caFile.empty(),
+        .verify_certificate = _settings->verifyCertificate,
+        .ca_file = _settings->caFile,
+        .connection_retries = 1
+    };
+
+    socket_ = std::make_unique<C1Net::TcpSocket>(tcp_socket_info, tcp_socket_host_info);
 
     _stopped = false;
 
@@ -190,7 +199,7 @@ void Tcp::GetMbusResponse(uint8_t response_type, const std::vector<uint8_t> &req
     try {
       RawSend(request_packet);
     }
-    catch (const BaseLib::SocketOperationException &ex) {
+    catch (const C1Net::Exception &ex) {
       _out.printError("Error sending packet: " + std::string(ex.what()));
       return;
     }
@@ -223,7 +232,7 @@ void Tcp::RawSend(const std::vector<uint8_t> &packet) {
     }
 
     if (Gd::bl->debugLevel >= 4) _out.printInfo("Info: Sending packet " + BaseLib::HelperFunctions::getHexString(packet));
-    socket_->proofwrite((char *)packet.data(), packet.size());
+    socket_->Send(packet);
   }
   catch (const std::exception &ex) {
     _out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
@@ -232,16 +241,17 @@ void Tcp::RawSend(const std::vector<uint8_t> &packet) {
 
 void Tcp::Listen() {
   try {
-    BaseLib::TcpSocket::TcpPacket data;
+    C1Net::TcpPacket data;
     std::vector<uint8_t> buffer(4096);
     uint32_t bytes_received = 0;
     int64_t last_activity = 0;
+    bool more_data = false;
 
     while (!_stopped) {
       try {
-        if (!socket_->connected()) {
-          socket_->open();
-          if (!socket_->connected()) {
+        if (!socket_->Connected()) {
+          socket_->Open();
+          if (!socket_->Connected()) {
             _out.printWarning("Warning: Not connected to socket.");
             for (int32_t i = 0; i < 10; i++) {
               std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -252,7 +262,7 @@ void Tcp::Listen() {
           _out.printInfo("Info: Connected.");
         }
 
-        bytes_received = socket_->proofread((char *)buffer.data(), (int32_t)buffer.size());
+        bytes_received = socket_->Read(buffer.data(), buffer.size(), more_data);
 
         if (BaseLib::HelperFunctions::getTime() - last_activity > 2000 && !data.empty()) {
           _out.printWarning("Warning: Discarding packet buffer: " + BaseLib::HelperFunctions::getHexString(data));
@@ -322,22 +332,22 @@ void Tcp::Listen() {
           }
         }
       }
-      catch (BaseLib::SocketClosedException &ex) {
-        socket_->close();
+      catch (const C1Net::ClosedException &ex) {
+        socket_->Shutdown();
         _out.printWarning("Warning: Connection to server closed.");
         continue;
       }
-      catch (BaseLib::SocketTimeOutException &ex) {
+      catch (const C1Net::TimeoutException &ex) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         continue;
       }
-      catch (BaseLib::SocketOperationException &ex) {
-        socket_->close();
+      catch (const C1Net::Exception &ex) {
+        socket_->Shutdown();
         _out.printError("Error: " + std::string(ex.what()));
         continue;
       }
       catch (const std::exception &ex) {
-        socket_->close();
+        socket_->Shutdown();
         _out.printError("Error: " + std::string(ex.what()));
         continue;
       }
