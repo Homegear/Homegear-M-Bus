@@ -861,8 +861,8 @@ void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_in
     }
 
     if (dataRecord.difFunction == MbusPacket::DifFunction::instantaneousValue && dataRecord.subunit == -1 && (dataRecord.storageNumber == 0 || dataRecord.storageNumber == 1)) {
-      auto map_key = medium;
       if (dataRecord.tariff > 0) medium |= (dataRecord.tariff << 8);
+      auto map_key = medium;
       auto role_iterator = vif_info.medium_role_map.find(map_key);
       if (role_iterator != vif_info.medium_role_map.end()) {
         if (dataRecord.storageNumber == 0 || used_roles.find(role_iterator->second) == used_roles.end()) {
