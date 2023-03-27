@@ -86,13 +86,15 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         //}}}
 
         //{{{ Send SND_NKE a second time in case it was not received
-        response_packet.clear();
-        GetMbusResponse(0xE5, request_packet, response_packet);
-        if (response_packet.empty()) continue;
+        if (!fast_mode) {
+          response_packet.clear();
+          GetMbusResponse(0xE5, request_packet, response_packet);
+          if (response_packet.empty()) continue;
 
-        for (uint32_t i = 0; i < 50; i++) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(100));
-          if (_stopped) return;
+          for (uint32_t i = 0; i < 50; i++) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            if (_stopped) return;
+          }
         }
         //}}}
 
@@ -134,11 +136,13 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         //}}}
 
         //{{{ Send SND_NKE a second time in case it was not received
-        RawSend(request_packet_1);
+        if (!fast_mode) {
+          RawSend(request_packet_1);
 
-        for (uint32_t i = 0; i < 50; i++) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(100));
-          if (_stopped) return;
+          for (uint32_t i = 0; i < 50; i++) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            if (_stopped) return;
+          }
         }
         //}}}
 

@@ -569,13 +569,13 @@ void MbusCentral::PollPeers(bool use_secondary_address) {
         auto primary_address = mbus_peer->getPrimaryAddress();
         peer.reset(); //Release peer so readding works in onPacketReceived. Otherwise the peer can't be deleted.
         mbus_peer.reset();
-        interface->Poll(std::vector<uint8_t>{(uint8_t)primary_address}, std::vector<int32_t>{});
+        interface->Poll(std::vector<uint8_t>{(uint8_t)primary_address}, std::vector<int32_t>{}, false);
       } else {
         Gd::out.printInfo("Info: Polling wired M-Bus peer " + std::to_string(mbus_peer->getID()) + " using secondary address " + BaseLib::HelperFunctions::getHexString(mbus_peer->getAddress(), 8) + "...");
         auto secondary_address = mbus_peer->getAddress();
         peer.reset(); //Release peer so readding works in onPacketReceived. Otherwise the peer can't be deleted.
         mbus_peer.reset();
-        interface->Poll(std::vector<uint8_t>{}, std::vector<int32_t>{secondary_address});
+        interface->Poll(std::vector<uint8_t>{}, std::vector<int32_t>{secondary_address}, false);
       }
 
       polled = true;
@@ -1223,6 +1223,8 @@ BaseLib::PVariable MbusCentral::poll(const PRpcClientInfo &clientInfo, const PAr
     if (parameters->empty()) return BaseLib::Variable::createError(-1, "Wrong parameter count.");
     if (parameters->at(0)->type != BaseLib::VariableType::tBoolean && parameters->at(0)->type != BaseLib::VariableType::tArray) return BaseLib::Variable::createError(-1, "Parameter 1 is not of type Boolean or Array.");
     if (parameters->size() > 1 && parameters->at(1)->type != BaseLib::VariableType::tString) return BaseLib::Variable::createError(-1, "Parameter 2 is not of type Boolean or String.");
+    if (parameters->size() > 2 && parameters->at(2)->type != BaseLib::VariableType::tBoolean) return BaseLib::Variable::createError(-1, "Parameter 3 is not of type Boolean.");
+    bool fast_mode = parameters->size() > 2 && parameters->at(2)->booleanValue;
 
     if (parameters->at(0)->type == BaseLib::VariableType::tBoolean) {
       auto use_secondary_address = parameters->at(0)->booleanValue;
@@ -1242,18 +1244,18 @@ BaseLib::PVariable MbusCentral::poll(const PRpcClientInfo &clientInfo, const PAr
           auto secondary_address = mbus_peer->getAddress();
           peer.reset(); //Release peer so readding works in onPacketReceived. Otherwise the peer can't be deleted.
           mbus_peer.reset();
-          interface->Poll(std::vector<uint8_t>{}, std::vector<int32_t>{secondary_address});
+          interface->Poll(std::vector<uint8_t>{}, std::vector<int32_t>{secondary_address}, fast_mode);
         } else {
           auto primary_address = mbus_peer->getPrimaryAddress();
           if (primary_address == -1) continue;
           peer.reset(); //Release peer so readding works in onPacketReceived. Otherwise the peer can't be deleted.
           mbus_peer.reset();
-          interface->Poll(std::vector<uint8_t>{(uint8_t)primary_address}, std::vector<int32_t>{});
+          interface->Poll(std::vector<uint8_t>{(uint8_t)primary_address}, std::vector<int32_t>{}, fast_mode);
         }
       }
     } else {
       std::shared_ptr<IMbusInterface> interface;
-      if (parameters->size() > 1) interface = Gd::interfaces->getInterface(parameters->at(1)->stringValue);
+      if (parameters->size() > 1 && !parameters->at(1)->stringValue.empty()) interface = Gd::interfaces->getInterface(parameters->at(1)->stringValue);
       else interface = Gd::interfaces->getDefaultInterface();
 
       std::vector<uint8_t> primary_addresses;
@@ -1269,7 +1271,7 @@ BaseLib::PVariable MbusCentral::poll(const PRpcClientInfo &clientInfo, const PAr
           if (address > 0 && address < 0xFD) primary_addresses.emplace_back(address);
         }
       }
-      interface->Poll(primary_addresses, secondary_addresses);
+      interface->Poll(primary_addresses, secondary_addresses, fast_mode);
     }
 
     return std::make_shared<BaseLib::Variable>();
