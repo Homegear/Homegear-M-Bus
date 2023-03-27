@@ -30,6 +30,7 @@ DescriptionCreator::DescriptionCreator() {
     vif_info_.at(i).medium_role_map.emplace(0x202, 900205);
     vif_info_.at(i).medium_role_map.emplace(0x04, 900401);
     vif_info_.at(i).medium_role_map.emplace(0x0C, 900401);
+    vif_info_.at(i).medium_role_map.emplace(0x0D, 900401);
   }
 
   //J
@@ -69,6 +70,7 @@ DescriptionCreator::DescriptionCreator() {
     vif_info_.at(i).medium_role_map.emplace(0x03, 900301);
     vif_info_.at(i).medium_role_map.emplace(0x04, 900406);
     vif_info_.at(i).medium_role_map.emplace(0x0C, 900406);
+    vif_info_.at(i).medium_role_map.emplace(0x0D, 900406);
     vif_info_.at(i).medium_role_map.emplace(0x06, 900601);
     vif_info_.at(i).medium_role_map.emplace(0x07, 900101);
     vif_info_.at(i).medium_role_map.emplace(0x15, 900601);

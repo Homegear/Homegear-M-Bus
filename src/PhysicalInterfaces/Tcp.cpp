@@ -67,10 +67,10 @@ void Tcp::stopListening() {
   }
 }
 
-void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<int32_t> &secondary_addresses) {
+void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<int32_t> &secondary_addresses, bool fast_mode) {
   try {
     for (auto &address: primary_addresses) {
-      for (unsigned int retries = 0; retries < 3; retries++) {
+      for (unsigned int retries = 0; retries < (fast_mode ? 1 : 3); retries++) {
         //{{{ Send SND_NKE
         std::vector<uint8_t> request_packet{0x10, 0x40, address, 0, 0x16};
         addCrc8(request_packet);
