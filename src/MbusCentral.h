@@ -81,7 +81,7 @@ class MbusCentral : public BaseLib::Systems::ICentral {
   void deletePeer(uint64_t id);
 
   void pairingModeTimer(int32_t duration, bool debugOutput = true);
-  void pairDevice(const PMbusPacket& packet, std::vector<uint8_t> &key);
+  void pairDevice(const PMbusPacket& packet, std::vector<uint8_t> &key, const std::string &interfaceId);
 
   void PollPeers(bool use_secondary_address);
 

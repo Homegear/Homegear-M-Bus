@@ -291,7 +291,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
 
     if (_bl->debugLevel >= 4)
       _bl->out.printInfo(BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " M-Bus packet received (" + senderId + std::string(", RSSI: ") + std::to_string(myPacket->getRssi()) + " dBm" + "): "
-                             + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: 0x" + myPacket->getDeviceIdString());
+                             + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: " + myPacket->getDeviceIdString());
 
     auto peer = getPeer(myPacket->getDeviceIdString());
     if (!peer) peer = getPeer(BaseLib::HelperFunctions::getHexString(myPacket->getDeviceId(), 16)); //Backwards compatibility
@@ -320,7 +320,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
         if (!myPacket->decrypt(key) || !myPacket->dataValid()) return false;
         if (myPacket->isEncrypted() && _bl->debugLevel >= 4)
           _bl->out.printInfo(BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: 0x" + myPacket->getDeviceIdString());
-        pairDevice(myPacket, key);
+        pairDevice(myPacket, key, senderId);
         peer = getPeer(myPacket->getDeviceIdString());
         if (!peer) return false;
       } else if (_pairing) {
@@ -329,7 +329,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
           return false;
         } else {
           std::vector<uint8_t> key;
-          pairDevice(myPacket, key);
+          pairDevice(myPacket, key, senderId);
           peer = getPeer(myPacket->getDeviceIdString());
           if (!peer) return false;
         }
@@ -364,7 +364,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
           peer.reset();
 
           //Pair again
-          pairDevice(myPacket, key);
+          pairDevice(myPacket, key, senderId);
           peer = getPeer(myPacket->getDeviceIdString());
           if (!peer) return false;
         }
@@ -385,7 +385,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
   return false;
 }
 
-void MbusCentral::pairDevice(const PMbusPacket &packet, std::vector<uint8_t> &key) {
+void MbusCentral::pairDevice(const PMbusPacket &packet, std::vector<uint8_t> &key, const std::string &interfaceId) {
   try {
     if (!packet->isFormatTelegram() && (!packet->isDataTelegram() || packet->isCompactDataTelegram())) return;
 
@@ -443,6 +443,7 @@ void MbusCentral::pairDevice(const PMbusPacket &packet, std::vector<uint8_t> &ke
 
     peer->initializeCentralConfig();
 
+    peer->setPhysicalInterfaceId(interfaceId);
     peer->setAesKey(key);
     peer->setControlInformation(packet->getControlInformation());
     peer->setDataRecordCount(packet->dataRecordCount());
@@ -693,31 +694,37 @@ std::string MbusCentral::handleCliCommand(std::string command) {
         const int32_t idWidth = 8;
         const int32_t nameWidth = 60;
         const int32_t serialWidth = 19;
-        const int32_t addressWidth = 3;
+        const int32_t primaryAddressWidth = 3;
+        const int32_t secondaryAddressWidth = 8;
         const int32_t typeWidth1 = 4;
         const int32_t typeWidth2 = 20;
+        const int32_t interfaceWidth = 10;
         std::string nameHeader("Name");
         nameHeader.resize(nameWidth, ' ');
         std::string typeStringHeader("Type Description");
         typeStringHeader.resize(typeWidth2, ' ');
+        std::string interfaceHeader("Interface");
+        interfaceHeader.resize(interfaceWidth, ' ');
         stringStream << std::setfill(' ')
                      << std::setw(idWidth) << "ID" << bar
                      << nameHeader << bar
                      << std::setw(serialWidth) << "Serial Number" << bar
-                     << std::setw(addressWidth) << "PrA" << bar
-                     << std::setw(addressWidth) << "SecA" << bar
+                     << std::setw(primaryAddressWidth) << "PrA" << bar
+                     << std::setw(secondaryAddressWidth) << "SecA" << bar
                      << std::setw(typeWidth1) << "Type" << bar
-                     << typeStringHeader
+                     << typeStringHeader << bar
+                     << interfaceHeader
                      << std::endl;
-        stringStream << "─────────┼──────────────────────────────────────────────────────────────┼─────────────────────┼─────┼──────────┼──────┼─────────────────────" << std::endl;
+        stringStream << "─────────┼──────────────────────────────────────────────────────────────┼─────────────────────┼─────┼──────────┼──────┼──────────────────────┼───────────" << std::endl;
         stringStream << std::setfill(' ')
                      << std::setw(idWidth) << " " << bar
                      << std::setw(nameWidth) << " " << bar
                      << std::setw(serialWidth) << " " << bar
-                     << std::setw(addressWidth) << " " << bar
-                     << std::setw(addressWidth) << " " << bar
+                     << std::setw(primaryAddressWidth) << " " << bar
+                     << std::setw(secondaryAddressWidth) << " " << bar
                      << std::setw(typeWidth1) << " " << bar
-                     << std::setw(typeWidth2)
+                     << std::setw(typeWidth2) << " " << bar
+                     << std::setw(interfaceWidth) << " "
                      << std::endl;
 
         {
@@ -750,8 +757,8 @@ std::string MbusCentral::handleCliCommand(std::string command) {
             } else name.resize(nameWidth + (name.size() - nameSize), ' ');
             stringStream << name << bar
                          << std::setw(serialWidth) << peer.second->getSerialNumber() << bar
-                         << std::setw(addressWidth) << std::to_string(mbus_peer->getPrimaryAddress()) << bar
-                         << std::setw(addressWidth) << BaseLib::HelperFunctions::getHexString(peer.second->getAddress(), 8) << bar
+                         << std::setw(primaryAddressWidth) << std::to_string(mbus_peer->getPrimaryAddress()) << bar
+                         << std::setw(primaryAddressWidth) << BaseLib::HelperFunctions::getHexString(peer.second->getAddress(), 8) << bar
                          << std::setw(typeWidth1) << ("0x" + BaseLib::HelperFunctions::getHexString(mbus_peer->GetMedium(), 2)) << bar;
             if (peer.second->getRpcDevice()) {
               PSupportedDevice type = peer.second->getRpcDevice()->getType(peer.second->getDeviceType(), peer.second->getFirmwareVersion());
@@ -761,12 +768,22 @@ std::string MbusCentral::handleCliCommand(std::string command) {
                 typeID.resize(typeWidth2 - 3);
                 typeID += "...";
               } else typeID.resize(typeWidth2, ' ');
-              stringStream << typeID;
-            } else stringStream << std::setw(typeWidth2);
+              stringStream << typeID << bar;
+            } else stringStream << std::setw(typeWidth2) << bar;
+            if (mbus_peer->getPhysicalInterfaceId().empty()) {
+              stringStream << std::setw(interfaceWidth);
+            } else {
+              auto interface = mbus_peer->getPhysicalInterfaceId();
+              if (interface.size() > (unsigned)interfaceWidth) {
+                interface.resize(interfaceWidth - 3);
+                interface += "...";
+              } else interface.resize(typeWidth2, ' ');
+              stringStream << interface;
+            }
             stringStream << std::endl << std::dec;
           }
         }
-        stringStream << "─────────┴──────────────────────────────────────────────────────────────┴─────────────────────┴─────┴──────────┴──────┴─────────────────────" << std::endl;
+        stringStream << "─────────┴──────────────────────────────────────────────────────────────┴─────────────────────┴─────┴──────────┴──────┴──────────────────────┴───────────" << std::endl;
 
         return stringStream.str();
       }
