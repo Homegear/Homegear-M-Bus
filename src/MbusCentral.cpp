@@ -758,7 +758,7 @@ std::string MbusCentral::handleCliCommand(std::string command) {
             stringStream << name << bar
                          << std::setw(serialWidth) << peer.second->getSerialNumber() << bar
                          << std::setw(primaryAddressWidth) << std::to_string(mbus_peer->getPrimaryAddress()) << bar
-                         << std::setw(primaryAddressWidth) << BaseLib::HelperFunctions::getHexString(peer.second->getAddress(), 8) << bar
+                         << std::setw(secondaryAddressWidth) << BaseLib::HelperFunctions::getHexString(peer.second->getAddress(), 8) << bar
                          << std::setw(typeWidth1) << ("0x" + BaseLib::HelperFunctions::getHexString(mbus_peer->GetMedium(), 2)) << bar;
             if (peer.second->getRpcDevice()) {
               PSupportedDevice type = peer.second->getRpcDevice()->getType(peer.second->getDeviceType(), peer.second->getFirmwareVersion());

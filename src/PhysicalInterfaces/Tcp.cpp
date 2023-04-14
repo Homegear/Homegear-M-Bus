@@ -79,7 +79,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         GetMbusResponse(0xE5, request_packet, response_packet);
         if (response_packet.empty()) continue;
 
-        for (uint32_t i = 0; i < 50; i++) {
+        for (uint32_t i = 0; i < 10; i++) {
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
           if (_stopped) return;
         }
@@ -91,7 +91,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
           GetMbusResponse(0xE5, request_packet, response_packet);
           if (response_packet.empty()) continue;
 
-          for (uint32_t i = 0; i < 50; i++) {
+          for (uint32_t i = 0; i < 10; i++) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             if (_stopped) return;
           }
@@ -109,7 +109,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
           if (mbus_packet->headerValid()) {
             raisePacketReceived(mbus_packet);
 
-            for (uint32_t i = 0; i < 100; i++) {
+            for (uint32_t i = 0; i < 50; i++) {
               std::this_thread::sleep_for(std::chrono::milliseconds(100));
               if (_stopped) return;
             }
@@ -122,14 +122,14 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
     }
 
     for (auto &address: secondary_addresses) {
-      for (unsigned int retries = 0; retries < 3; retries++) {
+      for (unsigned int retries = 0; retries < (fast_mode ? 1 : 3); retries++) {
         //{{{ Send SND_NKE
         std::vector<uint8_t> request_packet_1{0x10, 0x40, 0xFF, 0, 0x16};
         addCrc8(request_packet_1);
 
         RawSend(request_packet_1);
 
-        for (uint32_t i = 0; i < 50; i++) {
+        for (uint32_t i = 0; i < 10; i++) {
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
           if (_stopped) return;
         }
@@ -139,7 +139,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         if (!fast_mode) {
           RawSend(request_packet_1);
 
-          for (uint32_t i = 0; i < 50; i++) {
+          for (uint32_t i = 0; i < 10; i++) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             if (_stopped) return;
           }
@@ -171,7 +171,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
           if (mbus_packet->headerValid()) {
             raisePacketReceived(mbus_packet);
 
-            for (uint32_t i = 0; i < 100; i++) {
+            for (uint32_t i = 0; i < 50; i++) {
               std::this_thread::sleep_for(std::chrono::milliseconds(100));
               if (_stopped) return;
             }
