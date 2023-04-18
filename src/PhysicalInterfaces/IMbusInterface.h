@@ -16,7 +16,7 @@ class IMbusInterface : public BaseLib::Systems::IPhysicalInterface {
   void stopListening() override;
 
   void sendPacket(std::shared_ptr<BaseLib::Systems::Packet> packet) override {}
-  virtual void Poll(const std::vector<uint8_t>& primary_addresses, const std::vector<int32_t>& secondary_addresses, bool fast_mode) {}
+  virtual void Poll(const std::vector<uint8_t>& primary_addresses, const std::vector<int32_t>& secondary_addresses, bool fast_mode, bool force) {}
  protected:
   struct Request {
     std::mutex mutex;

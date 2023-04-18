@@ -67,16 +67,31 @@ void Tcp::stopListening() {
   }
 }
 
-void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<int32_t> &secondary_addresses, bool fast_mode) {
+void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<int32_t> &secondary_addresses, bool fast_mode, bool force) {
   try {
+    static std::atomic_bool abort_polling{false};
+    static std::mutex poll_mutex;
+
+    std::unique_lock<std::mutex> poll_guard(poll_mutex);
+    if (!poll_guard.try_lock()) {
+      if (force) abort_polling = true;
+      else return;
+    } else {
+      poll_guard.unlock();
+    }
+
+    poll_guard.lock();
+    abort_polling = false;
     for (auto &address: primary_addresses) {
       for (unsigned int retries = 0; retries < (fast_mode ? 1 : 3); retries++) {
+        if (abort_polling) return;
+
         //{{{ Send SND_NKE
         std::vector<uint8_t> request_packet{0x10, 0x40, address, 0, 0x16};
         addCrc8(request_packet);
 
         std::vector<uint8_t> response_packet;
-        GetMbusResponse(0xE5, request_packet, response_packet);
+        GetMbusResponse(0xE5, request_packet, response_packet, 1000);
         if (response_packet.empty()) continue;
 
         for (uint32_t i = 0; i < 10; i++) {
@@ -88,7 +103,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         //{{{ Send SND_NKE a second time in case it was not received
         if (!fast_mode) {
           response_packet.clear();
-          GetMbusResponse(0xE5, request_packet, response_packet);
+          GetMbusResponse(0xE5, request_packet, response_packet, 1000);
           if (response_packet.empty()) continue;
 
           for (uint32_t i = 0; i < 10; i++) {
@@ -103,7 +118,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         addCrc8(request_packet);
 
         response_packet.clear();
-        GetMbusResponse(0x68, request_packet, response_packet);
+        GetMbusResponse(0x68, request_packet, response_packet, 5000);
         if (!response_packet.empty()) {
           PMbusPacket mbus_packet = std::make_shared<MbusPacket>(response_packet);
           if (mbus_packet->headerValid()) {
@@ -123,6 +138,8 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
 
     for (auto &address: secondary_addresses) {
       for (unsigned int retries = 0; retries < (fast_mode ? 1 : 3); retries++) {
+        if (abort_polling) return;
+
         //{{{ Send SND_NKE
         std::vector<uint8_t> request_packet_1{0x10, 0x40, 0xFF, 0, 0x16};
         addCrc8(request_packet_1);
@@ -151,7 +168,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         addCrc8(request_packet_2);
 
         std::vector<uint8_t> response_packet;
-        GetMbusResponse(0xE5, request_packet_2, response_packet);
+        GetMbusResponse(0xE5, request_packet_2, response_packet, 1000);
         if (response_packet.empty()) continue;
 
         for (uint32_t i = 0; i < 50; i++) {
@@ -165,7 +182,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         addCrc8(request_packet_3);
 
         response_packet.clear();
-        GetMbusResponse(0x68, request_packet_3, response_packet);
+        GetMbusResponse(0x68, request_packet_3, response_packet, 5000);
         if (!response_packet.empty()) {
           PMbusPacket mbus_packet = std::make_shared<MbusPacket>(response_packet);
           if (mbus_packet->headerValid()) {
@@ -188,7 +205,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
   }
 }
 
-void Tcp::GetMbusResponse(uint8_t response_type, const std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet) {
+void Tcp::GetMbusResponse(uint8_t response_type, const std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet, uint32_t timeout) {
   try {
     if (_stopped || request_packet.empty()) return;
     response_packet.clear();
@@ -210,7 +227,7 @@ void Tcp::GetMbusResponse(uint8_t response_type, const std::vector<uint8_t> &req
 
     auto start_time = BaseLib::HelperFunctions::getTime();
     while (!request->condition_variable.wait_for(wait_lock, std::chrono::milliseconds(1000), [&] {
-      return request->mutex_ready || _stopped || BaseLib::HelperFunctions::getTime() - start_time > 15000;
+      return request->mutex_ready || _stopped || BaseLib::HelperFunctions::getTime() - start_time > timeout;
     }));
 
     if (!request->mutex_ready) {

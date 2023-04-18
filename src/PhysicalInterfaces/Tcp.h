@@ -18,13 +18,13 @@ class Tcp : public IMbusInterface {
   void stopListening() override;
 
   bool isOpen() override { return !_stopped && socket_ && socket_->Connected(); }
-  void Poll(const std::vector<uint8_t>& primary_addresses, const std::vector<int32_t>& secondary_addresses, bool fast_mode) override;
+  void Poll(const std::vector<uint8_t>& primary_addresses, const std::vector<int32_t>& secondary_addresses, bool fast_mode, bool force) override;
  protected:
   std::atomic_bool _initComplete{false};
   std::thread listen_thread_;
   std::shared_ptr<C1Net::TcpSocket> socket_;
 
-  void GetMbusResponse(uint8_t response_type, const std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet);
+  void GetMbusResponse(uint8_t response_type, const std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet, uint32_t timeout = 15000);
   void RawSend(const std::vector<uint8_t> &packet) override;
   void Listen();
   void ProcessPacket(const std::vector<uint8_t> &packet);

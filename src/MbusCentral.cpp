@@ -569,13 +569,13 @@ void MbusCentral::PollPeers(bool use_secondary_address) {
         auto primary_address = mbus_peer->getPrimaryAddress();
         peer.reset(); //Release peer so readding works in onPacketReceived. Otherwise the peer can't be deleted.
         mbus_peer.reset();
-        interface->Poll(std::vector<uint8_t>{(uint8_t)primary_address}, std::vector<int32_t>{}, false);
+        interface->Poll(std::vector<uint8_t>{(uint8_t)primary_address}, std::vector<int32_t>{}, false, false);
       } else {
         Gd::out.printInfo("Info: Polling wired M-Bus peer " + std::to_string(mbus_peer->getID()) + " using secondary address " + BaseLib::HelperFunctions::getHexString(mbus_peer->getAddress(), 8) + "...");
         auto secondary_address = mbus_peer->getAddress();
         peer.reset(); //Release peer so readding works in onPacketReceived. Otherwise the peer can't be deleted.
         mbus_peer.reset();
-        interface->Poll(std::vector<uint8_t>{}, std::vector<int32_t>{secondary_address}, false);
+        interface->Poll(std::vector<uint8_t>{}, std::vector<int32_t>{secondary_address}, false, false);
       }
 
       polled = true;
@@ -1244,13 +1244,13 @@ BaseLib::PVariable MbusCentral::poll(const PRpcClientInfo &clientInfo, const PAr
           auto secondary_address = mbus_peer->getAddress();
           peer.reset(); //Release peer so readding works in onPacketReceived. Otherwise the peer can't be deleted.
           mbus_peer.reset();
-          interface->Poll(std::vector<uint8_t>{}, std::vector<int32_t>{secondary_address}, fast_mode);
+          interface->Poll(std::vector<uint8_t>{}, std::vector<int32_t>{secondary_address}, fast_mode, true);
         } else {
           auto primary_address = mbus_peer->getPrimaryAddress();
           if (primary_address == -1) continue;
           peer.reset(); //Release peer so readding works in onPacketReceived. Otherwise the peer can't be deleted.
           mbus_peer.reset();
-          interface->Poll(std::vector<uint8_t>{(uint8_t)primary_address}, std::vector<int32_t>{}, fast_mode);
+          interface->Poll(std::vector<uint8_t>{(uint8_t)primary_address}, std::vector<int32_t>{}, fast_mode, true);
         }
       }
     } else {
@@ -1271,7 +1271,7 @@ BaseLib::PVariable MbusCentral::poll(const PRpcClientInfo &clientInfo, const PAr
           if (address > 0 && address < 0xFD) primary_addresses.emplace_back(address);
         }
       }
-      interface->Poll(primary_addresses, secondary_addresses, fast_mode);
+      interface->Poll(primary_addresses, secondary_addresses, fast_mode, true);
     }
 
     return std::make_shared<BaseLib::Variable>();
