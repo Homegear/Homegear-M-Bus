@@ -72,7 +72,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
     static std::atomic_bool abort_polling{false};
     static std::mutex poll_mutex;
 
-    std::unique_lock<std::mutex> poll_guard(poll_mutex);
+    std::unique_lock<std::mutex> poll_guard(poll_mutex, std::defer_lock);
     if (!poll_guard.try_lock()) {
       if (force) abort_polling = true;
       else return;
