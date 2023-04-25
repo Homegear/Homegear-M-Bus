@@ -299,8 +299,8 @@ bool MbusPeer::load(BaseLib::Systems::ICentral *central) {
 
     auto setting = Gd::family->getFamilySetting("pollinginterval");
     if (setting) {
-      if (setting->stringValue == "weekly") _rpcDevice->timeout = 608400;
-      else if (setting->stringValue == "monthly") _rpcDevice->timeout = 2682000;
+      if (setting->stringValue == "weekly") _rpcDevice->timeout = 1213200;
+      else if (setting->stringValue == "monthly") _rpcDevice->timeout = 5360400;
     }
 
     return true;
@@ -469,7 +469,7 @@ void MbusPeer::packetReceived(PMbusPacket &packet) {
       if (!frame) continue;
 
       for (auto i = frameValue.values.begin(); i != frameValue.values.end(); ++i) {
-        for (std::list<uint32_t>::const_iterator j = frameValue.paramsetChannels.begin(); j != frameValue.paramsetChannels.end(); ++j) {
+        for (auto j = frameValue.paramsetChannels.begin(); j != frameValue.paramsetChannels.end(); ++j) {
           auto channel = (int32_t)*j;
           if (std::find(i->second.channels.begin(), i->second.channels.end(), channel) == i->second.channels.end()) continue;
           if (!valueKeys[channel] || !rpcValues[channel]) {

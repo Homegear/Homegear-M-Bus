@@ -94,7 +94,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         GetMbusResponse(0xE5, request_packet, response_packet, 1000);
         if (response_packet.empty()) continue;
 
-        for (uint32_t i = 0; i < 10; i++) {
+        for (uint32_t i = 0; i < 50; i++) {
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
           if (_stopped) return;
         }
@@ -106,7 +106,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
           GetMbusResponse(0xE5, request_packet, response_packet, 1000);
           if (response_packet.empty()) continue;
 
-          for (uint32_t i = 0; i < 10; i++) {
+          for (uint32_t i = 0; i < 50; i++) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             if (_stopped) return;
           }
@@ -124,7 +124,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
           if (mbus_packet->headerValid()) {
             raisePacketReceived(mbus_packet);
 
-            for (uint32_t i = 0; i < 50; i++) {
+            for (uint32_t i = 0; i < 100; i++) {
               std::this_thread::sleep_for(std::chrono::milliseconds(100));
               if (_stopped) return;
             }
@@ -146,7 +146,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
 
         RawSend(request_packet_1);
 
-        for (uint32_t i = 0; i < 10; i++) {
+        for (uint32_t i = 0; i < 50; i++) {
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
           if (_stopped) return;
         }
@@ -156,7 +156,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         if (!fast_mode) {
           RawSend(request_packet_1);
 
-          for (uint32_t i = 0; i < 10; i++) {
+          for (uint32_t i = 0; i < 50; i++) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             if (_stopped) return;
           }
@@ -171,7 +171,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         GetMbusResponse(0xE5, request_packet_2, response_packet, 1000);
         if (response_packet.empty()) continue;
 
-        for (uint32_t i = 0; i < 50; i++) {
+        for (uint32_t i = 0; i < 100; i++) {
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
           if (_stopped) return;
         }
@@ -188,7 +188,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
           if (mbus_packet->headerValid()) {
             raisePacketReceived(mbus_packet);
 
-            for (uint32_t i = 0; i < 50; i++) {
+            for (uint32_t i = 0; i < 100; i++) {
               std::this_thread::sleep_for(std::chrono::milliseconds(100));
               if (_stopped) return;
             }
