@@ -29,8 +29,11 @@ DescriptionCreator::DescriptionCreator() {
     vif_info_.at(i).medium_role_map.emplace(0x102, 900203);
     vif_info_.at(i).medium_role_map.emplace(0x202, 900205);
     vif_info_.at(i).medium_role_map.emplace(0x04, 900401);
+    vif_info_.at(i).medium_role_map.emplace(0x1004, 900501);
     vif_info_.at(i).medium_role_map.emplace(0x0C, 900401);
+    vif_info_.at(i).medium_role_map.emplace(0x100C, 900501);
     vif_info_.at(i).medium_role_map.emplace(0x0D, 900401);
+    vif_info_.at(i).medium_role_map.emplace(0x100D, 900501);
   }
 
   //J
@@ -877,6 +880,13 @@ void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_in
       auto role_iterator = vif_info.medium_role_map.find(map_key);
       if (role_iterator != vif_info.medium_role_map.end()) {
         if (dataRecord.storageNumber == 0 || used_roles.find(role_iterator->second) == used_roles.end()) {
+          if (used_roles.find(role_iterator->second) != used_roles.end()) {
+            //Role already used for variable with index 0. Check if there is another role at index 1 (map prefix 0x10).
+            //E. g. heat meters sometimes have ENERGY and ENERGY_2. The first is the value for heating, the latter is the value for cooling.
+            map_key |= 0x1000;
+            auto role_iterator_2 = vif_info.medium_role_map.find(map_key);
+            if (role_iterator_2 != vif_info.medium_role_map.end()) role_iterator = role_iterator_2;
+          }
           parameter->roles.emplace(role_iterator->second, Role(role_iterator->second, RoleDirection::input, false, false, {}));
           used_roles.emplace(role_iterator->second);
         }
