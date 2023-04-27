@@ -453,9 +453,24 @@ void MbusPeer::packetReceived(PMbusPacket &packet) {
     }
     std::shared_ptr<MbusCentral> central = std::dynamic_pointer_cast<MbusCentral>(getCentral());
     if (!central) return;
-    setLastPacketReceived();
     setRssiDevice(packet->getRssi() * -1);
     serviceMessages->endUnreach();
+
+    setLastPacketReceived();
+
+    { //Set LAST_PACKET
+      auto values_iterator = valuesCentral.find(0);
+      if (values_iterator != valuesCentral.end()) {
+        auto parameters_iterator = values_iterator->second.find("LAST_PACKET");
+        if (parameters_iterator != values_iterator->second.end() && parameters_iterator->second.rpcParameter) {
+          std::vector<uint8_t> parameterData;
+          parameters_iterator->second.rpcParameter->convertToPacket(std::make_shared<Variable>(BaseLib::HelperFunctions::getHexString(packet->getBinary())), parameters_iterator->second.mainRole(), parameterData);
+          parameters_iterator->second.setBinaryData(parameterData);
+          if (parameters_iterator->second.databaseId > 0) saveParameter(parameters_iterator->second.databaseId, parameterData);
+          else saveParameter(0, ParameterGroup::Type::Enum::variables, 0, "LAST_PACKET", parameterData);
+        }
+      }
+    }
 
     std::vector<FrameValues> frameValues;
     getValuesFromPacket(packet, frameValues);

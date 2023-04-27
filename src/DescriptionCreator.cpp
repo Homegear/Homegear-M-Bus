@@ -732,6 +732,15 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice &device) {
   parameter->physical = std::make_shared<PhysicalInteger>(Gd::bl);
   parameter->physical->groupId = parameter->id;
   parameter->physical->operationType = IPhysical::OperationType::internal;
+
+  parameter.reset(new Parameter(Gd::bl, function->variables));
+  parameter->id = "LAST_PACKET";
+  function->variables->parametersOrdered.push_back(parameter);
+  function->variables->parameters[parameter->id] = parameter;
+  parameter->logical = std::make_shared<LogicalString>(Gd::bl);
+  parameter->physical = std::make_shared<PhysicalNone>(Gd::bl);
+  parameter->physical->groupId = parameter->id;
+  parameter->physical->operationType = IPhysical::OperationType::internal;
   // }}}
 }
 
