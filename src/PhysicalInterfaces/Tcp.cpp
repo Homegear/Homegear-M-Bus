@@ -354,6 +354,7 @@ void Tcp::Listen() {
         }
       }
       catch (const C1Net::ClosedException &ex) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         socket_->Shutdown();
         _out.printWarning("Warning: Connection to server closed.");
         continue;
@@ -363,11 +364,13 @@ void Tcp::Listen() {
         continue;
       }
       catch (const C1Net::Exception &ex) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         socket_->Shutdown();
         _out.printError("Error: " + std::string(ex.what()));
         continue;
       }
       catch (const std::exception &ex) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         socket_->Shutdown();
         _out.printError("Error: " + std::string(ex.what()));
         continue;
