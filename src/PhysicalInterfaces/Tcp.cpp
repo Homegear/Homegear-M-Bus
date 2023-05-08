@@ -332,8 +332,9 @@ void Tcp::Listen() {
                   data.insert(data.end(), buffer.begin() + processed_bytes, buffer.begin() + processed_bytes + (bytes_received - processed_bytes));
                   processed_bytes += bytes_received;
                 } else {
-                  data.insert(data.end(), buffer.begin() + processed_bytes, buffer.begin() + processed_bytes + (5 - (int32_t)data.size()));
-                  processed_bytes += 5 - data.size();
+                  std::size_t bytes_to_process = 5 - data.size();
+                  data.insert(data.end(), buffer.begin() + processed_bytes, buffer.begin() + processed_bytes + bytes_to_process);
+                  processed_bytes += bytes_to_process;
                   ProcessPacket(data);
                   data.clear();
                 }
