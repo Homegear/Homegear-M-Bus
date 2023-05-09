@@ -72,7 +72,7 @@ void MbusCentral::init() {
                                                                                                                                                                               std::placeholders::_1,
                                                                                                                                                                               std::placeholders::_2)));
 
-    Gd::interfaces->addEventHandlers((BaseLib::Systems::IPhysicalInterface::IPhysicalInterfaceEventSink *)this);
+    Gd::interfaces->addEventHandlers((BaseLib::Systems::IPhysicalInterface::IPhysicalInterfaceEventSink *) this);
 
     Gd::bl->threadManager.start(_workerThread, true, _bl->settings.workerThreadPriority(), _bl->settings.workerThreadPolicy(), &MbusCentral::worker, this);
   }
@@ -141,11 +141,19 @@ void MbusCentral::worker() {
           else if (polling_interval == PollingInterval::kHourly) modulo = 3600000;
           else if (polling_interval == PollingInterval::kDaily) modulo = 86400000;
 
+          static int64_t last_info_packet = BaseLib::HelperFunctions::getTime();
+
           if (modulo != 0) {
             int64_t last_period_start = last_poll_ - (last_poll_ % modulo);
             int64_t current_period_start = time - (time % modulo);
 
             poll_peers = last_period_start < current_period_start;
+            if (polling_interval > PollingInterval::kHourly && BaseLib::HelperFunctions::getTime() - last_info_packet >= 3600000) {
+              last_info_packet = BaseLib::HelperFunctions::getTime();
+              Gd::out.printInfo(
+                  "Info: Polling interval is " + std::to_string(modulo / 1000) + "s. " + "Last poll: " + std::to_string(last_poll_) + ", last period start: " + std::to_string(last_period_start)
+                      + ", current period start: " + std::to_string(current_period_start));
+            }
           } else {
             std::time_t t(last_poll_.load() / 1000);
             std::tm last_local_time{};
@@ -181,8 +189,8 @@ void MbusCentral::worker() {
 void MbusCentral::loadPeers() {
   try {
     std::shared_ptr<BaseLib::Database::DataTable> rows = _bl->db->getPeers(_deviceId);
-    for (auto &row: *rows) {
-      uint64_t peerID = (uint64_t)row.second.at(0)->intValue;
+    for (auto &row : *rows) {
+      uint64_t peerID = (uint64_t) row.second.at(0)->intValue;
       Gd::out.printMessage("Loading M-Bus peer " + std::to_string(peerID));
       std::shared_ptr<MbusPeer> peer(new MbusPeer(peerID, row.second.at(2)->intValue, row.second.at(3)->textValue, _deviceId, this));
       if (!peer->load(this)) continue;
@@ -201,7 +209,7 @@ void MbusCentral::loadPeers() {
       auto serializedData = setting->binaryValue;
       BaseLib::Rpc::RpcDecoder rpcDecoder(_bl, false, false);
       auto devicesToPair = rpcDecoder.decodeResponse(serializedData);
-      for (auto &device: *devicesToPair->arrayValue) {
+      for (auto &device : *devicesToPair->arrayValue) {
         if (device->arrayValue->size() != 2 || device->arrayValue->at(0)->integerValue == 0) continue;
         _devicesToPair.emplace(device->arrayValue->at(0)->integerValue64, device->arrayValue->at(1)->stringValue);
       }
@@ -225,7 +233,7 @@ void MbusCentral::saveVariables() {
 void MbusCentral::loadVariables() {
   try {
     std::shared_ptr<BaseLib::Database::DataTable> rows = _bl->db->getDeviceVariables(_deviceId);
-    for (auto &row: *rows) {
+    for (auto &row : *rows) {
       _variableDatabaseIds[row.second.at(2)->intValue] = row.second.at(0)->intValue;
       switch (row.second.at(2)->intValue) {
         case 2: {
@@ -290,8 +298,9 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
     if (!myPacket) return false;
 
     if (_bl->debugLevel >= 4)
-      _bl->out.printInfo(BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " M-Bus packet received (" + senderId + std::string(", RSSI: ") + std::to_string(myPacket->getRssi()) + " dBm" + "): "
-                             + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: " + myPacket->getDeviceIdString());
+      _bl->out.printInfo(
+          BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " M-Bus packet received (" + senderId + std::string(", RSSI: ") + std::to_string(myPacket->getRssi()) + " dBm" + "): "
+              + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: " + myPacket->getDeviceIdString());
 
     auto peer = getPeer(myPacket->getDeviceIdString());
     if (!peer) peer = getPeer(BaseLib::HelperFunctions::getHexString(myPacket->getDeviceId(), 16)); //Backwards compatibility
@@ -319,7 +328,9 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
         }
         if (!myPacket->decrypt(key) || !myPacket->dataValid()) return false;
         if (myPacket->isEncrypted() && _bl->debugLevel >= 4)
-          _bl->out.printInfo(BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: 0x" + myPacket->getDeviceIdString());
+          _bl->out.printInfo(
+              BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: 0x"
+                  + myPacket->getDeviceIdString());
         pairDevice(myPacket, key, senderId);
         peer = getPeer(myPacket->getDeviceIdString());
         if (!peer) return false;
@@ -346,11 +357,12 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
       if (!myPacket->decrypt(aesKey) || !myPacket->dataValid()) return false;
       if (_bl->debugLevel >= 4)
         _bl->out.printInfo(
-            BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: 0x" + myPacket->getDeviceIdString());
+            BaseLib::HelperFunctions::getTimeString(myPacket->getTimeReceived()) + " Decrypted M-Bus packet: " + BaseLib::HelperFunctions::getHexString(myPacket->getBinary()) + " - Sender ID: 0x"
+                + myPacket->getDeviceIdString());
       if (_bl->debugLevel >= 5) _bl->out.printDebug("Extended packet info:\n" + myPacket->getInfoString());
     }
 
-    if (peer->getControlInformation() != (int32_t)myPacket->getControlInformation() ||
+    if (peer->getControlInformation() != (int32_t) myPacket->getControlInformation() ||
         peer->getDataRecordCount() != myPacket->dataRecordCount() ||
         (myPacket->isFormatTelegram() && peer->getFormatCrc() != myPacket->getFormatCrc()) ||
         peer->getRpcTypeString() == BaseLib::HelperFunctions::getHexString(myPacket->secondaryAddress(), 8) ||  //Convert old IDs into new ones
@@ -358,7 +370,8 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
       if (myPacket->isEncrypted() || senderId == "ExternalInterface" || !myPacket->wireless()) {
         if ((myPacket->isFormatTelegram() || (myPacket->isDataTelegram() && !myPacket->isCompactDataTelegram()))) {
           _bl->out.printInfo(
-              "Info: Packet type changed from " + std::to_string(peer->getControlInformation()) + " to " + std::to_string(myPacket->getControlInformation()) + " or data record count changed from " + std::to_string(peer->getDataRecordCount()) + " to "
+              "Info: Packet type changed from " + std::to_string(peer->getControlInformation()) + " to " + std::to_string(myPacket->getControlInformation()) + " or data record count changed from "
+                  + std::to_string(peer->getDataRecordCount()) + " to "
                   + std::to_string(myPacket->dataRecordCount()) + ". Readding peer " + std::to_string(peer->getID()) + ".");
           std::vector<uint8_t> key = peer->getAesKey();
           peer.reset();
@@ -369,7 +382,8 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
           if (!peer) return false;
         }
       } else {
-        _bl->out.printWarning("Warning: Ignoring packet with wrong control information for peer " + std::to_string(peer->getID()) + ". Not changing the peer's configuration as the packet is unencrypted.");
+        _bl->out.printWarning(
+            "Warning: Ignoring packet with wrong control information for peer " + std::to_string(peer->getID()) + ". Not changing the peer's configuration as the packet is unencrypted.");
         return false;
       }
     }
@@ -485,7 +499,7 @@ void MbusCentral::pairDevice(const PMbusPacket &packet, std::vector<uint8_t> &ke
 void MbusCentral::savePeers(bool full) {
   try {
     std::lock_guard<std::mutex> peersGuard(_peersMutex);
-    for (auto &peer_iterator: _peersById) {
+    for (auto &peer_iterator : _peersById) {
       Gd::out.printInfo("Info: Saving M-Bus peer " + std::to_string(peer_iterator.second->getID()));
       peer_iterator.second->save(full, full, full);
     }
@@ -504,7 +518,7 @@ void MbusCentral::deletePeer(uint64_t id) {
     deviceAddresses->arrayValue->push_back(std::make_shared<Variable>(peer->getSerialNumber()));
 
     PVariable deviceInfo(new Variable(VariableType::tStruct));
-    deviceInfo->structValue->insert(StructElement("ID", std::make_shared<Variable>((int32_t)peer->getID())));
+    deviceInfo->structValue->insert(StructElement("ID", std::make_shared<Variable>((int32_t) peer->getID())));
     PVariable channels(new Variable(VariableType::tArray));
     deviceInfo->structValue->insert(StructElement("CHANNELS", channels));
 
@@ -554,7 +568,7 @@ void MbusCentral::PollPeers(bool use_secondary_address) {
     Gd::out.printInfo("Info: Polling wired M-Bus peers...");
 
     bool polled = false;
-    for (auto &peer: peers) {
+    for (auto &peer : peers) {
       auto mbus_peer = std::dynamic_pointer_cast<MbusPeer>(peer);
       if (mbus_peer->wireless()) continue;
       auto interface = Gd::interfaces->getInterface(mbus_peer->getPhysicalInterfaceId());
@@ -569,9 +583,10 @@ void MbusCentral::PollPeers(bool use_secondary_address) {
         auto primary_address = mbus_peer->getPrimaryAddress();
         peer.reset(); //Release peer so readding works in onPacketReceived. Otherwise the peer can't be deleted.
         mbus_peer.reset();
-        interface->Poll(std::vector<uint8_t>{(uint8_t)primary_address}, std::vector<int32_t>{}, false, false);
+        interface->Poll(std::vector<uint8_t>{(uint8_t) primary_address}, std::vector<int32_t>{}, false, false);
       } else {
-        Gd::out.printInfo("Info: Polling wired M-Bus peer " + std::to_string(mbus_peer->getID()) + " using secondary address " + BaseLib::HelperFunctions::getHexString(mbus_peer->getAddress(), 8) + "...");
+        Gd::out.printInfo(
+            "Info: Polling wired M-Bus peer " + std::to_string(mbus_peer->getID()) + " using secondary address " + BaseLib::HelperFunctions::getHexString(mbus_peer->getAddress(), 8) + "...");
         auto secondary_address = mbus_peer->getAddress();
         peer.reset(); //Release peer so readding works in onPacketReceived. Otherwise the peer can't be deleted.
         mbus_peer.reset();
@@ -729,7 +744,7 @@ std::string MbusCentral::handleCliCommand(std::string command) {
 
         {
           std::lock_guard<std::mutex> peersGuard(_peersMutex);
-          for (auto &peer: _peersById) {
+          for (auto &peer : _peersById) {
             auto mbus_peer = std::dynamic_pointer_cast<MbusPeer>(peer.second);
             if (!mbus_peer) continue;
             if (filterType == "id") {
@@ -737,7 +752,7 @@ std::string MbusCentral::handleCliCommand(std::string command) {
               if (peer.second->getID() != id) continue;
             } else if (filterType == "name") {
               std::string name = peer.second->getName();
-              if ((signed)BaseLib::HelperFunctions::toLower(name).find(filterValue) == (signed)std::string::npos) continue;
+              if ((signed) BaseLib::HelperFunctions::toLower(name).find(filterValue) == (signed) std::string::npos) continue;
             } else if (filterType == "serial") {
               if (peer.second->getSerialNumber() != filterValue) continue;
             } else if (filterType == "address") {
@@ -745,13 +760,13 @@ std::string MbusCentral::handleCliCommand(std::string command) {
               if (peer.second->getAddress() != address) continue;
             } else if (filterType == "type") {
               int32_t deviceType = BaseLib::Math::getNumber(filterValue, true);
-              if ((int32_t)peer.second->getDeviceType() != deviceType) continue;
+              if ((int32_t) peer.second->getDeviceType() != deviceType) continue;
             }
 
             stringStream << std::setw(idWidth) << std::setfill(' ') << std::to_string(peer.second->getID()) << bar;
             std::string name = peer.second->getName();
             size_t nameSize = BaseLib::HelperFunctions::utf8StringSize(name);
-            if (nameSize > (unsigned)nameWidth) {
+            if (nameSize > (unsigned) nameWidth) {
               name = BaseLib::HelperFunctions::utf8Substring(name, 0, nameWidth - 3);
               name += "...";
             } else name.resize(nameWidth + (name.size() - nameSize), ' ');
@@ -764,7 +779,7 @@ std::string MbusCentral::handleCliCommand(std::string command) {
               PSupportedDevice type = peer.second->getRpcDevice()->getType(peer.second->getDeviceType(), peer.second->getFirmwareVersion());
               std::string typeID;
               if (type) typeID = type->description;
-              if (typeID.size() > (unsigned)typeWidth2) {
+              if (typeID.size() > (unsigned) typeWidth2) {
                 typeID.resize(typeWidth2 - 3);
                 typeID += "...";
               } else typeID.resize(typeWidth2, ' ');
@@ -774,7 +789,7 @@ std::string MbusCentral::handleCliCommand(std::string command) {
               stringStream << std::setw(interfaceWidth);
             } else {
               auto interface = mbus_peer->getPhysicalInterfaceId();
-              if (interface.size() > (unsigned)interfaceWidth) {
+              if (interface.size() > (unsigned) interfaceWidth) {
                 interface.resize(interfaceWidth - 3);
                 interface += "...";
               } else interface.resize(typeWidth2, ' ');
@@ -837,7 +852,8 @@ std::string MbusCentral::handleCliCommand(std::string command) {
       stringStream << packet.getInfoString() << std::endl << std::endl;
 
       //C1 long compact format
-      data = BaseLib::HelperFunctions::getUBinary("FF035446C5142527706403076B25277064C5140007970B00002F2F3A2D05426C441301FD17840113C40113840213C40213840313C40313840413C40413840513C40513840613C40613840713C40713840813046D04131229");
+      data = BaseLib::HelperFunctions::getUBinary(
+          "FF035446C5142527706403076B25277064C5140007970B00002F2F3A2D05426C441301FD17840113C40113840213C40213840313C40313840413C40413840513C40513840613C40613840713C40713840813046D04131229");
       packet = MbusPacket(data);
       stringStream << "Parsing packet " << BaseLib::HelperFunctions::getHexString(data) << ":" << std::endl;
       stringStream << packet.getInfoString() << std::endl << std::endl;
@@ -939,7 +955,12 @@ std::shared_ptr<MbusPeer> MbusCentral::createPeer(uint64_t deviceType, int32_t a
   return {};
 }
 
-PVariable MbusCentral::createDevice(BaseLib::PRpcClientInfo clientInfo, int32_t deviceType, std::string secondary_address_hex, int32_t primary_address, int32_t firmwareVersion, std::string interfaceId) {
+PVariable MbusCentral::createDevice(BaseLib::PRpcClientInfo clientInfo,
+                                    int32_t deviceType,
+                                    std::string secondary_address_hex,
+                                    int32_t primary_address,
+                                    int32_t firmwareVersion,
+                                    std::string interfaceId) {
   try {
     auto secondary_address = BaseLib::Math::getNumber(secondary_address_hex, true);
 
@@ -980,7 +1001,7 @@ PVariable MbusCentral::createDevice(BaseLib::PRpcClientInfo clientInfo, int32_t 
 
     Gd::out.printMessage("Added peer " + std::to_string(peer->getID()) + ".");
 
-    return std::make_shared<Variable>((uint32_t)peer->getID());
+    return std::make_shared<Variable>((uint32_t) peer->getID());
   }
   catch (const std::exception &ex) {
     Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
@@ -1035,7 +1056,7 @@ PVariable MbusCentral::getSniffedDevices(BaseLib::PRpcClientInfo clientInfo) {
 
     std::lock_guard<std::mutex> sniffedPacketsGuard(_sniffedPacketsMutex);
     array->arrayValue->reserve(_sniffedPackets.size());
-    for (auto peerPackets: _sniffedPackets) {
+    for (auto peerPackets : _sniffedPackets) {
       PVariable info(new Variable(VariableType::tStruct));
       array->arrayValue->push_back(info);
 
@@ -1046,7 +1067,7 @@ PVariable MbusCentral::getSniffedDevices(BaseLib::PRpcClientInfo clientInfo) {
       PVariable packets(new Variable(VariableType::tArray));
       info->structValue->insert(StructElement("PACKETS", packets));
 
-      for (const auto &packet: peerPackets.second) {
+      for (const auto &packet : peerPackets.second) {
         PVariable packetInfo(new Variable(VariableType::tStruct));
         packetInfo->structValue->insert(StructElement("TIME_RECEIVED", std::make_shared<Variable>(packet->getTimeReceived() / 1000)));
         packetInfo->structValue->insert(StructElement("PACKET", std::make_shared<Variable>(BaseLib::HelperFunctions::getHexString(packet->getBinary()))));
@@ -1081,7 +1102,7 @@ void MbusCentral::pairingModeTimer(int32_t duration, bool debugOutput) {
     _timeLeftInPairingMode = duration;
     int64_t startTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     int64_t timePassed = 0;
-    while (timePassed < ((int64_t)duration * 1000) && !_stopPairingModeThread) {
+    while (timePassed < ((int64_t) duration * 1000) && !_stopPairingModeThread) {
       std::this_thread::sleep_for(std::chrono::milliseconds(250));
       timePassed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - startTime;
       _timeLeftInPairingMode = duration - (timePassed / 1000);
@@ -1122,7 +1143,7 @@ std::shared_ptr<Variable> MbusCentral::setInstallMode(BaseLib::PRpcClientInfo cl
     if (on && metadata) {
       auto devicesIterator = metadata->structValue->find("devices");
       if (devicesIterator != metadata->structValue->end()) {
-        for (auto &device: *devicesIterator->second->arrayValue) {
+        for (auto &device : *devicesIterator->second->arrayValue) {
           auto addressIterator = device->structValue->find("address");
           if (addressIterator == device->structValue->end()) continue;
           int32_t address = addressIterator->second->integerValue;
@@ -1136,7 +1157,7 @@ std::shared_ptr<Variable> MbusCentral::setInstallMode(BaseLib::PRpcClientInfo cl
 
     BaseLib::PVariable devicesToPair = std::make_shared<BaseLib::Variable>(BaseLib::VariableType::tArray);
     devicesToPair->arrayValue->reserve(_devicesToPair.size());
-    for (auto &device: _devicesToPair) {
+    for (auto &device : _devicesToPair) {
       BaseLib::PVariable element = std::make_shared<BaseLib::Variable>(BaseLib::VariableType::tArray);
       element->arrayValue->reserve(2);
       element->arrayValue->push_back(std::make_shared<BaseLib::Variable>(device.first));
@@ -1182,9 +1203,11 @@ PVariable MbusCentral::stopSniffing(BaseLib::PRpcClientInfo clientInfo) {
 BaseLib::PVariable MbusCentral::getPrimaryAddress(const PRpcClientInfo &clientInfo, const PArray &parameters) {
   try {
     if (parameters->empty()) return BaseLib::Variable::createError(-1, "Wrong parameter count.");
-    if (parameters->at(0)->type != BaseLib::VariableType::tInteger && parameters->at(0)->type != BaseLib::VariableType::tInteger64) return BaseLib::Variable::createError(-1, "Parameter 1 is not of type Integer.");
+    if (parameters->at(0)->type != BaseLib::VariableType::tInteger && parameters->at(0)->type != BaseLib::VariableType::tInteger64)
+      return BaseLib::Variable::createError(-1,
+                                            "Parameter 1 is not of type Integer.");
 
-    auto peerId = (uint64_t)parameters->at(0)->integerValue64;
+    auto peerId = (uint64_t) parameters->at(0)->integerValue64;
     auto peer = getPeer(peerId);
     if (!peer) return BaseLib::Variable::createError(-1, "Unknown peer.");
 
@@ -1199,13 +1222,17 @@ BaseLib::PVariable MbusCentral::getPrimaryAddress(const PRpcClientInfo &clientIn
 BaseLib::PVariable MbusCentral::setPrimaryAddress(const PRpcClientInfo &clientInfo, const PArray &parameters) {
   try {
     if (parameters->size() != 2) return BaseLib::Variable::createError(-1, "Wrong parameter count.");
-    if (parameters->at(0)->type != BaseLib::VariableType::tInteger && parameters->at(0)->type != BaseLib::VariableType::tInteger64) return BaseLib::Variable::createError(-1, "Parameter 1 is not of type Integer.");
-    if (parameters->at(1)->type != BaseLib::VariableType::tInteger && parameters->at(1)->type != BaseLib::VariableType::tInteger64) return BaseLib::Variable::createError(-1, "Parameter 2 is not of type Integer.");
+    if (parameters->at(0)->type != BaseLib::VariableType::tInteger && parameters->at(0)->type != BaseLib::VariableType::tInteger64)
+      return BaseLib::Variable::createError(-1,
+                                            "Parameter 1 is not of type Integer.");
+    if (parameters->at(1)->type != BaseLib::VariableType::tInteger && parameters->at(1)->type != BaseLib::VariableType::tInteger64)
+      return BaseLib::Variable::createError(-1,
+                                            "Parameter 2 is not of type Integer.");
 
     auto primary_address = parameters->at(1)->integerValue;
     if (primary_address < 0 || primary_address >= 0xFC) return BaseLib::Variable::createError(-1, "Invalid primary address.");
 
-    auto peerId = (uint64_t)parameters->at(0)->integerValue64;
+    auto peerId = (uint64_t) parameters->at(0)->integerValue64;
     auto peer = getPeer(peerId);
     if (!peer) return BaseLib::Variable::createError(-1, "Unknown peer.");
     peer->setPrimaryAddress(primary_address);
@@ -1221,7 +1248,9 @@ BaseLib::PVariable MbusCentral::setPrimaryAddress(const PRpcClientInfo &clientIn
 BaseLib::PVariable MbusCentral::poll(const PRpcClientInfo &clientInfo, const PArray &parameters) {
   try {
     if (parameters->empty()) return BaseLib::Variable::createError(-1, "Wrong parameter count.");
-    if (parameters->at(0)->type != BaseLib::VariableType::tBoolean && parameters->at(0)->type != BaseLib::VariableType::tArray) return BaseLib::Variable::createError(-1, "Parameter 1 is not of type Boolean or Array.");
+    if (parameters->at(0)->type != BaseLib::VariableType::tBoolean && parameters->at(0)->type != BaseLib::VariableType::tArray)
+      return BaseLib::Variable::createError(-1,
+                                            "Parameter 1 is not of type Boolean or Array.");
     if (parameters->size() > 1 && parameters->at(1)->type != BaseLib::VariableType::tString) return BaseLib::Variable::createError(-1, "Parameter 2 is not of type Boolean or String.");
     if (parameters->size() > 2 && parameters->at(2)->type != BaseLib::VariableType::tBoolean) return BaseLib::Variable::createError(-1, "Parameter 3 is not of type Boolean.");
     bool fast_mode = parameters->size() > 2 && parameters->at(2)->booleanValue;
@@ -1230,7 +1259,7 @@ BaseLib::PVariable MbusCentral::poll(const PRpcClientInfo &clientInfo, const PAr
       auto use_secondary_address = parameters->at(0)->booleanValue;
 
       auto peers = getPeers();
-      for (auto &peer: peers) {
+      for (auto &peer : peers) {
         auto mbus_peer = std::dynamic_pointer_cast<MbusPeer>(peer);
         if (mbus_peer->wireless()) continue;
         auto interface = Gd::interfaces->getInterface(mbus_peer->getPhysicalInterfaceId());
@@ -1250,7 +1279,7 @@ BaseLib::PVariable MbusCentral::poll(const PRpcClientInfo &clientInfo, const PAr
           if (primary_address == -1) continue;
           peer.reset(); //Release peer so readding works in onPacketReceived. Otherwise the peer can't be deleted.
           mbus_peer.reset();
-          interface->Poll(std::vector<uint8_t>{(uint8_t)primary_address}, std::vector<int32_t>{}, fast_mode, true);
+          interface->Poll(std::vector<uint8_t>{(uint8_t) primary_address}, std::vector<int32_t>{}, fast_mode, true);
         }
       }
     } else {
@@ -1262,7 +1291,7 @@ BaseLib::PVariable MbusCentral::poll(const PRpcClientInfo &clientInfo, const PAr
       std::vector<int32_t> secondary_addresses;
       primary_addresses.reserve(parameters->at(0)->arrayValue->size());
       secondary_addresses.reserve(parameters->at(0)->arrayValue->size());
-      for (auto &element: *parameters->at(0)->arrayValue) {
+      for (auto &element : *parameters->at(0)->arrayValue) {
         if (element->type == BaseLib::VariableType::tString) {
           auto address = BaseLib::Math::getNumber(element->stringValue, true);
           if (address != 0) secondary_addresses.emplace_back(address);

@@ -38,16 +38,16 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
     _command = packet.at(1);
     _length = packet.at(2);
     _control = packet.at(3);
-    _manufacturerCode = (((uint32_t)packet.at(5)) << 8u) | packet.at(4);
+    _manufacturerCode = (((uint32_t) packet.at(5)) << 8u) | packet.at(4);
     _manufacturer.clear();
     _manufacturer.reserve(3);
-    _manufacturer.push_back((char)(((_manufacturerCode >> 10u) & 0x1Fu) + 64));
-    _manufacturer.push_back((char)(((_manufacturerCode >> 5u) & 0x1Fu) + 64));
-    _manufacturer.push_back((char)((_manufacturerCode & 0x1Fu) + 64));
+    _manufacturer.push_back((char) (((_manufacturerCode >> 10u) & 0x1Fu) + 64));
+    _manufacturer.push_back((char) (((_manufacturerCode >> 5u) & 0x1Fu) + 64));
+    _manufacturer.push_back((char) ((_manufacturerCode & 0x1Fu) + 64));
     _iv.clear();
     _iv.reserve(16);
     _iv.insert(_iv.end(), packet.begin() + 4, packet.begin() + 12);
-    _secondaryAddress = (((uint32_t)packet.at(9)) << 24u) | (((uint32_t)packet.at(8)) << 16u) | (((uint32_t)packet.at(7)) << 8u) | ((uint32_t)packet.at(6));
+    _secondaryAddress = (((uint32_t) packet.at(9)) << 24u) | (((uint32_t) packet.at(8)) << 16u) | (((uint32_t) packet.at(7)) << 8u) | ((uint32_t) packet.at(6));
     _version = packet.at(10);
     _medium = packet.at(11);
     ciStart = 12;
@@ -68,7 +68,10 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
   for (int32_t i = 0; i < 10; i++) {
     if (ciStart >= packet.size()) break;
     controlInformation = packet.at(ciStart);
-    if (controlInformation == 0x8C) //ELL I
+    if (controlInformation == 0x52) {
+      //Packet to set primary address - typically received when our packet is sent back
+      return;
+    } else if (controlInformation == 0x8C) //ELL I
     {
       //This value of the CI-field is used if data encryption at the link layer is not used in the frame.
       _ellInfo.controlInformation = controlInformation;
@@ -82,7 +85,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       _ellInfo.controlInformation = controlInformation;
       _ellInfo.communicationControlField.raw = _packet.at(ciStart + 1);
       _ellInfo.accessNumber = packet.at(ciStart + 2);
-      _ellInfo.sessionNumberField.raw = ((uint32_t)packet.at(ciStart + 6) << 24u) | ((uint32_t)packet.at(ciStart + 5) << 16u) | ((uint32_t)packet.at(ciStart + 4) << 8u) | packet.at(ciStart + 3);
+      _ellInfo.sessionNumberField.raw = ((uint32_t) packet.at(ciStart + 6) << 24u) | ((uint32_t) packet.at(ciStart + 5) << 16u) | ((uint32_t) packet.at(ciStart + 4) << 8u) | packet.at(ciStart + 3);
       _ellInfo.ellEncryption = _ellInfo.sessionNumberField.bitField.encryptionField == 1;
       if (_ellInfo.ellEncryption) {
         _encryptionMode = 1;
@@ -104,13 +107,14 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       _ellInfo.controlInformation = controlInformation;
       _ellInfo.communicationControlField.raw = _packet.at(ciStart + 1);
       _ellInfo.accessNumber = packet.at(ciStart + 2);
-      uint32_t value = (((uint32_t)packet.at(ciStart + 4)) << 8u) | packet.at(ciStart + 3);
+      uint32_t value = (((uint32_t) packet.at(ciStart + 4)) << 8u) | packet.at(ciStart + 3);
       _ellInfo.manufacturer2.clear();
       _ellInfo.manufacturer2.reserve(3);
-      _ellInfo.manufacturer2.push_back((char)(((value >> 10u) & 0x1Fu) + 64));
-      _ellInfo.manufacturer2.push_back((char)(((value >> 5u) & 0x1Fu) + 64));
-      _ellInfo.manufacturer2.push_back((char)((value & 0x1Fu) + 64));
-      _ellInfo.address2 = (((uint32_t)packet.at(ciStart + 8)) << 24u) | (((uint32_t)packet.at(ciStart + 7)) << 16u) | (((uint32_t)packet.at(ciStart + 6)) << 8u) | ((uint32_t)packet.at(ciStart + 5));
+      _ellInfo.manufacturer2.push_back((char) (((value >> 10u) & 0x1Fu) + 64));
+      _ellInfo.manufacturer2.push_back((char) (((value >> 5u) & 0x1Fu) + 64));
+      _ellInfo.manufacturer2.push_back((char) ((value & 0x1Fu) + 64));
+      _ellInfo.address2 =
+          (((uint32_t) packet.at(ciStart + 8)) << 24u) | (((uint32_t) packet.at(ciStart + 7)) << 16u) | (((uint32_t) packet.at(ciStart + 6)) << 8u) | ((uint32_t) packet.at(ciStart + 5));
       _ellInfo.version2 = packet.at(ciStart + 9);
       _ellInfo.medium2 = packet.at(ciStart + 10);
       ciStart += 11;
@@ -122,16 +126,18 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       _ellInfo.controlInformation = controlInformation;
       _ellInfo.communicationControlField.raw = _packet.at(ciStart + 1);
       _ellInfo.accessNumber = packet.at(ciStart + 2);
-      uint32_t value = (((uint32_t)packet.at(ciStart + 4)) << 8u) | packet.at(ciStart + 3);
+      uint32_t value = (((uint32_t) packet.at(ciStart + 4)) << 8u) | packet.at(ciStart + 3);
       _ellInfo.manufacturer2.clear();
       _ellInfo.manufacturer2.reserve(3);
-      _ellInfo.manufacturer2.push_back((char)(((value >> 10u) & 0x1Fu) + 64));
-      _ellInfo.manufacturer2.push_back((char)(((value >> 5u) & 0x1Fu) + 64));
-      _ellInfo.manufacturer2.push_back((char)((value & 0x1Fu) + 64));
-      _ellInfo.address2 = (((uint32_t)packet.at(ciStart + 8)) << 24u) | (((uint32_t)packet.at(ciStart + 7)) << 16u) | (((uint32_t)packet.at(ciStart + 6)) << 8u) | ((uint32_t)packet.at(ciStart + 5));
+      _ellInfo.manufacturer2.push_back((char) (((value >> 10u) & 0x1Fu) + 64));
+      _ellInfo.manufacturer2.push_back((char) (((value >> 5u) & 0x1Fu) + 64));
+      _ellInfo.manufacturer2.push_back((char) ((value & 0x1Fu) + 64));
+      _ellInfo.address2 =
+          (((uint32_t) packet.at(ciStart + 8)) << 24u) | (((uint32_t) packet.at(ciStart + 7)) << 16u) | (((uint32_t) packet.at(ciStart + 6)) << 8u) | ((uint32_t) packet.at(ciStart + 5));
       _ellInfo.version2 = packet.at(ciStart + 9);
       _ellInfo.medium2 = packet.at(ciStart + 10);
-      _ellInfo.sessionNumberField.raw = ((uint32_t)packet.at(ciStart + 14) << 24u) | ((uint32_t)packet.at(ciStart + 13) << 16u) | ((uint32_t)packet.at(ciStart + 12) << 8u) | packet.at(ciStart + 11);
+      _ellInfo.sessionNumberField.raw =
+          ((uint32_t) packet.at(ciStart + 14) << 24u) | ((uint32_t) packet.at(ciStart + 13) << 16u) | ((uint32_t) packet.at(ciStart + 12) << 8u) | packet.at(ciStart + 11);
       _ellInfo.ellEncryption = _ellInfo.sessionNumberField.bitField.encryptionField == 1;
       if (_ellInfo.ellEncryption) {
         _encryptionMode = 1;
@@ -175,13 +181,14 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       if (fragmentControlField & 0x02u) //Has key information field
       {
         _aflHeader.hasKeyInformation = true;
-        _aflHeader.keyInformationField = (((uint16_t)packet.at(aflPos + 1)) << 8u) | ((uint16_t)packet.at(aflPos));
+        _aflHeader.keyInformationField = (((uint16_t) packet.at(aflPos + 1)) << 8u) | ((uint16_t) packet.at(aflPos));
         aflPos += 2;
       }
       if (fragmentControlField & 0x08u) //Has message counter
       {
         _aflHeader.hasMessageCounter = true;
-        _aflHeader.messageCounter = (((uint32_t)packet.at(aflPos + 3)) << 24) | (((uint32_t)packet.at(aflPos + 2)) << 16) | (((uint32_t)packet.at(aflPos + 1)) << 8) | ((uint32_t)packet.at(aflPos));
+        _aflHeader.messageCounter =
+            (((uint32_t) packet.at(aflPos + 3)) << 24) | (((uint32_t) packet.at(aflPos + 2)) << 16) | (((uint32_t) packet.at(aflPos + 1)) << 8) | ((uint32_t) packet.at(aflPos));
         aflPos += 4;
       }
       if (fragmentControlField & 0x04u) //Has MAC
@@ -196,7 +203,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       if (fragmentControlField & 0x10u) //Has length
       {
         _aflHeader.hasMessageLength = true;
-        _aflHeader.messageLength = (((uint16_t)packet.at(aflPos + 1)) << 8) | ((uint16_t)packet.at(aflPos));
+        _aflHeader.messageLength = (((uint16_t) packet.at(aflPos + 1)) << 8) | ((uint16_t) packet.at(aflPos));
         aflPos += 2;
       }
     } else {
@@ -204,19 +211,20 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       if (hasLongTplHeader()) //Address, manufacturer and medium from header take precedence over outer frame
       {
         _tpduStart = ciStart;
-        _secondaryAddress = (((uint32_t)packet.at(ciStart + 4)) << 24) | (((uint32_t)packet.at(ciStart + 3)) << 16) | (((uint32_t)packet.at(ciStart + 2)) << 8) | ((uint32_t)packet.at(ciStart + 1));
-        _manufacturerCode = (((uint32_t)packet.at(ciStart + 6)) << 8) | packet.at(ciStart + 5);
+        _secondaryAddress =
+            (((uint32_t) packet.at(ciStart + 4)) << 24) | (((uint32_t) packet.at(ciStart + 3)) << 16) | (((uint32_t) packet.at(ciStart + 2)) << 8) | ((uint32_t) packet.at(ciStart + 1));
+        _manufacturerCode = (((uint32_t) packet.at(ciStart + 6)) << 8) | packet.at(ciStart + 5);
         _manufacturer.clear();
         _manufacturer.reserve(3);
-        _manufacturer.push_back((char)(((_manufacturerCode >> 10) & 0x1F) + 64));
-        _manufacturer.push_back((char)(((_manufacturerCode >> 5) & 0x1F) + 64));
-        _manufacturer.push_back((char)((_manufacturerCode & 0x1F) + 64));
+        _manufacturer.push_back((char) (((_manufacturerCode >> 10) & 0x1F) + 64));
+        _manufacturer.push_back((char) (((_manufacturerCode >> 5) & 0x1F) + 64));
+        _manufacturer.push_back((char) ((_manufacturerCode & 0x1F) + 64));
         _version = packet.at(ciStart + 7);
         _medium = packet.at(ciStart + 8);
 
         _messageCounter = packet.at(ciStart + 9);
         _status = packet.at(ciStart + 10);
-        _configuration = (((uint16_t)packet.at(ciStart + 11)) << 8) | packet.at(ciStart + 12);
+        _configuration = (((uint16_t) packet.at(ciStart + 11)) << 8) | packet.at(ciStart + 12);
         _encryptionMode = _configuration & 0x1Fu;
 
         size_t tplPos = 13;
@@ -239,7 +247,9 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
           }
 
           if (_mode7Info.messageCounterInTpl) {
-            _mode7Info.tplMessageCounter = (((uint32_t)packet.at(ciStart + tplPos + 3)) << 24) | (((uint32_t)packet.at(ciStart + tplPos + 2)) << 16) | (((uint32_t)packet.at(ciStart + tplPos + 1)) << 8) | ((uint32_t)packet.at(ciStart + tplPos));
+            _mode7Info.tplMessageCounter =
+                (((uint32_t) packet.at(ciStart + tplPos + 3)) << 24) | (((uint32_t) packet.at(ciStart + tplPos + 2)) << 16) | (((uint32_t) packet.at(ciStart + tplPos + 1)) << 8)
+                    | ((uint32_t) packet.at(ciStart + tplPos));
             tplPos += 4;
           }
         }
@@ -249,19 +259,19 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
         break; //No more CIs after payload
       } else if (hasShortTplHeader()) {
         _tpduStart = ciStart;
-        _manufacturerCode = (((uint32_t)packet.at(5)) << 8) | packet.at(4);
+        _manufacturerCode = (((uint32_t) packet.at(5)) << 8) | packet.at(4);
         _manufacturer.clear();
         _manufacturer.reserve(3);
-        _manufacturer.push_back((char)(((_manufacturerCode >> 10) & 0x1F) + 64));
-        _manufacturer.push_back((char)(((_manufacturerCode >> 5) & 0x1F) + 64));
-        _manufacturer.push_back((char)((_manufacturerCode & 0x1F) + 64));
-        _secondaryAddress = (((uint32_t)packet.at(9)) << 24u) | (((uint32_t)packet.at(8)) << 16u) | (((uint32_t)packet.at(7)) << 8u) | ((uint32_t)packet.at(6));
+        _manufacturer.push_back((char) (((_manufacturerCode >> 10) & 0x1F) + 64));
+        _manufacturer.push_back((char) (((_manufacturerCode >> 5) & 0x1F) + 64));
+        _manufacturer.push_back((char) ((_manufacturerCode & 0x1F) + 64));
+        _secondaryAddress = (((uint32_t) packet.at(9)) << 24u) | (((uint32_t) packet.at(8)) << 16u) | (((uint32_t) packet.at(7)) << 8u) | ((uint32_t) packet.at(6));
         _version = packet.at(10);
         _medium = packet.at(11);
 
         _messageCounter = packet.at(ciStart + 1);
         _status = packet.at(ciStart + 2);
-        _configuration = (((uint16_t)packet.at(ciStart + 3)) << 8u) | packet.at(ciStart + 4);
+        _configuration = (((uint16_t) packet.at(ciStart + 3)) << 8u) | packet.at(ciStart + 4);
         _encryptionMode = _configuration & 0x1Fu;
 
         size_t tplPos = 5;
@@ -284,7 +294,9 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
           }
 
           if (_mode7Info.messageCounterInTpl) {
-            _mode7Info.tplMessageCounter = (((uint32_t)packet.at(ciStart + tplPos + 3)) << 24) | (((uint32_t)packet.at(ciStart + tplPos + 2)) << 16) | (((uint32_t)packet.at(ciStart + tplPos + 1)) << 8) | ((uint32_t)packet.at(ciStart + tplPos));
+            _mode7Info.tplMessageCounter =
+                (((uint32_t) packet.at(ciStart + tplPos + 3)) << 24) | (((uint32_t) packet.at(ciStart + tplPos + 2)) << 16) | (((uint32_t) packet.at(ciStart + tplPos + 1)) << 8)
+                    | ((uint32_t) packet.at(ciStart + tplPos));
             tplPos += 4;
           }
         }
@@ -391,10 +403,10 @@ std::string MbusPacket::getInfoString() {
         info += std::string(" - Medium 2:          0x") + std::to_string(_ellInfo.medium2) + " (" + getMediumString(_ellInfo.medium2) + ")\n";
       }
     }
-    for (auto &dataRecord: _dataRecords) {
+    for (auto &dataRecord : _dataRecords) {
       info += "\n ---\n";
       info += "   DIF: 0x" + BaseLib::HelperFunctions::getHexString(dataRecord.difs.front() & 0x0F) + " (0x" + BaseLib::HelperFunctions::getHexString(dataRecord.difs) + ")" + "\n";
-      info += "    - Function:       " + std::to_string((int32_t)dataRecord.difFunction) + "\n";
+      info += "    - Function:       " + std::to_string((int32_t) dataRecord.difFunction) + "\n";
       info += "    - Storage number: " + std::to_string(dataRecord.storageNumber) + "\n";
       info += "    - Subunit:        " + std::to_string(dataRecord.subunit) + "\n";
       info += "    - Tariff:         " + std::to_string(dataRecord.tariff) + "\n";
@@ -830,7 +842,7 @@ void MbusPacket::strip2F(std::vector<uint8_t> &data) {
     if (data.empty()) return;
     uint32_t startPos = 0;
     uint32_t endPos = data.size() - 1;
-    for (auto &byte: data) {
+    for (auto &byte : data) {
       if (byte != 0x2F) break;
       startPos++;
     }
@@ -854,11 +866,11 @@ void MbusPacket::parsePayload() {
   try {
     _dataRecords.clear();
     if (isCompactDataTelegram()) {
-      _formatCrc = (((uint16_t)_payload.at(1)) << 8) | _payload.at(0);
+      _formatCrc = (((uint16_t) _payload.at(1)) << 8) | _payload.at(0);
       _dataValid = true;
       return; //Not parseable
     } else if (isFormatTelegram() && _controlInformation != 0x78) { //CI == 0x78 => Special case for Kamstrup
-      _formatCrc = (((uint16_t)_payload.at(2)) << 8u) | _payload.at(1);
+      _formatCrc = (((uint16_t) _payload.at(2)) << 8u) | _payload.at(1);
     }
 
     //Skip first three bytes for format packets. The format packet starts with length + 2 unknown bytes.
@@ -879,7 +891,7 @@ void MbusPacket::parsePayload() {
       //{{{ Get DIF
       dataRecord.difs.reserve(11);
       dataRecord.difs.push_back(_payload.at(pos++));
-      dataRecord.difFunction = (DifFunction)((dataRecord.difs.back() & 0x30u) >> 4u);
+      dataRecord.difFunction = (DifFunction) ((dataRecord.difs.back() & 0x30u) >> 4u);
       uint32_t count = 0;
       while (dataRecord.difs.back() & 0x80 && pos < _payload.size() && count <= 11) {
         dataRecord.difs.push_back(_payload.at(pos++));
@@ -926,7 +938,7 @@ void MbusPacket::parsePayload() {
           uint8_t stringLength = _payload.at(pos);
           dataRecord.vifCustomName.reserve(stringLength);
           for (uint32_t i = pos + stringLength; i > pos; i--) {
-            dataRecord.vifCustomName.push_back((char)_payload.at(i));
+            dataRecord.vifCustomName.push_back((char) _payload.at(i));
           }
           pos += stringLength + 1;
         }
@@ -976,7 +988,8 @@ void MbusPacket::parsePayload() {
 
     if (isFormatTelegram() && _controlInformation != 0x78) { //CI == 0x78 => Special case for Kamstrup
       if (_payload.size() - nopCount - 1 != _payload.at(0)) {
-        Gd::out.printError("Error: Payload has wrong length (expected: " + std::to_string(_payload.at(0)) + ", got " + std::to_string(_payload.size() - nopCount - 1) + "): " + BaseLib::HelperFunctions::getHexString(_payload));
+        Gd::out.printError("Error: Payload has wrong length (expected: " + std::to_string(_payload.at(0)) + ", got " + std::to_string(_payload.size() - nopCount - 1) + "): "
+                               + BaseLib::HelperFunctions::getHexString(_payload));
         return; //Wrong length byte
       }
       uint16_t crc16 = _crc16.calculate(_payload, 3);
