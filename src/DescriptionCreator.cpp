@@ -29,11 +29,8 @@ DescriptionCreator::DescriptionCreator() {
     vif_info_.at(i).medium_role_map.emplace(0x102, 900203);
     vif_info_.at(i).medium_role_map.emplace(0x202, 900205);
     vif_info_.at(i).medium_role_map.emplace(0x04, 900401);
-    vif_info_.at(i).medium_role_map.emplace(0x1004, 900501);
     vif_info_.at(i).medium_role_map.emplace(0x0C, 900401);
-    vif_info_.at(i).medium_role_map.emplace(0x100C, 900501);
     vif_info_.at(i).medium_role_map.emplace(0x0D, 900401);
-    vif_info_.at(i).medium_role_map.emplace(0x100D, 900501);
   }
 
   //J
@@ -541,6 +538,7 @@ DescriptionCreator::DescriptionCreator() {
   vif_ff_info_["ALG"][0x84] = VifInfo("POWER_FACTOR", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
   vif_ff_info_["ALG"][0x94] = VifInfo("UNIT_HERTZ_TIMES_10^-3", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
 
+  vif_ff_info_["KAM"][0x0602 /* cleaned VIF 86FF02 */] = VifInfo("COOLING", "", BaseLib::DeviceDescription::UnitCode::kNoUnits, 1, VifScaleOperation::kMultiplication, 900501);
   vif_ff_info_["KAM"][0x20] = VifInfo("INFO_CODE", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
 }
 
@@ -577,7 +575,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPa
 
     auto dataRecords = packet->getDataRecords();
     std::unordered_set<uint64_t> used_roles;
-    for (auto &dataRecord: dataRecords) {
+    for (auto &dataRecord : dataRecords) {
       PParameter parameter = std::make_shared<Parameter>(Gd::bl, function->variables);
       parameter->readable = true;
       parameter->writeable = false;
@@ -617,7 +615,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateEmptyDescription(int32_t 
     device->timeout = 176400; //2 days 1 hour => some devices can only be polled once per day
     PSupportedDevice supportedDevice = std::make_shared<SupportedDevice>(Gd::bl);
     supportedDevice->id = id;
-    supportedDevice->typeNumber = (uint32_t)secondary_address;
+    supportedDevice->typeNumber = (uint32_t) secondary_address;
     device->supportedDevices.push_back(supportedDevice);
 
     createXmlMaintenanceChannel(device);
@@ -655,7 +653,7 @@ void DescriptionCreator::createDirectories() {
   try {
     uid_t localUserId = BaseLib::HelperFunctions::userId(Gd::bl->settings.dataPathUser());
     gid_t localGroupId = BaseLib::HelperFunctions::groupId(Gd::bl->settings.dataPathGroup());
-    if (((int32_t)localUserId) == -1 || ((int32_t)localGroupId) == -1) {
+    if (((int32_t) localUserId) == -1 || ((int32_t) localGroupId) == -1) {
       localUserId = Gd::bl->userId;
       localGroupId = Gd::bl->groupId;
     }
@@ -747,7 +745,13 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice &device) {
   // }}}
 }
 
-void DescriptionCreator::parseDataRecord(const std::string &manufacturer, uint8_t medium, MbusPacket::DataRecord &dataRecord, PParameter &parameter, PFunction &function, PPacket &packet, std::unordered_set<uint64_t> &used_roles) {
+void DescriptionCreator::parseDataRecord(const std::string &manufacturer,
+                                         uint8_t medium,
+                                         MbusPacket::DataRecord &dataRecord,
+                                         PParameter &parameter,
+                                         PFunction &function,
+                                         PPacket &packet,
+                                         std::unordered_set<uint64_t> &used_roles) {
   try {
     uint8_t dif = dataRecord.difs.front() & 0x0Fu;
     parameter->metadata = BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
@@ -773,24 +777,47 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, uint8_
 
     if (!dataRecord.vifCustomName.empty()) {
       parameter->id = dataRecord.vifCustomName;
-    } else if (dataRecord.vifs.size() == 1 || (dataRecord.vifs.size() == 3 && dataRecord.vifs.at(1) == 0xFF) || (dataRecord.vifs.size() == 5 && dataRecord.vifs.at(1) == 0xFF && dataRecord.vifs.at(3) == 0xFF)
+    } else if (dataRecord.vifs.size() == 1 || (dataRecord.vifs.size() == 3 && dataRecord.vifs.at(1) == 0xFF)
+        || (dataRecord.vifs.size() == 5 && dataRecord.vifs.at(1) == 0xFF && dataRecord.vifs.at(3) == 0xFF)
         || (dataRecord.vifs.size() == 7 && dataRecord.vifs.at(1) == 0xFF && dataRecord.vifs.at(3) == 0xFF && dataRecord.vifs.at(5) == 0xFF)) {
-      auto vifIterator = vif_info_.find(dataRecord.vifs.front() & 0x7F);
-      if (vifIterator == vif_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.front(), 2);
-      else setVifInfo(parameter, vifIterator->second, dataRecord, medium, used_roles);
+      VifInfo vif_info;
+      std::string id_postfix;
+
+      {
+        auto vif_iterator = vif_info_.find(dataRecord.vifs.front() & 0x7F);
+        if (vif_iterator == vif_info_.end()) id_postfix = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.front(), 2);
+        else vif_info = vif_iterator->second;
+      }
 
       for (uint32_t i = 2; i < dataRecord.vifs.size(); i += 2) {
         //Manufacturer specific VIFE after standard VIF
         //Example packet: FF00874487052913010004027A2801000003FDC6FF00A4910304FDD9FF000000000002FF84FF00E80306A8FF00290E0000000002FF94FF50F4010682FF80FF009EA2320100000682FF80FF82FF000000000000000DFF550A4144355236353031323201FF560E01FF570302FF58690002FF59020001FF620002FF7300000DFF6504414C474F01FF66010000
         auto vif_iterator = vif_ff_info_.find(manufacturer);
         if (vif_iterator != vif_ff_info_.end()) {
-          auto vif_iterator2 = vif_iterator->second.find(dataRecord.vifs.at(i) & 0x7F);
-          if (vif_iterator2 == vif_iterator->second.end()) vif_iterator2 = vif_iterator->second.find(dataRecord.vifs.at(i));
-          if (vif_iterator2 != vif_iterator->second.end()) parameter->id += "_" + vif_iterator2->second.name;
-          else parameter->id += "_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.at(i) & 0x7F);
-        } else parameter->id += "_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.at(i) & 0x7F);
+          auto vif_iterator_2 = vif_iterator->second.find(dataRecord.vifs.at(i) & 0x7F);
+          if (vif_iterator_2 == vif_iterator->second.end()) {
+            vif_iterator_2 = vif_iterator->second.find((((uint32_t) (dataRecord.vifs.front() & 0x7F)) << 8) | dataRecord.vifs.at(i));
+          }
+          if (vif_iterator_2 == vif_iterator->second.end()) vif_iterator_2 = vif_iterator->second.find(dataRecord.vifs.at(i));
+          if (vif_iterator_2 != vif_iterator->second.end()) {
+            id_postfix += "_" + vif_iterator_2->second.name;
+            if (!vif_iterator_2->second.unit.empty()) vif_info.unit = vif_iterator_2->second.unit;
+            if (vif_iterator_2->second.unit_code != BaseLib::DeviceDescription::UnitCode::kUndefined) vif_info.unit_code = vif_iterator_2->second.unit_code;
+            if (vif_iterator_2->second.unit_scale_factor != 1) vif_info.unit_scale_factor = vif_iterator_2->second.unit_scale_factor;
+            if (vif_iterator_2->second.unit_scale_operation != VifScaleOperation::kMultiplication) vif_info.unit_scale_operation = vif_iterator_2->second.unit_scale_operation;
+            vif_info.force_role = vif_iterator_2->second.force_role;
+          } else {
+            id_postfix += "_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.at(i) & 0x7F);
+          }
+        } else {
+          id_postfix += "_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.at(i) & 0x7F);
+        }
       }
-    } else if (dataRecord.vifs.size() == 2 || (dataRecord.vifs.size() == 4 && dataRecord.vifs.at(2) == 0xFF) || (dataRecord.vifs.size() == 6 && dataRecord.vifs.at(2) == 0xFF && dataRecord.vifs.at(4) == 0xFF)) {
+
+      if (!vif_info.name.empty()) setVifInfo(parameter, vif_info, dataRecord, medium, used_roles);
+      parameter->id += id_postfix;
+    } else if (dataRecord.vifs.size() == 2 || (dataRecord.vifs.size() == 4 && dataRecord.vifs.at(2) == 0xFF)
+        || (dataRecord.vifs.size() == 6 && dataRecord.vifs.at(2) == 0xFF && dataRecord.vifs.at(4) == 0xFF)) {
       if (dataRecord.vifs.front() == 0xFB) {
         auto vif_iterator = vif_fb_info_.find(dataRecord.vifs.at(1) & 0x7F);
         if (vif_iterator == vif_fb_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
@@ -838,7 +865,7 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, uint8_
       parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
     }
 
-    if ((int32_t)dataRecord.difFunction > 0) parameter->id += "_F" + std::to_string((int32_t)dataRecord.difFunction);
+    if ((int32_t) dataRecord.difFunction > 0) parameter->id += "_F" + std::to_string((int32_t) dataRecord.difFunction);
     if (dataRecord.subunit > 0) parameter->id += "_SU" + std::to_string(dataRecord.subunit);
     if (dataRecord.storageNumber > 0) parameter->id += "_SN" + std::to_string(dataRecord.storageNumber);
     if (dataRecord.tariff > 0) parameter->id += "_T" + std::to_string(dataRecord.tariff);
@@ -849,7 +876,7 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer, uint8_
     PBinaryPayload payload = std::make_shared<BinaryPayload>(Gd::bl);
     payload->bitIndex = dataRecord.dataStart * 8;
     payload->bitSize = dataRecord.dataSize * 8;
-    payload->metaInteger1 = (int32_t)dataRecord.difFunction;
+    payload->metaInteger1 = (int32_t) dataRecord.difFunction;
     payload->metaInteger2 = dataRecord.subunit;
     payload->metaInteger3 = dataRecord.storageNumber;
     payload->metaInteger4 = dataRecord.tariff;
@@ -870,25 +897,22 @@ void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_in
     if (vif_info.unit_scale_factor != 1) {
       auto cast2 = std::make_shared<DecimalIntegerScale>(Gd::bl);
       if (vif_info.unit_scale_operation == VifScaleOperation::kDivision) cast2->factor = vif_info.unit_scale_factor;
-      else cast2->factor = 1.0 / (double)vif_info.unit_scale_factor;
+      else cast2->factor = 1.0 / (double) vif_info.unit_scale_factor;
       parameter->casts.emplace_back(std::move(cast2));
     }
 
     if (dataRecord.difFunction == MbusPacket::DifFunction::instantaneousValue && dataRecord.subunit == -1 && (dataRecord.storageNumber == 0 || dataRecord.storageNumber == 1)) {
-      if (dataRecord.tariff > 0) medium |= (dataRecord.tariff << 8);
-      auto map_key = medium;
-      auto role_iterator = vif_info.medium_role_map.find(map_key);
-      if (role_iterator != vif_info.medium_role_map.end()) {
-        if (dataRecord.storageNumber == 0 || used_roles.find(role_iterator->second) == used_roles.end()) {
-          if (used_roles.find(role_iterator->second) != used_roles.end()) {
-            //Role already used for variable with index 0. Check if there is another role at index 1 (map prefix 0x10).
-            //E. g. heat meters sometimes have ENERGY and ENERGY_2. The first is the value for heating, the latter is the value for cooling.
-            map_key |= 0x1000;
-            auto role_iterator_2 = vif_info.medium_role_map.find(map_key);
-            if (role_iterator_2 != vif_info.medium_role_map.end()) role_iterator = role_iterator_2;
+      if (vif_info.force_role != 0 && (dataRecord.storageNumber == 0 || used_roles.find(vif_info.force_role) == used_roles.end())) {
+        parameter->roles.emplace(vif_info.force_role, Role(vif_info.force_role, RoleDirection::input, false, false, {}));
+        used_roles.emplace(vif_info.force_role);
+      } else {
+        if (dataRecord.tariff > 0) medium |= (dataRecord.tariff << 8);
+        auto role_iterator = vif_info.medium_role_map.find(medium);
+        if (role_iterator != vif_info.medium_role_map.end()) {
+          if (dataRecord.storageNumber == 0 || used_roles.find(role_iterator->second) == used_roles.end()) {
+            parameter->roles.emplace(role_iterator->second, Role(role_iterator->second, RoleDirection::input, false, false, {}));
+            used_roles.emplace(role_iterator->second);
           }
-          parameter->roles.emplace(role_iterator->second, Role(role_iterator->second, RoleDirection::input, false, false, {}));
-          used_roles.emplace(role_iterator->second);
         }
       }
     }

@@ -33,8 +33,8 @@ class DescriptionCreator {
 
   struct VifInfo {
     VifInfo() = default;
-    VifInfo(std::string name, std::string unit, BaseLib::DeviceDescription::UnitCode unit_code, int32_t unit_scale_factor = 1, VifScaleOperation unit_scale_operation = VifScaleOperation::kMultiplication)
-        : name(std::move(name)), unit(std::move(unit)), unit_code(unit_code), unit_scale_factor(unit_scale_factor), unit_scale_operation(unit_scale_operation) {}
+    VifInfo(std::string name, std::string unit, BaseLib::DeviceDescription::UnitCode unit_code, int32_t unit_scale_factor = 1, VifScaleOperation unit_scale_operation = VifScaleOperation::kMultiplication, int64_t force_role = 0)
+        : name(std::move(name)), unit(std::move(unit)), unit_code(unit_code), unit_scale_factor(unit_scale_factor), unit_scale_operation(unit_scale_operation), force_role(force_role) {}
 
     std::string name;
     std::string unit;
@@ -42,12 +42,13 @@ class DescriptionCreator {
     int32_t unit_scale_factor = 1;
     VifScaleOperation unit_scale_operation = VifScaleOperation::kMultiplication;
     std::unordered_map<uint16_t, int64_t> medium_role_map;
+    int64_t force_role = 0;
   };
 
   std::map<uint8_t, VifInfo> vif_info_;
   std::map<uint8_t, VifInfo> vif_fb_info_;
   std::map<uint8_t, VifInfo> vif_fd_info_;
-  std::map<std::string, std::map<uint8_t, VifInfo>> vif_ff_info_;
+  std::map<std::string, std::map<uint32_t, VifInfo>> vif_ff_info_;
   std::string _xmlPath;
 
   void createDirectories();
