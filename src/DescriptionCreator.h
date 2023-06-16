@@ -54,8 +54,8 @@ class DescriptionCreator {
   void createDirectories();
   static void createXmlMaintenanceChannel(PHomegearDevice &device);
   std::string getFreeParameterId(std::string baseId, PFunction &function);
-  void parseDataRecord(const std::string &manufacturer, uint8_t medium, MbusPacket::DataRecord &dataRecord, PParameter &parameter, PFunction &function, PPacket &packet, std::unordered_set<uint64_t> &used_roles);
-  static void setVifInfo(PParameter &parameter, const VifInfo &vif_info, const MbusPacket::DataRecord &dataRecord, uint8_t medium, std::unordered_set<uint64_t> &used_roles);
+  void parseDataRecord(const std::string &manufacturer, uint32_t medium, MbusPacket::DataRecord &dataRecord, PParameter &parameter, PFunction &function, PPacket &packet, std::unordered_set<uint64_t> &used_roles);
+  static void setVifInfo(PParameter &parameter, const VifInfo &vif_info, const MbusPacket::DataRecord &dataRecord, uint32_t medium, std::unordered_set<uint64_t> &used_roles);
 };
 
 }

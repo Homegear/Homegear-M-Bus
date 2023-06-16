@@ -746,7 +746,7 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice &device) {
 }
 
 void DescriptionCreator::parseDataRecord(const std::string &manufacturer,
-                                         uint8_t medium,
+                                         uint32_t medium,
                                          MbusPacket::DataRecord &dataRecord,
                                          PParameter &parameter,
                                          PFunction &function,
@@ -888,7 +888,7 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer,
   }
 }
 
-void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_info, const MbusPacket::DataRecord &dataRecord, uint8_t medium, std::unordered_set<uint64_t> &used_roles) {
+void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_info, const MbusPacket::DataRecord &dataRecord, uint32_t medium, std::unordered_set<uint64_t> &used_roles) {
   try {
     parameter->id = parameter->id.empty() ? vif_info.name : parameter->id + "_" + vif_info.name;
     parameter->unit = vif_info.unit;
@@ -900,8 +900,8 @@ void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_in
       else cast2->factor = 1.0 / (double) vif_info.unit_scale_factor;
       parameter->casts.emplace_back(std::move(cast2));
     }
-
-    if (dataRecord.difFunction == MbusPacket::DifFunction::instantaneousValue && dataRecord.subunit == -1 && (dataRecord.storageNumber == 0 || dataRecord.storageNumber == 1)) {
+    
+    if (dataRecord.difFunction == MbusPacket::DifFunction::instantaneousValue && (dataRecord.subunit == -1 || dataRecord.subunit == 0) && (dataRecord.storageNumber == 0 || dataRecord.storageNumber == 1)) {
       if (vif_info.force_role != 0 && (dataRecord.storageNumber == 0 || used_roles.find(vif_info.force_role) == used_roles.end())) {
         parameter->roles.emplace(vif_info.force_role, Role(vif_info.force_role, RoleDirection::input, false, false, {}));
         used_roles.emplace(vif_info.force_role);
