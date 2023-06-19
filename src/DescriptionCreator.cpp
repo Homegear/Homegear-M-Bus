@@ -540,6 +540,12 @@ DescriptionCreator::DescriptionCreator() {
 
   vif_ff_info_["KAM"][0x0602 /* cleaned VIF 86FF02 */] = VifInfo("COOLING", "", BaseLib::DeviceDescription::UnitCode::kNoUnits, 1, VifScaleOperation::kMultiplication, 900501);
   vif_ff_info_["KAM"][0x20] = VifInfo("INFO_CODE", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
+
+  //Manufacturer, medium, pos
+  vif_info_by_pos_["EMU"][0x02][72] = VifInfo("ENERGY_T1_IMPORT", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 1000, VifScaleOperation::kDivision, 900207);
+  vif_info_by_pos_["EMU"][0x02][128] = VifInfo("ENERGY_T2_IMPORT", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 1000, VifScaleOperation::kDivision, 900209);
+  vif_info_by_pos_["EMU"][0x02][184] = VifInfo("ENERGY_T1_EXPORT", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 1000, VifScaleOperation::kDivision, 900213);
+  vif_info_by_pos_["EMU"][0x02][240] = VifInfo("ENERGY_T2_EXPORT", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 1000, VifScaleOperation::kDivision, 900215);
 }
 
 DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPacket &packet) {
@@ -814,6 +820,20 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer,
         }
       }
 
+      { //Set device specific VIF info
+        auto vif_iterator = vif_info_by_pos_.find(manufacturer);
+        if (vif_iterator != vif_info_by_pos_.end()) {
+          auto vif_iterator_2 = vif_iterator->second.find(medium);
+          if (vif_iterator_2 != vif_iterator->second.end()) {
+            auto pos = dataRecord.dataStart * 8;
+            auto vif_iterator_3 = vif_iterator_2->second.find(pos);
+            if (vif_iterator_3 != vif_iterator_2->second.end()) {
+              vif_info = vif_iterator_3->second;
+            }
+          }
+        }
+      }
+
       if (!vif_info.name.empty()) setVifInfo(parameter, vif_info, dataRecord, medium, used_roles);
       parameter->id += id_postfix;
     } else if (dataRecord.vifs.size() == 2 || (dataRecord.vifs.size() == 4 && dataRecord.vifs.at(2) == 0xFF)
@@ -845,7 +865,6 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer,
         if (vif_iterator2 != vif_fd_info_.end()) {
           setVifInfo(parameter, vif_iterator2->second, dataRecord, medium, used_roles);
         }
-
       }
 
       for (uint32_t i = 3; i < dataRecord.vifs.size(); i += 2) {
@@ -900,7 +919,7 @@ void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_in
       else cast2->factor = 1.0 / (double) vif_info.unit_scale_factor;
       parameter->casts.emplace_back(std::move(cast2));
     }
-    
+
     if (dataRecord.difFunction == MbusPacket::DifFunction::instantaneousValue && (dataRecord.subunit == -1 || dataRecord.subunit == 0) && (dataRecord.storageNumber == 0 || dataRecord.storageNumber == 1)) {
       if (vif_info.force_role != 0 && (dataRecord.storageNumber == 0 || used_roles.find(vif_info.force_role) == used_roles.end())) {
         parameter->roles.emplace(vif_info.force_role, Role(vif_info.force_role, RoleDirection::input, false, false, {}));

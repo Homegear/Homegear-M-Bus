@@ -49,6 +49,7 @@ class DescriptionCreator {
   std::map<uint8_t, VifInfo> vif_fb_info_;
   std::map<uint8_t, VifInfo> vif_fd_info_;
   std::map<std::string, std::map<uint32_t, VifInfo>> vif_ff_info_;
+  std::map<std::string, std::map<uint32_t, std::map<uint32_t, VifInfo>>> vif_info_by_pos_;
   std::string _xmlPath;
 
   void createDirectories();
