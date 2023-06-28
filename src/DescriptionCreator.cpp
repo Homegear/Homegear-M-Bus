@@ -546,6 +546,14 @@ DescriptionCreator::DescriptionCreator() {
   vif_info_by_pos_["EMU"][0x02][128] = VifInfo("ENERGY_T2_IMPORT", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 1000, VifScaleOperation::kDivision, 900209);
   vif_info_by_pos_["EMU"][0x02][184] = VifInfo("ENERGY_T1_EXPORT", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 1000, VifScaleOperation::kDivision, 900213);
   vif_info_by_pos_["EMU"][0x02][240] = VifInfo("ENERGY_T2_EXPORT", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 1000, VifScaleOperation::kDivision, 900215);
+  vif_info_by_pos_["EMU"][0x02][24] = VifInfo("ENERGY_T1_IMPORT", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 1000, VifScaleOperation::kDivision, 900207);
+  vif_info_by_pos_["EMU"][0x02][80] = VifInfo("ENERGY_T2_IMPORT", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 1000, VifScaleOperation::kDivision, 900209);
+  vif_info_by_pos_["EMU"][0x02][136] = VifInfo("ENERGY_T1_EXPORT", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 1000, VifScaleOperation::kDivision, 900213);
+  vif_info_by_pos_["EMU"][0x02][192] = VifInfo("ENERGY_T2_EXPORT", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 1000, VifScaleOperation::kDivision, 900215);
+  vif_info_by_pos_["ECS"][0x02][136] = VifInfo("ENERGY_T1_IMPORT", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 1, VifScaleOperation::kDivision, 900207);
+  vif_info_by_pos_["ECS"][0x02][192] = VifInfo("ENERGY_T2_IMPORT", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 1, VifScaleOperation::kDivision, 900209);
+  vif_info_by_pos_["ECS"][0x02][248] = VifInfo("ENERGY_T1_EXPORT", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 1, VifScaleOperation::kDivision, 900213);
+  vif_info_by_pos_["ECS"][0x02][304] = VifInfo("ENERGY_T2_EXPORT", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 1, VifScaleOperation::kDivision, 900215);
 }
 
 DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPacket &packet) {
