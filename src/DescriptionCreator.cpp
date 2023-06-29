@@ -538,7 +538,7 @@ DescriptionCreator::DescriptionCreator() {
   vif_ff_info_["ALG"][0x84] = VifInfo("POWER_FACTOR", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
   vif_ff_info_["ALG"][0x94] = VifInfo("UNIT_HERTZ_TIMES_10^-3", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
 
-  vif_ff_info_["KAM"][0x0602 /* cleaned VIF 86FF02 */] = VifInfo("COOLING", "", BaseLib::DeviceDescription::UnitCode::kNoUnits, 1, VifScaleOperation::kMultiplication, 900501);
+  vif_ff_info_["KAM"][0x0602 /* parsed VIF 86FF02 */] = VifInfo("COOLING", "", BaseLib::DeviceDescription::UnitCode::kNoUnits, 1, VifScaleOperation::kMultiplication, 900501);
   vif_ff_info_["KAM"][0x20] = VifInfo("INFO_CODE", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
 
   //Manufacturer, medium, pos
@@ -550,10 +550,10 @@ DescriptionCreator::DescriptionCreator() {
   vif_info_by_pos_["EMU"][0x02][80] = VifInfo("ENERGY_T2_IMPORT", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 1000, VifScaleOperation::kDivision, 900209);
   vif_info_by_pos_["EMU"][0x02][136] = VifInfo("ENERGY_T1_EXPORT", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 1000, VifScaleOperation::kDivision, 900213);
   vif_info_by_pos_["EMU"][0x02][192] = VifInfo("ENERGY_T2_EXPORT", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 1000, VifScaleOperation::kDivision, 900215);
-  vif_info_by_pos_["ECS"][0x02][136] = VifInfo("ENERGY_T1_IMPORT", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 1, VifScaleOperation::kDivision, 900207);
-  vif_info_by_pos_["ECS"][0x02][192] = VifInfo("ENERGY_T2_IMPORT", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 1, VifScaleOperation::kDivision, 900209);
-  vif_info_by_pos_["ECS"][0x02][248] = VifInfo("ENERGY_T1_EXPORT", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 1, VifScaleOperation::kDivision, 900213);
-  vif_info_by_pos_["ECS"][0x02][304] = VifInfo("ENERGY_T2_EXPORT", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 1, VifScaleOperation::kDivision, 900215);
+  vif_info_by_pos_["ECS"][0x02][136] = VifInfo("ENERGY_T1_IMPORT", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 10, VifScaleOperation::kDivision, 900207);
+  vif_info_by_pos_["ECS"][0x02][192] = VifInfo("ENERGY_T2_IMPORT", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 10, VifScaleOperation::kDivision, 900209);
+  vif_info_by_pos_["ECS"][0x02][248] = VifInfo("ENERGY_T1_EXPORT", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 10, VifScaleOperation::kDivision, 900213);
+  vif_info_by_pos_["ECS"][0x02][304] = VifInfo("ENERGY_T2_EXPORT", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 10, VifScaleOperation::kDivision, 900215);
 }
 
 DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPacket &packet) {
@@ -756,6 +756,7 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice &device) {
   parameter->physical = std::make_shared<PhysicalNone>(Gd::bl);
   parameter->physical->groupId = parameter->id;
   parameter->physical->operationType = IPhysical::OperationType::internal;
+  parameter->casts.emplace_back(std::make_shared<BaseLib::DeviceDescription::ParameterCast::RpcBinary>(Gd::bl));
   // }}}
 }
 
