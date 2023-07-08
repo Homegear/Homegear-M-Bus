@@ -23,6 +23,9 @@ class Tcp : public IMbusInterface {
   std::atomic_bool _initComplete{false};
   std::thread listen_thread_;
   std::shared_ptr<C1Net::TcpSocket> socket_;
+  uint32_t snd_nke_delay_ = 5;
+  uint32_t set_temporary_primary_address_delay_ = 10;
+  uint32_t req_ud2_delay_ = 10;
 
   void GetMbusResponse(uint8_t response_type, const std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet, uint32_t timeout = 15000);
   void RawSend(const std::vector<uint8_t> &packet) override;

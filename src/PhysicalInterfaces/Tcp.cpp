@@ -33,6 +33,18 @@ void Tcp::startListening() {
       return;
     }
 
+    std::string settingName = "sndnkedelay";
+    auto setting = Gd::family->getFamilySetting(settingName);
+    if (setting && setting->integerValue > 0 && setting->integerValue <= 300) snd_nke_delay_ = setting->integerValue;
+
+    settingName = "settemporaryprimaryaddressdelay";
+    setting = Gd::family->getFamilySetting(settingName);
+    if (setting && setting->integerValue > 0 && setting->integerValue <= 300) set_temporary_primary_address_delay_ = setting->integerValue;
+
+    settingName = "requd2delay";
+    setting = Gd::family->getFamilySetting(settingName);
+    if (setting && setting->integerValue > 0 && setting->integerValue <= 300) req_ud2_delay_ = setting->integerValue;
+
     C1Net::TcpSocketInfo tcp_socket_info;
 
     C1Net::TcpSocketHostInfo tcp_socket_host_info{
@@ -94,7 +106,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         GetMbusResponse(0xE5, request_packet, response_packet, 1000);
         if (response_packet.empty()) continue;
 
-        for (uint32_t i = 0; i < 50; i++) {
+        for (uint32_t i = 0; i < snd_nke_delay_ * 10; i++) {
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
           if (_stopped) return;
         }
@@ -106,7 +118,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
           GetMbusResponse(0xE5, request_packet, response_packet, 1000);
           if (response_packet.empty()) continue;
 
-          for (uint32_t i = 0; i < 50; i++) {
+          for (uint32_t i = 0; i < snd_nke_delay_ * 10; i++) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             if (_stopped) return;
           }
@@ -124,7 +136,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
           if (mbus_packet->headerValid()) {
             raisePacketReceived(mbus_packet);
 
-            for (uint32_t i = 0; i < 100; i++) {
+            for (uint32_t i = 0; i < req_ud2_delay_ * 10; i++) {
               std::this_thread::sleep_for(std::chrono::milliseconds(100));
               if (_stopped) return;
             }
@@ -146,7 +158,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
 
         RawSend(request_packet_1);
 
-        for (uint32_t i = 0; i < 50; i++) {
+        for (uint32_t i = 0; i < snd_nke_delay_ * 10; i++) {
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
           if (_stopped) return;
         }
@@ -156,7 +168,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         if (!fast_mode) {
           RawSend(request_packet_1);
 
-          for (uint32_t i = 0; i < 50; i++) {
+          for (uint32_t i = 0; i < snd_nke_delay_ * 10; i++) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             if (_stopped) return;
           }
@@ -171,7 +183,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         GetMbusResponse(0xE5, request_packet_2, response_packet, 1000);
         if (response_packet.empty()) continue;
 
-        for (uint32_t i = 0; i < 100; i++) {
+        for (uint32_t i = 0; i < set_temporary_primary_address_delay_ * 10; i++) {
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
           if (_stopped) return;
         }
@@ -188,7 +200,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
           if (mbus_packet->headerValid()) {
             raisePacketReceived(mbus_packet);
 
-            for (uint32_t i = 0; i < 100; i++) {
+            for (uint32_t i = 0; i < req_ud2_delay_ * 10; i++) {
               std::this_thread::sleep_for(std::chrono::milliseconds(100));
               if (_stopped) return;
             }
