@@ -86,6 +86,7 @@ void MbusCentral::worker() {
     std::chrono::milliseconds sleepingTime(1000);
     uint64_t lastPeer = 0;
     PollingInterval polling_interval = PollingInterval::kOff;
+    int32_t polling_offset = 0;
     bool use_secondary_address = true;
 
     {
@@ -98,6 +99,20 @@ void MbusCentral::worker() {
         else if (setting->stringValue == "monthly") polling_interval = PollingInterval::kMonthly;
         else if (setting->stringValue == "off" || setting->stringValue.empty()) polling_interval = PollingInterval::kOff;
         else Gd::out.printError("Error: Invalid value for setting \"pollingInterval\": " + setting->stringValue);
+      }
+
+      setting = Gd::family->getFamilySetting("pollingoffset");
+      if (setting) {
+        polling_offset = setting->integerValue;
+        if ((polling_interval == PollingInterval::kQuarterHourly && polling_offset >= 15) ||
+            (polling_interval == PollingInterval::kHourly && polling_offset >= 60) ||
+            (polling_interval == PollingInterval::kDaily && polling_offset >= 1440) ||
+            (polling_interval == PollingInterval::kWeekly && polling_offset > 0) ||
+            (polling_interval == PollingInterval::kMonthly && polling_offset > 0)) {
+          Gd::out.printError("Error: Invalid value for setting \"pollingOffset\": " + std::to_string(setting->integerValue));
+          polling_offset = 0;
+        }
+        polling_offset *= 60000;
       }
 
       setting = Gd::family->getFamilySetting("pollingaddress");
@@ -144,8 +159,8 @@ void MbusCentral::worker() {
           static int64_t last_info_packet = BaseLib::HelperFunctions::getTime();
 
           if (modulo != 0) {
-            int64_t last_period_start = last_poll_ - (last_poll_ % modulo);
-            int64_t current_period_start = time - (time % modulo);
+            int64_t last_period_start = (last_poll_ - (last_poll_ % modulo)) + polling_offset;
+            int64_t current_period_start = (time - (time % modulo)) + polling_offset;
 
             poll_peers = last_period_start < current_period_start;
             if (polling_interval > PollingInterval::kHourly && BaseLib::HelperFunctions::getTime() - last_info_packet >= 3600000) {
