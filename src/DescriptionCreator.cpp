@@ -602,6 +602,100 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPa
       }
     }
 
+
+    //{{{ Create variable for meter reading totals of power meters if non-existent
+    if (packet->getMedium() == 0x02) {
+      bool has_total = false;
+      bool has_energy = false;
+      UnitCode unit_code_total{};
+      std::string unit_total;
+      bool has_import_total = false;
+      bool has_import_energy = false;
+      UnitCode unit_code_import{};
+      std::string unit_import;
+      bool has_export_total = false;
+      bool has_export_energy = false;
+      UnitCode unit_code_export{};
+      std::string unit_export;
+      for (auto &parameter : function->variables->parameters) {
+        if (!parameter.second->roles.empty()) {
+          if ((*parameter.second->roles.begin()).first == 900201) has_total = true;
+          else if ((*parameter.second->roles.begin()).first == 900203 || (*parameter.second->roles.begin()).first == 900205) {
+            has_energy = true;
+            unit_code_total = parameter.second->unit_code;
+            unit_total = parameter.second->unit;
+          }
+          else if ((*parameter.second->roles.begin()).first == 900211) has_import_total = true;
+          else if ((*parameter.second->roles.begin()).first == 900207 || (*parameter.second->roles.begin()).first == 900209) {
+            has_import_energy = true;
+            unit_code_import = parameter.second->unit_code;
+            unit_import = parameter.second->unit;
+          }
+          else if ((*parameter.second->roles.begin()).first == 900217) has_export_total = true;
+          else if ((*parameter.second->roles.begin()).first == 900213 || (*parameter.second->roles.begin()).first == 900215) {
+            has_export_energy = true;
+            unit_code_export = parameter.second->unit_code;
+            unit_export = parameter.second->unit;
+          }
+        }
+      }
+
+      if (has_energy && !has_total) {
+        PParameter parameter = std::make_shared<Parameter>(Gd::bl, function->variables);
+        parameter->id = "ENERGY_TOTAL_GENERATED";
+        parameter->readable = true;
+        parameter->writeable = false;
+
+        parameter->physical = std::make_shared<PhysicalNone>(Gd::bl);
+
+        parameter->logical = std::make_shared<LogicalDecimal>(Gd::bl);
+        parameter->casts.emplace_back(std::make_shared<BaseLib::DeviceDescription::ParameterCast::RpcBinary>(Gd::bl));
+        parameter->unit = unit_total;
+        parameter->unit_code = unit_code_total;
+        parameter->roles.emplace(900201, Role(900201, RoleDirection::input, false, false, {}));
+
+        function->variables->parametersOrdered.push_back(parameter);
+        function->variables->parameters[parameter->id] = parameter;
+      }
+
+      if (has_import_energy && !has_import_total) {
+        PParameter parameter = std::make_shared<Parameter>(Gd::bl, function->variables);
+        parameter->id = "ENERGY_IMPORT_TOTAL_GENERATED";
+        parameter->readable = true;
+        parameter->writeable = false;
+
+        parameter->physical = std::make_shared<PhysicalNone>(Gd::bl);
+
+        parameter->logical = std::make_shared<LogicalDecimal>(Gd::bl);
+        parameter->casts.emplace_back(std::make_shared<BaseLib::DeviceDescription::ParameterCast::RpcBinary>(Gd::bl));
+        parameter->unit = unit_import;
+        parameter->unit_code = unit_code_import;
+        parameter->roles.emplace(900211, Role(900211, RoleDirection::input, false, false, {}));
+
+        function->variables->parametersOrdered.push_back(parameter);
+        function->variables->parameters[parameter->id] = parameter;
+      }
+
+      if (has_export_energy && !has_export_total) {
+        PParameter parameter = std::make_shared<Parameter>(Gd::bl, function->variables);
+        parameter->id = "ENERGY_EXPORT_TOTAL_GENERATED";
+        parameter->readable = true;
+        parameter->writeable = false;
+
+        parameter->physical = std::make_shared<PhysicalNone>(Gd::bl);
+
+        parameter->logical = std::make_shared<LogicalDecimal>(Gd::bl);
+        parameter->casts.emplace_back(std::make_shared<BaseLib::DeviceDescription::ParameterCast::RpcBinary>(Gd::bl));
+        parameter->unit = unit_export;
+        parameter->unit_code = unit_code_export;
+        parameter->roles.emplace(900217, Role(900217, RoleDirection::input, false, false, {}));
+
+        function->variables->parametersOrdered.push_back(parameter);
+        function->variables->parameters[parameter->id] = parameter;
+      }
+    }
+    //}}}
+
     std::string filename = _xmlPath + packet->getDeviceIdString() + ".xml";
     device->save(filename);
 
@@ -929,7 +1023,8 @@ void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_in
       parameter->casts.emplace_back(std::move(cast2));
     }
 
-    if (dataRecord.difFunction == MbusPacket::DifFunction::instantaneousValue && (dataRecord.subunit == -1 || dataRecord.subunit == 0) && (dataRecord.storageNumber == 0 || dataRecord.storageNumber == 1)) {
+    if (dataRecord.difFunction == MbusPacket::DifFunction::instantaneousValue && (dataRecord.subunit == -1 || dataRecord.subunit == 0)
+        && (dataRecord.storageNumber == 0 || dataRecord.storageNumber == 1)) {
       if (vif_info.force_role != 0 && (dataRecord.storageNumber == 0 || used_roles.find(vif_info.force_role) == used_roles.end())) {
         parameter->roles.emplace(vif_info.force_role, Role(vif_info.force_role, RoleDirection::input, false, false, {}));
         used_roles.emplace(vif_info.force_role);
