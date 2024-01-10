@@ -159,8 +159,8 @@ void MbusCentral::worker() {
           static int64_t last_info_packet = BaseLib::HelperFunctions::getTime();
 
           if (modulo != 0) {
-            int64_t last_period_start = (last_poll_ - (last_poll_ % modulo)) + polling_offset;
-            int64_t current_period_start = (time - (time % modulo)) + polling_offset;
+            int64_t last_period_start = (last_poll_ - (last_poll_ % modulo));
+            int64_t current_period_start = ((time - polling_offset) - ((time - polling_offset) % modulo));
 
             poll_peers = last_period_start < current_period_start;
             if (polling_interval > PollingInterval::kHourly && BaseLib::HelperFunctions::getTime() - last_info_packet >= 3600000) {
