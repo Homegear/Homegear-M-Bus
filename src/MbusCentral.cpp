@@ -382,7 +382,8 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
         (myPacket->isFormatTelegram() && peer->getFormatCrc() != myPacket->getFormatCrc()) ||
         peer->getRpcTypeString() == BaseLib::HelperFunctions::getHexString(myPacket->secondaryAddress(), 8) ||  //Convert old IDs into new ones
         peer->getSerialNumber() != myPacket->getDeviceIdString()) { //Convert old serial numbers into new ones
-      if (myPacket->isEncrypted() || senderId == "ExternalInterface" || !myPacket->wireless()) {
+      if (_pairing &&
+          (myPacket->isEncrypted() || senderId == "ExternalInterface" || !myPacket->wireless())) {
         if ((myPacket->isFormatTelegram() || (myPacket->isDataTelegram() && !myPacket->isCompactDataTelegram()))) {
           _bl->out.printInfo(
               "Info: Packet type changed from " + std::to_string(peer->getControlInformation()) + " to " + std::to_string(myPacket->getControlInformation()) + " or data record count changed from "
@@ -398,7 +399,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
         }
       } else {
         _bl->out.printWarning(
-            "Warning: Ignoring packet with wrong control information for peer " + std::to_string(peer->getID()) + ". Not changing the peer's configuration as the packet is unencrypted.");
+            "Warning: Ignoring packet with wrong control information for peer " + std::to_string(peer->getID()) + ". Not changing the peer's configuration.");
         return false;
       }
     }
