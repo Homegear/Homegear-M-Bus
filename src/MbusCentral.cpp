@@ -382,7 +382,7 @@ bool MbusCentral::onPacketReceived(std::string &senderId, std::shared_ptr<BaseLi
         (myPacket->isFormatTelegram() && peer->getFormatCrc() != myPacket->getFormatCrc()) ||
         peer->getRpcTypeString() == BaseLib::HelperFunctions::getHexString(myPacket->secondaryAddress(), 8) ||  //Convert old IDs into new ones
         peer->getSerialNumber() != myPacket->getDeviceIdString()) { //Convert old serial numbers into new ones
-      if ((_pairing || peer->getSerialNumber().size() <= 8) &&
+      if ((_pairing || peer->getSerialNumber().find('-') == std::string::npos) &&
           (myPacket->isEncrypted() || senderId == "ExternalInterface" || !myPacket->wireless())) {
         if ((myPacket->isFormatTelegram() || (myPacket->isDataTelegram() && !myPacket->isCompactDataTelegram()))) {
           _bl->out.printInfo(
