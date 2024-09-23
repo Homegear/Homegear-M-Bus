@@ -1,7 +1,7 @@
 /* Copyright 2013-2019 Homegear GmbH */
 
 #include "VifConverter.h"
-#include "GD.h"
+#include "Gd.h"
 
 namespace Mbus {
 
@@ -92,7 +92,7 @@ PVariable VifConverter::getVariable(uint8_t type, std::vector<uint8_t> &vifs, co
     }
   }
   catch (const std::exception &ex) {
-    GD::bl->out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::bl->out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return
       std::make_shared<Variable>();

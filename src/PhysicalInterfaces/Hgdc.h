@@ -27,7 +27,7 @@ class Hgdc : public IMbusInterface {
   std::unordered_set<uint8_t> _securityModeWhitelist;
 
   bool setParameter(uint8_t address, uint8_t value);
-  void rawSend(std::vector<uint8_t> &packet) override;
+  void RawSend(const std::vector<uint8_t> &packet) override;
   void processPacket(int64_t familyId, const std::string &serialNumber, const std::vector<uint8_t> &data);
 };
 

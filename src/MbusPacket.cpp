@@ -2,26 +2,26 @@
 
 #include "MbusPacket.h"
 
-#include "GD.h"
+#include "Gd.h"
 
 namespace Mbus {
 MbusPacket::MbusPacket() {
-  _difSizeMap[0] = 0;
-  _difSizeMap[1] = 1;
-  _difSizeMap[2] = 2;
-  _difSizeMap[3] = 3;
-  _difSizeMap[4] = 4;
-  _difSizeMap[5] = 5;
-  _difSizeMap[6] = 6;
-  _difSizeMap[7] = 8;
-  _difSizeMap[8] = 0;
-  _difSizeMap[9] = 1;
-  _difSizeMap[10] = 2;
-  _difSizeMap[11] = 3;
-  _difSizeMap[12] = 4;
-  _difSizeMap[13] = 0;
-  _difSizeMap[14] = 6;
-  _difSizeMap[15] = 0;
+  _difSizeMap[0] = 0; //No data
+  _difSizeMap[1] = 1; //8 bit integer
+  _difSizeMap[2] = 2; //16 bit integer
+  _difSizeMap[3] = 3; //24 bit integer
+  _difSizeMap[4] = 4; //32 bit integer
+  _difSizeMap[5] = 4; //32 bit floating point
+  _difSizeMap[6] = 6; //48 bit integer
+  _difSizeMap[7] = 8; //64 bit integer
+  _difSizeMap[8] = 0; //"Auswahl für Ablesung"
+  _difSizeMap[9] = 1; //2 digit BCD
+  _difSizeMap[10] = 2; //4 digit BCD
+  _difSizeMap[11] = 3; //6 digit BCD
+  _difSizeMap[12] = 4; //8 digit BCD
+  _difSizeMap[13] = 0; //Variable length
+  _difSizeMap[14] = 6; //12 digit BCD
+  _difSizeMap[15] = 0; //Special functions
 }
 
 MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
@@ -38,16 +38,16 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
     _command = packet.at(1);
     _length = packet.at(2);
     _control = packet.at(3);
-    uint32_t value = (((uint32_t)packet.at(5)) << 8u) | packet.at(4);
+    _manufacturerCode = (((uint32_t) packet.at(5)) << 8u) | packet.at(4);
     _manufacturer.clear();
     _manufacturer.reserve(3);
-    _manufacturer.push_back((char)(((value >> 10u) & 0x1Fu) + 64));
-    _manufacturer.push_back((char)(((value >> 5u) & 0x1Fu) + 64));
-    _manufacturer.push_back((char)((value & 0x1Fu) + 64));
+    _manufacturer.push_back((char) (((_manufacturerCode >> 10u) & 0x1Fu) + 64));
+    _manufacturer.push_back((char) (((_manufacturerCode >> 5u) & 0x1Fu) + 64));
+    _manufacturer.push_back((char) ((_manufacturerCode & 0x1Fu) + 64));
     _iv.clear();
     _iv.reserve(16);
     _iv.insert(_iv.end(), packet.begin() + 4, packet.begin() + 12);
-    _secondaryAddress = (((uint32_t)packet.at(9)) << 24u) | (((uint32_t)packet.at(8)) << 16u) | (((uint32_t)packet.at(7)) << 8u) | ((uint32_t)packet.at(6));
+    _secondaryAddress = (((uint32_t) packet.at(9)) << 24u) | (((uint32_t) packet.at(8)) << 16u) | (((uint32_t) packet.at(7)) << 8u) | ((uint32_t) packet.at(6));
     _version = packet.at(10);
     _medium = packet.at(11);
     ciStart = 12;
@@ -60,7 +60,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       ciStart = 6;
     }
   } else {
-    GD::out.printWarning("Warning: Unknown packet type: " + BaseLib::HelperFunctions::getHexString(packet.at(0)));
+    Gd::out.printWarning("Warning: Unknown packet type: " + BaseLib::HelperFunctions::getHexString(packet.at(0)));
     return;
   }
 
@@ -68,7 +68,10 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
   for (int32_t i = 0; i < 10; i++) {
     if (ciStart >= packet.size()) break;
     controlInformation = packet.at(ciStart);
-    if (controlInformation == 0x8C) //ELL I
+    if (controlInformation == 0x52) {
+      //Packet to set primary address - typically received when our packet is sent back
+      return;
+    } else if (controlInformation == 0x8C) //ELL I
     {
       //This value of the CI-field is used if data encryption at the link layer is not used in the frame.
       _ellInfo.controlInformation = controlInformation;
@@ -82,7 +85,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       _ellInfo.controlInformation = controlInformation;
       _ellInfo.communicationControlField.raw = _packet.at(ciStart + 1);
       _ellInfo.accessNumber = packet.at(ciStart + 2);
-      _ellInfo.sessionNumberField.raw = ((uint32_t)packet.at(ciStart + 6) << 24u) | ((uint32_t)packet.at(ciStart + 5) << 16u) | ((uint32_t)packet.at(ciStart + 4) << 8u) | packet.at(ciStart + 3);
+      _ellInfo.sessionNumberField.raw = ((uint32_t) packet.at(ciStart + 6) << 24u) | ((uint32_t) packet.at(ciStart + 5) << 16u) | ((uint32_t) packet.at(ciStart + 4) << 8u) | packet.at(ciStart + 3);
       _ellInfo.ellEncryption = _ellInfo.sessionNumberField.bitField.encryptionField == 1;
       if (_ellInfo.ellEncryption) {
         _encryptionMode = 1;
@@ -104,13 +107,14 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       _ellInfo.controlInformation = controlInformation;
       _ellInfo.communicationControlField.raw = _packet.at(ciStart + 1);
       _ellInfo.accessNumber = packet.at(ciStart + 2);
-      uint32_t value = (((uint32_t)packet.at(ciStart + 4)) << 8u) | packet.at(ciStart + 3);
+      uint32_t value = (((uint32_t) packet.at(ciStart + 4)) << 8u) | packet.at(ciStart + 3);
       _ellInfo.manufacturer2.clear();
       _ellInfo.manufacturer2.reserve(3);
-      _ellInfo.manufacturer2.push_back((char)(((value >> 10u) & 0x1Fu) + 64));
-      _ellInfo.manufacturer2.push_back((char)(((value >> 5u) & 0x1Fu) + 64));
-      _ellInfo.manufacturer2.push_back((char)((value & 0x1Fu) + 64));
-      _ellInfo.address2 = (((uint32_t)packet.at(ciStart + 8)) << 24u) | (((uint32_t)packet.at(ciStart + 7)) << 16u) | (((uint32_t)packet.at(ciStart + 6)) << 8u) | ((uint32_t)packet.at(ciStart + 5));
+      _ellInfo.manufacturer2.push_back((char) (((value >> 10u) & 0x1Fu) + 64));
+      _ellInfo.manufacturer2.push_back((char) (((value >> 5u) & 0x1Fu) + 64));
+      _ellInfo.manufacturer2.push_back((char) ((value & 0x1Fu) + 64));
+      _ellInfo.address2 =
+          (((uint32_t) packet.at(ciStart + 8)) << 24u) | (((uint32_t) packet.at(ciStart + 7)) << 16u) | (((uint32_t) packet.at(ciStart + 6)) << 8u) | ((uint32_t) packet.at(ciStart + 5));
       _ellInfo.version2 = packet.at(ciStart + 9);
       _ellInfo.medium2 = packet.at(ciStart + 10);
       ciStart += 11;
@@ -122,16 +126,18 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       _ellInfo.controlInformation = controlInformation;
       _ellInfo.communicationControlField.raw = _packet.at(ciStart + 1);
       _ellInfo.accessNumber = packet.at(ciStart + 2);
-      uint32_t value = (((uint32_t)packet.at(ciStart + 4)) << 8u) | packet.at(ciStart + 3);
+      uint32_t value = (((uint32_t) packet.at(ciStart + 4)) << 8u) | packet.at(ciStart + 3);
       _ellInfo.manufacturer2.clear();
       _ellInfo.manufacturer2.reserve(3);
-      _ellInfo.manufacturer2.push_back((char)(((value >> 10u) & 0x1Fu) + 64));
-      _ellInfo.manufacturer2.push_back((char)(((value >> 5u) & 0x1Fu) + 64));
-      _ellInfo.manufacturer2.push_back((char)((value & 0x1Fu) + 64));
-      _ellInfo.address2 = (((uint32_t)packet.at(ciStart + 8)) << 24u) | (((uint32_t)packet.at(ciStart + 7)) << 16u) | (((uint32_t)packet.at(ciStart + 6)) << 8u) | ((uint32_t)packet.at(ciStart + 5));
+      _ellInfo.manufacturer2.push_back((char) (((value >> 10u) & 0x1Fu) + 64));
+      _ellInfo.manufacturer2.push_back((char) (((value >> 5u) & 0x1Fu) + 64));
+      _ellInfo.manufacturer2.push_back((char) ((value & 0x1Fu) + 64));
+      _ellInfo.address2 =
+          (((uint32_t) packet.at(ciStart + 8)) << 24u) | (((uint32_t) packet.at(ciStart + 7)) << 16u) | (((uint32_t) packet.at(ciStart + 6)) << 8u) | ((uint32_t) packet.at(ciStart + 5));
       _ellInfo.version2 = packet.at(ciStart + 9);
       _ellInfo.medium2 = packet.at(ciStart + 10);
-      _ellInfo.sessionNumberField.raw = ((uint32_t)packet.at(ciStart + 14) << 24u) | ((uint32_t)packet.at(ciStart + 13) << 16u) | ((uint32_t)packet.at(ciStart + 12) << 8u) | packet.at(ciStart + 11);
+      _ellInfo.sessionNumberField.raw =
+          ((uint32_t) packet.at(ciStart + 14) << 24u) | ((uint32_t) packet.at(ciStart + 13) << 16u) | ((uint32_t) packet.at(ciStart + 12) << 8u) | packet.at(ciStart + 11);
       _ellInfo.ellEncryption = _ellInfo.sessionNumberField.bitField.encryptionField == 1;
       if (_ellInfo.ellEncryption) {
         _encryptionMode = 1;
@@ -159,7 +165,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       uint8_t fragmentControlField = packet.at(aflPos++);
       _aflHeader.moreFragments = fragmentControlField & 0x40u;
       if (_aflHeader.moreFragments) {
-        GD::out.printWarning("Warning AFL with multiple fragments is unsupported.");
+        Gd::out.printWarning("Warning AFL with multiple fragments is unsupported.");
         break;
       }
       if (fragmentControlField & 0x20u) //Has message control field
@@ -168,26 +174,27 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
         _aflHeader.messageControlField = packet.at(aflPos++);
         _aflHeader.authenticationType = _aflHeader.messageControlField & 0x0Fu;
         if (_aflHeader.authenticationType != 5) {
-          GD::out.printWarning("Only authentication type 5 is supported at the moment.");
+          Gd::out.printWarning("Only authentication type 5 is supported at the moment.");
           break;
         }
       }
       if (fragmentControlField & 0x02u) //Has key information field
       {
         _aflHeader.hasKeyInformation = true;
-        _aflHeader.keyInformationField = (((uint16_t)packet.at(aflPos + 1)) << 8u) | ((uint16_t)packet.at(aflPos));
+        _aflHeader.keyInformationField = (((uint16_t) packet.at(aflPos + 1)) << 8u) | ((uint16_t) packet.at(aflPos));
         aflPos += 2;
       }
       if (fragmentControlField & 0x08u) //Has message counter
       {
         _aflHeader.hasMessageCounter = true;
-        _aflHeader.messageCounter = (((uint32_t)packet.at(aflPos + 3)) << 24) | (((uint32_t)packet.at(aflPos + 2)) << 16) | (((uint32_t)packet.at(aflPos + 1)) << 8) | ((uint32_t)packet.at(aflPos));
+        _aflHeader.messageCounter =
+            (((uint32_t) packet.at(aflPos + 3)) << 24) | (((uint32_t) packet.at(aflPos + 2)) << 16) | (((uint32_t) packet.at(aflPos + 1)) << 8) | ((uint32_t) packet.at(aflPos));
         aflPos += 4;
       }
       if (fragmentControlField & 0x04u) //Has MAC
       {
         if (_aflHeader.authenticationType != 5) {
-          GD::out.printWarning("Only authentication type 5 is supported at the moment.");
+          Gd::out.printWarning("Only authentication type 5 is supported at the moment.");
           break;
         }
         _aflHeader.mac.insert(_aflHeader.mac.end(), packet.begin() + aflPos, packet.begin() + aflPos + 8);
@@ -196,7 +203,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       if (fragmentControlField & 0x10u) //Has length
       {
         _aflHeader.hasMessageLength = true;
-        _aflHeader.messageLength = (((uint16_t)packet.at(aflPos + 1)) << 8) | ((uint16_t)packet.at(aflPos));
+        _aflHeader.messageLength = (((uint16_t) packet.at(aflPos + 1)) << 8) | ((uint16_t) packet.at(aflPos));
         aflPos += 2;
       }
     } else {
@@ -204,19 +211,20 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
       if (hasLongTplHeader()) //Address, manufacturer and medium from header take precedence over outer frame
       {
         _tpduStart = ciStart;
-        _secondaryAddress = (((uint32_t)packet.at(ciStart + 4)) << 24) | (((uint32_t)packet.at(ciStart + 3)) << 16) | (((uint32_t)packet.at(ciStart + 2)) << 8) | ((uint32_t)packet.at(ciStart + 1));
-        uint32_t value = (((uint32_t)packet.at(ciStart + 6)) << 8) | packet.at(ciStart + 5);
+        _secondaryAddress =
+            (((uint32_t) packet.at(ciStart + 4)) << 24) | (((uint32_t) packet.at(ciStart + 3)) << 16) | (((uint32_t) packet.at(ciStart + 2)) << 8) | ((uint32_t) packet.at(ciStart + 1));
+        _manufacturerCode = (((uint32_t) packet.at(ciStart + 6)) << 8) | packet.at(ciStart + 5);
         _manufacturer.clear();
         _manufacturer.reserve(3);
-        _manufacturer.push_back((char)(((value >> 10) & 0x1F) + 64));
-        _manufacturer.push_back((char)(((value >> 5) & 0x1F) + 64));
-        _manufacturer.push_back((char)((value & 0x1F) + 64));
+        _manufacturer.push_back((char) (((_manufacturerCode >> 10) & 0x1F) + 64));
+        _manufacturer.push_back((char) (((_manufacturerCode >> 5) & 0x1F) + 64));
+        _manufacturer.push_back((char) ((_manufacturerCode & 0x1F) + 64));
         _version = packet.at(ciStart + 7);
         _medium = packet.at(ciStart + 8);
 
         _messageCounter = packet.at(ciStart + 9);
         _status = packet.at(ciStart + 10);
-        _configuration = (((uint16_t)packet.at(ciStart + 11)) << 8) | packet.at(ciStart + 12);
+        _configuration = (((uint16_t) packet.at(ciStart + 11)) << 8) | packet.at(ciStart + 12);
         _encryptionMode = _configuration & 0x1Fu;
 
         size_t tplPos = 13;
@@ -239,7 +247,9 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
           }
 
           if (_mode7Info.messageCounterInTpl) {
-            _mode7Info.tplMessageCounter = (((uint32_t)packet.at(ciStart + tplPos + 3)) << 24) | (((uint32_t)packet.at(ciStart + tplPos + 2)) << 16) | (((uint32_t)packet.at(ciStart + tplPos + 1)) << 8) | ((uint32_t)packet.at(ciStart + tplPos));
+            _mode7Info.tplMessageCounter =
+                (((uint32_t) packet.at(ciStart + tplPos + 3)) << 24) | (((uint32_t) packet.at(ciStart + tplPos + 2)) << 16) | (((uint32_t) packet.at(ciStart + tplPos + 1)) << 8)
+                    | ((uint32_t) packet.at(ciStart + tplPos));
             tplPos += 4;
           }
         }
@@ -249,19 +259,19 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
         break; //No more CIs after payload
       } else if (hasShortTplHeader()) {
         _tpduStart = ciStart;
-        uint32_t value = (((uint32_t)packet.at(5)) << 8) | packet.at(4);
+        _manufacturerCode = (((uint32_t) packet.at(5)) << 8) | packet.at(4);
         _manufacturer.clear();
         _manufacturer.reserve(3);
-        _manufacturer.push_back((char)(((value >> 10) & 0x1F) + 64));
-        _manufacturer.push_back((char)(((value >> 5) & 0x1F) + 64));
-        _manufacturer.push_back((char)((value & 0x1F) + 64));
-        _secondaryAddress = (((uint32_t)packet.at(9)) << 24u) | (((uint32_t)packet.at(8)) << 16u) | (((uint32_t)packet.at(7)) << 8u) | ((uint32_t)packet.at(6));
+        _manufacturer.push_back((char) (((_manufacturerCode >> 10) & 0x1F) + 64));
+        _manufacturer.push_back((char) (((_manufacturerCode >> 5) & 0x1F) + 64));
+        _manufacturer.push_back((char) ((_manufacturerCode & 0x1F) + 64));
+        _secondaryAddress = (((uint32_t) packet.at(9)) << 24u) | (((uint32_t) packet.at(8)) << 16u) | (((uint32_t) packet.at(7)) << 8u) | ((uint32_t) packet.at(6));
         _version = packet.at(10);
         _medium = packet.at(11);
 
         _messageCounter = packet.at(ciStart + 1);
         _status = packet.at(ciStart + 2);
-        _configuration = (((uint16_t)packet.at(ciStart + 3)) << 8u) | packet.at(ciStart + 4);
+        _configuration = (((uint16_t) packet.at(ciStart + 3)) << 8u) | packet.at(ciStart + 4);
         _encryptionMode = _configuration & 0x1Fu;
 
         size_t tplPos = 5;
@@ -284,7 +294,9 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
           }
 
           if (_mode7Info.messageCounterInTpl) {
-            _mode7Info.tplMessageCounter = (((uint32_t)packet.at(ciStart + tplPos + 3)) << 24) | (((uint32_t)packet.at(ciStart + tplPos + 2)) << 16) | (((uint32_t)packet.at(ciStart + tplPos + 1)) << 8) | ((uint32_t)packet.at(ciStart + tplPos));
+            _mode7Info.tplMessageCounter =
+                (((uint32_t) packet.at(ciStart + tplPos + 3)) << 24) | (((uint32_t) packet.at(ciStart + tplPos + 2)) << 16) | (((uint32_t) packet.at(ciStart + tplPos + 1)) << 8)
+                    | ((uint32_t) packet.at(ciStart + tplPos));
             tplPos += 4;
           }
         }
@@ -293,8 +305,8 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
         _payload.insert(_payload.end(), _packet.begin() + ciStart + tplPos, _packet.end() - 2);
         break; //No more CIs after payload
       } else {
-        GD::out.printWarning("Warning: Unknown CI: " + BaseLib::HelperFunctions::getHexString(controlInformation));
-        break;
+        Gd::out.printWarning("Warning: Unknown CI: " + BaseLib::HelperFunctions::getHexString(controlInformation));
+        return;
       }
     }
   }
@@ -317,7 +329,7 @@ MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
   //15: Specific usage
   //16 - 31: Reserved
   if (_encryptionMode != 0 && _encryptionMode != 1 && _encryptionMode != 4 && _encryptionMode != 5 && _encryptionMode != 7) {
-    GD::out.printWarning("Warning: Can't process packet, because encryption mode is not supported.");
+    Gd::out.printWarning("Warning: Can't process packet, because encryption mode is not supported.");
     return;
   }
 
@@ -391,10 +403,10 @@ std::string MbusPacket::getInfoString() {
         info += std::string(" - Medium 2:          0x") + std::to_string(_ellInfo.medium2) + " (" + getMediumString(_ellInfo.medium2) + ")\n";
       }
     }
-    for (auto &dataRecord: _dataRecords) {
+    for (auto &dataRecord : _dataRecords) {
       info += "\n ---\n";
       info += "   DIF: 0x" + BaseLib::HelperFunctions::getHexString(dataRecord.difs.front() & 0x0F) + " (0x" + BaseLib::HelperFunctions::getHexString(dataRecord.difs) + ")" + "\n";
-      info += "    - Function:       " + std::to_string((int32_t)dataRecord.difFunction) + "\n";
+      info += "    - Function:       " + std::to_string((int32_t) dataRecord.difFunction) + "\n";
       info += "    - Storage number: " + std::to_string(dataRecord.storageNumber) + "\n";
       info += "    - Subunit:        " + std::to_string(dataRecord.subunit) + "\n";
       info += "    - Tariff:         " + std::to_string(dataRecord.tariff) + "\n";
@@ -407,7 +419,7 @@ std::string MbusPacket::getInfoString() {
     return info;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return "";
 }
@@ -417,9 +429,9 @@ std::vector<uint8_t> MbusPacket::getBinary() {
     if (!_packet.empty()) return _packet;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
-  return std::vector<uint8_t>();
+  return {};
 }
 
 std::string MbusPacket::getMediumString(uint8_t medium) {
@@ -440,10 +452,10 @@ std::string MbusPacket::getMediumString(uint8_t medium) {
     case 0x0D:return "Heat / cooling load meter";
     case 0x0E:return "Bus / system";
     case 0x0F:return "Unknown";
-    case 0x10:return "Reserved for consumption meter";
-    case 0x11:return "Reserved for consumption meter";
-    case 0x12:return "Reserved for consumption meter";
-    case 0x13:return "Reserved for consumption meter";
+    case 0x10:return "Reserved for consumption meter (1)";
+    case 0x11:return "Reserved for consumption meter (2)";
+    case 0x12:return "Reserved for consumption meter (3)";
+    case 0x13:return "Reserved for consumption meter (4)";
     case 0x14:return "Calorific value";
     case 0x15:return "Hot water (≥ 90 °C)";
     case 0x16:return "Cold water";
@@ -453,41 +465,41 @@ std::string MbusPacket::getMediumString(uint8_t medium) {
     case 0x1A:return "Smoke detector";
     case 0x1B:return "Room sensor (e. g. temperature or humidity)";
     case 0x1C:return "Gas detector";
-    case 0x1D:return "Reserved for sensors";
-    case 0x1E:return "Reserved for sensors";
-    case 0x1F:return "Reserved for sensors";
+    case 0x1D:return "Reserved for sensors (1)";
+    case 0x1E:return "Reserved for sensors (2)";
+    case 0x1F:return "Reserved for sensors (3)";
     case 0x20:return "Breaker (electricity)";
     case 0x21:return "Valve (gas or water)";
-    case 0x22:return "Reserved for switching devices";
-    case 0x23:return "Reserved for switching devices";
-    case 0x24:return "Reserved for switching devices";
+    case 0x22:return "Reserved for switching devices (1)";
+    case 0x23:return "Reserved for switching devices (2)";
+    case 0x24:return "Reserved for switching devices (3)";
     case 0x25:return "Customer unit (display device)";
-    case 0x26:return "Reserved for customer units";
-    case 0x27:return "Reserved for customer units";
+    case 0x26:return "Reserved for customer units (1)";
+    case 0x27:return "Reserved for customer units (2)";
     case 0x28:return "Waste water";
     case 0x29:return "Garbage";
     case 0x2A:return "Reserved for carbon dioxide";
-    case 0x2B:return "Reserved for environmental meter";
-    case 0x2C:return "Reserved for environmental meter";
-    case 0x2D:return "Reserved for environmental meter";
-    case 0x2E:return "Reserved for environmental meter";
-    case 0x2F:return "Reserved for environmental meter";
+    case 0x2B:return "Reserved for environmental meter (1)";
+    case 0x2C:return "Reserved for environmental meter (2)";
+    case 0x2D:return "Reserved for environmental meter (3)";
+    case 0x2E:return "Reserved for environmental meter (4)";
+    case 0x2F:return "Reserved for environmental meter (5)";
     case 0x30:return "Reserved for system devices";
     case 0x31:return "Reserved for communication controller";
     case 0x32:return "Reserved for unidirectional repeater";
     case 0x33:return "Reserved for bidirectional repeater";
-    case 0x34:return "Reserved for system devices";
-    case 0x35:return "Reserved for system devices";
+    case 0x34:return "Reserved for system devices (1)";
+    case 0x35:return "Reserved for system devices (2)";
     case 0x36:return "Radio converter (system side)";
     case 0x37:return "Radio converter (meter side)";
-    case 0x38:return "Reserved for system devices";
-    case 0x39:return "Reserved for system devices";
-    case 0x3A:return "Reserved for system devices";
-    case 0x3B:return "Reserved for system devices";
-    case 0x3C:return "Reserved for system devices";
-    case 0x3D:return "Reserved for system devices";
-    case 0x3E:return "Reserved for system devices";
-    case 0x3F:return "Reserved for system devices";
+    case 0x38:return "Reserved for system devices (1)";
+    case 0x39:return "Reserved for system devices (2)";
+    case 0x3A:return "Reserved for system devices (3)";
+    case 0x3B:return "Reserved for system devices (4)";
+    case 0x3C:return "Reserved for system devices (5)";
+    case 0x3D:return "Reserved for system devices (6)";
+    case 0x3E:return "Reserved for system devices (7)";
+    case 0x3F:return "Reserved for system devices (8)";
     default:return "Unknown";
   }
 }
@@ -627,7 +639,7 @@ std::vector<uint8_t> MbusPacket::getPosition(uint32_t position, uint32_t size) {
     return BaseLib::BitReaderWriter::getPosition(_payload, position, size);
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return std::vector<uint8_t>();
 }
@@ -695,7 +707,7 @@ bool MbusPacket::decrypt(const std::vector<uint8_t> &key) {
     } else if (_encryptionMode == 7) {
       //{{{ Check MAC
       if (_aflHeader.mac.empty()) {
-        GD::out.printWarning("Warning: No MAC in packet.");
+        Gd::out.printWarning("Warning: No MAC in packet.");
         return false;
       }
 
@@ -723,12 +735,12 @@ bool MbusPacket::decrypt(const std::vector<uint8_t> &key) {
       std::vector<uint8_t> derivedKey;
       try {
         if (!BaseLib::Security::Mac::cmac(key, iv, kdfInput, derivedKey)) {
-          GD::out.printWarning("Warning: Could not generate key.");
+          Gd::out.printWarning("Warning: Could not generate key.");
           return false;
         }
       }
       catch (BaseLib::Security::GcryptException &ex) {
-        GD::out.printWarning("Warning: Could not generate key: " + std::string(ex.what()));
+        Gd::out.printWarning("Warning: Could not generate key: " + std::string(ex.what()));
         return false;
       }
 
@@ -754,18 +766,18 @@ bool MbusPacket::decrypt(const std::vector<uint8_t> &key) {
       try {
         std::vector<uint8_t> cmac;
         if (!BaseLib::Security::Mac::cmac(derivedKey, iv, cmacInput, cmac)) {
-          GD::out.printWarning("Warning: Could not generate key.");
+          Gd::out.printWarning("Warning: Could not generate key.");
           return false;
         }
 
         cmac.resize(8);
         if (cmac != _aflHeader.mac) {
-          GD::out.printWarning("Warning: CMAC verification failed.");
+          Gd::out.printWarning("Warning: CMAC verification failed.");
           return false;
         }
       }
       catch (BaseLib::Security::GcryptException &ex) {
-        GD::out.printWarning("Warning: Could not generate key: " + std::string(ex.what()));
+        Gd::out.printWarning("Warning: Could not generate key: " + std::string(ex.what()));
         return false;
       }
       //}}}
@@ -775,12 +787,12 @@ bool MbusPacket::decrypt(const std::vector<uint8_t> &key) {
       derivedKey.clear();
       try {
         if (!BaseLib::Security::Mac::cmac(key, iv, kdfInput, derivedKey)) {
-          GD::out.printWarning("Warning: Could not generate key.");
+          Gd::out.printWarning("Warning: Could not generate key.");
           return false;
         }
       }
       catch (BaseLib::Security::GcryptException &ex) {
-        GD::out.printWarning("Warning: Could not generate key: " + std::string(ex.what()));
+        Gd::out.printWarning("Warning: Could not generate key: " + std::string(ex.what()));
         return false;
       }
 
@@ -813,14 +825,14 @@ bool MbusPacket::decrypt(const std::vector<uint8_t> &key) {
       if (!_dataValid) return false;
       _isDecrypted = true;
     } else if (_encryptionMode != 0) {
-      GD::out.printWarning("Warning: Encryption mode " + std::to_string(_encryptionMode) + " is currently not supported.");
+      Gd::out.printWarning("Warning: Encryption mode " + std::to_string(_encryptionMode) + " is currently not supported.");
       return false;
     }
     _isDecrypted = true;
     return true;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return false;
 }
@@ -830,7 +842,7 @@ void MbusPacket::strip2F(std::vector<uint8_t> &data) {
     if (data.empty()) return;
     uint32_t startPos = 0;
     uint32_t endPos = data.size() - 1;
-    for (auto &byte: data) {
+    for (auto &byte : data) {
       if (byte != 0x2F) break;
       startPos++;
     }
@@ -846,7 +858,7 @@ void MbusPacket::strip2F(std::vector<uint8_t> &data) {
     data = std::move(strippedPayload);
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -854,11 +866,11 @@ void MbusPacket::parsePayload() {
   try {
     _dataRecords.clear();
     if (isCompactDataTelegram()) {
-      _formatCrc = (((uint16_t)_payload.at(1)) << 8) | _payload.at(0);
+      _formatCrc = (((uint16_t) _payload.at(1)) << 8) | _payload.at(0);
       _dataValid = true;
       return; //Not parseable
     } else if (isFormatTelegram() && _controlInformation != 0x78) { //CI == 0x78 => Special case for Kamstrup
-      _formatCrc = (((uint16_t)_payload.at(2)) << 8u) | _payload.at(1);
+      _formatCrc = (((uint16_t) _payload.at(2)) << 8u) | _payload.at(1);
     }
 
     //Skip first three bytes for format packets. The format packet starts with length + 2 unknown bytes.
@@ -868,6 +880,7 @@ void MbusPacket::parsePayload() {
     uint32_t pos = 0;
     if (isFormatTelegram()) pos = 3;
     for (; pos < _payload.size();) {
+      Gd::out.printDebug("Debug: Parsing payload position " + std::to_string(pos) + "...");
       while (_payload.at(pos) == 0x2F) {
         nopCount++;
         pos++; //Ignore padding byte. Can be within the packet in case unencrypted data follows encrypted data
@@ -878,7 +891,7 @@ void MbusPacket::parsePayload() {
       //{{{ Get DIF
       dataRecord.difs.reserve(11);
       dataRecord.difs.push_back(_payload.at(pos++));
-      dataRecord.difFunction = (DifFunction)((dataRecord.difs.back() & 0x30u) >> 4u);
+      dataRecord.difFunction = (DifFunction) ((dataRecord.difs.back() & 0x30u) >> 4u);
       uint32_t count = 0;
       while (dataRecord.difs.back() & 0x80 && pos < _payload.size() && count <= 11) {
         dataRecord.difs.push_back(_payload.at(pos++));
@@ -888,7 +901,7 @@ void MbusPacket::parsePayload() {
       if (pos >= _payload.size()) break;
 
       if (count > 11) {
-        GD::out.printError("Error: Could not parse packet. Packet contains more than 10 DIFEs");
+        Gd::out.printError("Error: Could not parse packet. Packet contains more than 10 DIFEs");
         break;
       }
 
@@ -919,25 +932,24 @@ void MbusPacket::parsePayload() {
 
         if ((dataRecord.vifs.front() & 0x7F) == 0x7C) { //Custom string VIF
           if (pos >= _payload.size() || pos + _payload.at(pos) >= _payload.size()) {
-            GD::out.printError("Error: Could not parse packet. Invalid end of data.");
+            Gd::out.printError("Error: Could not parse packet. Invalid end of data.");
             break;
           }
           uint8_t stringLength = _payload.at(pos);
           dataRecord.vifCustomName.reserve(stringLength);
           for (uint32_t i = pos + stringLength; i > pos; i--) {
-            dataRecord.vifCustomName.push_back((char)_payload.at(i));
+            dataRecord.vifCustomName.push_back((char) _payload.at(i));
           }
           pos += stringLength + 1;
-
         }
         count = 0;
-        while (dataRecord.vifs.back() & 0x80 && pos < _payload.size() && count <= 11) {
+        while ((dataRecord.vifs.back() & 0x80) && pos < _payload.size() && count <= 11) {
           dataRecord.vifs.push_back(_payload.at(pos++));
           count++;
         }
 
         if (count > 11) {
-          GD::out.printError("Error: Could not parse packet. Packet contains more than 10 VIFEs");
+          Gd::out.printError("Error: Could not parse packet. Packet contains more than 10 VIFEs");
           break;
         }
         //}}}
@@ -969,19 +981,20 @@ void MbusPacket::parsePayload() {
     if (_encryptionMode == 1) { //ELL encryption
       uint16_t crc16 = _crc16.calculate(_payload, 2);
       if ((crc16 >> 8u) != _payload.at(1) || (crc16 & 0xFFu) != _payload.at(0)) {
-        GD::out.printError("Error: Format frame CRC is invalid: " + BaseLib::HelperFunctions::getHexString(getBinary()));
+        Gd::out.printError("Error: Format frame CRC is invalid: " + BaseLib::HelperFunctions::getHexString(getBinary()));
         return;
       }
     }
 
     if (isFormatTelegram() && _controlInformation != 0x78) { //CI == 0x78 => Special case for Kamstrup
       if (_payload.size() - nopCount - 1 != _payload.at(0)) {
-        GD::out.printError("Error: Payload has wrong length (expected: " + std::to_string(_payload.at(0)) + ", got " + std::to_string(_payload.size() - nopCount - 1) + "): " + BaseLib::HelperFunctions::getHexString(_payload));
+        Gd::out.printError("Error: Payload has wrong length (expected: " + std::to_string(_payload.at(0)) + ", got " + std::to_string(_payload.size() - nopCount - 1) + "): "
+                               + BaseLib::HelperFunctions::getHexString(_payload));
         return; //Wrong length byte
       }
       uint16_t crc16 = _crc16.calculate(_payload, 3);
       if ((crc16 >> 8u) != _payload.at(2) || (crc16 & 0xFFu) != _payload.at(1)) {
-        GD::out.printError("Error: Format frame CRC is invalid: " + BaseLib::HelperFunctions::getHexString(getBinary()));
+        Gd::out.printError("Error: Format frame CRC is invalid: " + BaseLib::HelperFunctions::getHexString(getBinary()));
         return;
       }
     }
@@ -989,7 +1002,7 @@ void MbusPacket::parsePayload() {
     _dataValid = true;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 

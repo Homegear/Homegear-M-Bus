@@ -1,6 +1,6 @@
 /* Copyright 2013-2019 Homegear GmbH */
 
-#include "../GD.h"
+#include "../Gd.h"
 #include "Amber.h"
 
 #define CMD_DATA_IND 0x03
@@ -14,22 +14,22 @@ Amber::Amber(std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> settin
   _initComplete = false;
 
   _settings = settings;
-  _out.init(GD::bl);
-  _out.setPrefix(GD::out.getPrefix() + "Amber \"" + settings->id + "\": ");
+  _out.init(Gd::bl);
+  _out.setPrefix(Gd::out.getPrefix() + "Amber \"" + settings->id + "\": ");
 
   signal(SIGPIPE, SIG_IGN);
 
   if (_settings->baudrate == -1) _settings->baudrate = 9600;
 
   std::string settingName = "securitymodewhitelist";
-  auto setting = GD::family->getFamilySetting(settingName);
+  auto setting = Gd::family->getFamilySetting(settingName);
   if (setting) {
     auto elements = BaseLib::HelperFunctions::splitAll(setting->stringValue, ',');
     for (auto &element: elements) {
       BaseLib::HelperFunctions::trim(element);
       int32_t mode = BaseLib::Math::getNumber(element);
       _securityModeWhitelist.emplace(mode);
-      GD::out.printInfo("Info: Adding mode " + std::to_string(mode) + " to security mode whitelist");
+      Gd::out.printInfo("Info: Adding mode " + std::to_string(mode) + " to security mode whitelist");
     }
   }
 
@@ -55,13 +55,13 @@ Amber::Amber(std::shared_ptr<BaseLib::Systems::PhysicalInterfaceSettings> settin
       _securityModeWhitelist.find(3) != _securityModeWhitelist.end() ||
       _securityModeWhitelist.find(4) != _securityModeWhitelist.end() ||
       _securityModeWhitelist.find(5) != _securityModeWhitelist.end()) {
-    GD::out.printWarning("Warning: Your security mode whitelist contains insecure security modes. This is a potential risk.");
+    Gd::out.printWarning("Warning: Your security mode whitelist contains insecure security modes. This is a potential risk.");
   }
 }
 
 Amber::~Amber() {
   stopListening();
-  GD::bl->threadManager.join(_initThread);
+  Gd::bl->threadManager.join(_initThread);
 }
 
 void Amber::setup(int32_t userID, int32_t groupID, bool setPermissions) {
@@ -135,8 +135,8 @@ bool Amber::setParameter(uint8_t address, uint8_t value) {
     std::vector<uint8_t> response;
     for (int32_t i = 0; i < 5; i++) {
       std::vector<uint8_t> data{0xFF, CMD_SET_REQ, 0x03, address, 0x01, value, 0x00};
-      addCrc8(data);
-      getResponse(data, response);
+      addAmberCrc8(data);
+      GetSerialResponse(data, response);
       if (response.size() != 5 || response[3] != 0) {
         if (i < 4) continue;
         _out.printError("Error executing CMD_SET_REQ on device. Response was: " + BaseLib::HelperFunctions::getHexString(response));
@@ -161,8 +161,8 @@ void Amber::init() {
     //{{{ Query all parameters
     for (int32_t i = 0; i < 5; i++) {
       std::vector<uint8_t> data{0xFF, CMD_GET_REQ, 0x02, 0x00, 80, 0x00};
-      addCrc8(data);
-      getResponse(data, response);
+      addAmberCrc8(data);
+      GetSerialResponse(data, response);
       if (response.size() != 86 || response[3] != 0 || response[4] != 80) {
         if (i < 4) continue;
         _out.printError("Error executing CMD_GET_REQ on device. Response was: " + BaseLib::HelperFunctions::getHexString(response));
@@ -250,8 +250,8 @@ void Amber::init() {
       //Reset
       for (int32_t i = 0; i < 5; i++) {
         std::vector<uint8_t> data{0xFF, CMD_RESET_REQ, 0x00, 0x00};
-        addCrc8(data);
-        getResponse(data, response);
+        addAmberCrc8(data);
+        GetSerialResponse(data, response);
         if (response.size() != 5 || response[3] != 0) {
           if (i < 4) continue;
           _out.printError("Error executing CMD_RESET_REQ on device. Response was: " + BaseLib::HelperFunctions::getHexString(response));
@@ -282,7 +282,7 @@ void Amber::reconnect() {
     }
     _stopped = false;
 
-    GD::bl->threadManager.join(_initThread);
+    Gd::bl->threadManager.join(_initThread);
     _bl->threadManager.start(_initThread, true, &Amber::init, this);
   }
   catch (const std::exception &ex) {
@@ -368,17 +368,17 @@ void Amber::processPacket(std::vector<uint8_t> &data) {
 
     uint8_t packetType = data[1];
 
-    std::unique_lock<std::mutex> requestsGuard(_requestsMutex);
-    std::map<uint8_t, std::shared_ptr<Request>>::iterator requestIterator = _requests.find(packetType);
-    if (requestIterator != _requests.end()) {
+    std::unique_lock<std::mutex> requestsGuard(requests_mutex_);
+    auto requestIterator = requests_.find(packetType);
+    if (requestIterator != requests_.end()) {
       std::shared_ptr<Request> request = requestIterator->second;
       requestsGuard.unlock();
       request->response = data;
       {
         std::lock_guard<std::mutex> lock(request->mutex);
-        request->mutexReady = true;
+        request->mutex_ready = true;
       }
-      request->conditionVariable.notify_one();
+      request->condition_variable.notify_one();
       return;
     } else requestsGuard.unlock();
 
@@ -396,7 +396,7 @@ void Amber::processPacket(std::vector<uint8_t> &data) {
   }
 }
 
-void Amber::rawSend(std::vector<uint8_t> &packet) {
+void Amber::RawSend(const std::vector<uint8_t> &packet) {
   try {
     if (!_serial || !_serial->isOpen()) return;
     _serial->writeData(packet);

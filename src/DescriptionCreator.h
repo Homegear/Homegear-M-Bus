@@ -8,33 +8,55 @@
 
 #include <sys/stat.h>
 
+#include <utility>
+
 namespace Mbus {
 
 class DescriptionCreator {
  public:
   struct PeerInfo {
     std::string serialNumber;
-    int32_t address = -1;
-    int32_t type = -1;
+    uint32_t secondary_address = -1;
+    uint64_t type = 0;
   };
 
   DescriptionCreator();
   virtual ~DescriptionCreator() = default;
 
-  DescriptionCreator::PeerInfo createDescription(PMbusPacket packet);
+  DescriptionCreator::PeerInfo CreateDescription(const PMbusPacket &packet);
+  DescriptionCreator::PeerInfo CreateEmptyDescription(int32_t secondary_address);
  private:
-  std::map<uint8_t, std::string> _vifVariableNameMap;
-  std::map<uint8_t, std::string> _vifUnit;
-  std::map<uint8_t, std::string> _vifFbVariableNameMap;
-  std::map<uint8_t, std::string> _vifFbUnit;
-  std::map<uint8_t, std::string> _vifFdVariableNameMap;
-  std::map<uint8_t, std::string> _vifFdUnit;
+  enum class VifScaleOperation {
+    kMultiplication, //Multiply received value with factor
+    kDivision //Divide received value by factor
+  };
+
+  struct VifInfo {
+    VifInfo() = default;
+    VifInfo(std::string name, std::string unit, BaseLib::DeviceDescription::UnitCode unit_code, int32_t unit_scale_factor = 1, VifScaleOperation unit_scale_operation = VifScaleOperation::kMultiplication, int64_t force_role = 0)
+        : name(std::move(name)), unit(std::move(unit)), unit_code(unit_code), unit_scale_factor(unit_scale_factor), unit_scale_operation(unit_scale_operation), force_role(force_role) {}
+
+    std::string name;
+    std::string unit;
+    BaseLib::DeviceDescription::UnitCode unit_code = BaseLib::DeviceDescription::UnitCode::kUndefined;
+    int32_t unit_scale_factor = 1;
+    VifScaleOperation unit_scale_operation = VifScaleOperation::kMultiplication;
+    std::unordered_map<uint16_t, int64_t> medium_role_map;
+    int64_t force_role = 0;
+  };
+
+  std::map<uint8_t, VifInfo> vif_info_;
+  std::map<uint8_t, VifInfo> vif_fb_info_;
+  std::map<uint8_t, VifInfo> vif_fd_info_;
+  std::map<std::string, std::map<uint32_t, VifInfo>> vif_ff_info_;
+  std::map<std::string, std::map<uint32_t, std::map<uint32_t, VifInfo>>> vif_info_by_pos_;
   std::string _xmlPath;
 
   void createDirectories();
   static void createXmlMaintenanceChannel(PHomegearDevice &device);
   std::string getFreeParameterId(std::string baseId, PFunction &function);
-  void parseDataRecord(const std::string &manufacturer, MbusPacket::DataRecord &dataRecord, PParameter &parameter, PFunction &function, PPacket &packet);
+  void parseDataRecord(const std::string &manufacturer, uint32_t medium, MbusPacket::DataRecord &dataRecord, PParameter &parameter, PFunction &function, PPacket &packet, std::unordered_set<uint64_t> &used_roles);
+  static void setVifInfo(PParameter &parameter, const VifInfo &vif_info, const MbusPacket::DataRecord &dataRecord, uint32_t medium, std::unordered_set<uint64_t> &used_roles);
 };
 
 }

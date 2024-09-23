@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.8)
 project(homegear_mbus)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 set(SOURCE_FILES
         src/Crc16.cpp
@@ -14,10 +14,12 @@ set(SOURCE_FILES
         src/PhysicalInterfaces/Amber.h
         src/PhysicalInterfaces/Hgdc.cpp
         src/PhysicalInterfaces/Hgdc.h
+        src/PhysicalInterfaces/Tcp.cpp
+        src/PhysicalInterfaces/Tcp.h
         src/Factory.cpp
         src/Factory.h
-        src/GD.cpp
-        src/GD.h
+        src/Gd.cpp
+        src/Gd.h
         src/Interfaces.cpp
         src/Interfaces.h
         src/MbusCentral.cpp
