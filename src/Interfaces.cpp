@@ -1,13 +1,14 @@
 /* Copyright 2013-2019 Homegear GmbH */
 
 #include "Interfaces.h"
-#include "GD.h"
+#include "Gd.h"
 #include "PhysicalInterfaces/Amber.h"
 #include "PhysicalInterfaces/Hgdc.h"
+#include "PhysicalInterfaces/Tcp.h"
 
 namespace Mbus {
 
-Interfaces::Interfaces(BaseLib::SharedObjects *bl, std::map<std::string, Systems::PPhysicalInterfaceSettings> physicalInterfaceSettings) : Systems::PhysicalInterfaces(bl, GD::family->getFamily(), physicalInterfaceSettings) {
+Interfaces::Interfaces(BaseLib::SharedObjects *bl, std::map<std::string, Systems::PPhysicalInterfaceSettings> physicalInterfaceSettings) : Systems::PhysicalInterfaces(bl, Gd::family->getFamily(), physicalInterfaceSettings) {
   create();
 }
 
@@ -27,7 +28,7 @@ void Interfaces::addEventHandlers(BaseLib::Systems::IPhysicalInterface::IPhysica
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -42,28 +43,30 @@ void Interfaces::removeEventHandlers() {
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
 void Interfaces::create() {
   try {
-    for (std::map<std::string, Systems::PPhysicalInterfaceSettings>::iterator i = _physicalInterfaceSettings.begin(); i != _physicalInterfaceSettings.end(); ++i) {
+    for (auto &physical_interface_setting: _physicalInterfaceSettings) {
       std::shared_ptr<IMbusInterface> device;
-      if (!i->second) continue;
-      GD::out.printDebug("Debug: Creating physical device. Type defined in mbus.conf is: " + i->second->type);
-      if (i->second->type == "amber") device.reset(new Amber(i->second));
-      else GD::out.printError("Error: Unsupported physical device type: " + i->second->type);
+      if (!physical_interface_setting.second) continue;
+      if (physical_interface_setting.second->id == "ExternalInterface") continue; //Not allowed
+      Gd::out.printDebug("Debug: Creating physical device. Type defined in mbus.conf is: " + physical_interface_setting.second->type);
+      if (physical_interface_setting.second->type == "amber") device.reset(new Amber(physical_interface_setting.second));
+      else if (physical_interface_setting.second->type == "tcp") device.reset(new Tcp(physical_interface_setting.second));
+      else Gd::out.printError("Error: Unsupported physical device type: " + physical_interface_setting.second->type);
       if (device) {
-        if (_physicalInterfaces.find(i->second->id) != _physicalInterfaces.end()) GD::out.printError("Error: id used for two devices: " + i->second->id);
-        _physicalInterfaces[i->second->id] = device;
-        if (i->second->isDefault || !_defaultPhysicalInterface) _defaultPhysicalInterface = device;
+        if (_physicalInterfaces.find(physical_interface_setting.second->id) != _physicalInterfaces.end()) Gd::out.printError("Error: id used for two devices: " + physical_interface_setting.second->id);
+        _physicalInterfaces[physical_interface_setting.second->id] = device;
+        if (physical_interface_setting.second->isDefault || !_defaultPhysicalInterface) _defaultPhysicalInterface = device;
       }
     }
     if (!_defaultPhysicalInterface) _defaultPhysicalInterface = std::make_shared<IMbusInterface>(std::make_shared<BaseLib::Systems::PhysicalInterfaceSettings>());
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -71,9 +74,9 @@ void Interfaces::startListening() {
   try {
     _stopped = false;
 
-    if (GD::bl->hgdc) {
-      _hgdcModuleUpdateEventHandlerId = GD::bl->hgdc->registerModuleUpdateEventHandler(std::function<void(const BaseLib::PVariable &)>(std::bind(&Interfaces::hgdcModuleUpdate, this, std::placeholders::_1)));
-      _hgdcReconnectedEventHandlerId = GD::bl->hgdc->registerReconnectedEventHandler(std::function<void()>(std::bind(&Interfaces::hgdcReconnected, this)));
+    if (Gd::bl->hgdc) {
+      _hgdcModuleUpdateEventHandlerId = Gd::bl->hgdc->registerModuleUpdateEventHandler(std::function<void(const BaseLib::PVariable &)>(std::bind(&Interfaces::hgdcModuleUpdate, this, std::placeholders::_1)));
+      _hgdcReconnectedEventHandlerId = Gd::bl->hgdc->registerReconnectedEventHandler(std::function<void()>(std::bind(&Interfaces::hgdcReconnected, this)));
 
       createHgdcInterfaces(false);
     }
@@ -81,7 +84,7 @@ void Interfaces::startListening() {
     PhysicalInterfaces::startListening();
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -89,15 +92,15 @@ void Interfaces::stopListening() {
   try {
     _stopped = true;
 
-    if (GD::bl->hgdc) {
-      GD::bl->hgdc->unregisterModuleUpdateEventHandler(_hgdcModuleUpdateEventHandlerId);
-      GD::bl->hgdc->unregisterModuleUpdateEventHandler(_hgdcReconnectedEventHandlerId);
+    if (Gd::bl->hgdc) {
+      Gd::bl->hgdc->unregisterModuleUpdateEventHandler(_hgdcModuleUpdateEventHandlerId);
+      Gd::bl->hgdc->unregisterModuleUpdateEventHandler(_hgdcReconnectedEventHandlerId);
     }
 
     PhysicalInterfaces::stopListening();
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -106,14 +109,14 @@ std::vector<std::shared_ptr<IMbusInterface>> Interfaces::getInterfaces() {
   try {
     std::lock_guard<std::mutex> interfaceGuard(_physicalInterfacesMutex);
     interfaces.reserve(_physicalInterfaces.size());
-    for (auto interfaceBase: _physicalInterfaces) {
-      std::shared_ptr<IMbusInterface> interface(std::dynamic_pointer_cast<IMbusInterface>(interfaceBase.second));
+    for (const auto &interface_base: _physicalInterfaces) {
+      std::shared_ptr<IMbusInterface> interface(std::dynamic_pointer_cast<IMbusInterface>(interface_base.second));
       if (!interface) continue;
       if (interface->isOpen()) interfaces.push_back(interface);
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return interfaces;
 }
@@ -147,17 +150,17 @@ void Interfaces::hgdcReconnected() {
     _hgdcReconnected = true;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
 void Interfaces::createHgdcInterfaces(bool reconnected) {
   try {
-    if (GD::bl->hgdc) {
+    if (Gd::bl->hgdc) {
       std::lock_guard<std::mutex> interfacesGuard(_physicalInterfacesMutex);
-      auto modules = GD::bl->hgdc->getModules(MY_FAMILY_ID);
+      auto modules = Gd::bl->hgdc->getModules(MY_FAMILY_ID);
       if (modules->errorStruct) {
-        GD::out.printError("Error getting HGDC modules: " + modules->structValue->at("faultString")->stringValue);
+        Gd::out.printError("Error getting HGDC modules: " + modules->structValue->at("faultString")->stringValue);
       }
       for (auto &module: *modules->arrayValue) {
         auto deviceId = module->structValue->at("serialNumber")->stringValue;
@@ -165,7 +168,7 @@ void Interfaces::createHgdcInterfaces(bool reconnected) {
 
         if (_physicalInterfaces.find(deviceId) == _physicalInterfaces.end()) {
           std::shared_ptr<IMbusInterface> device;
-          GD::out.printDebug("Debug: Creating HGDC device.");
+          Gd::out.printDebug("Debug: Creating HGDC device.");
           auto settings = std::make_shared<Systems::PhysicalInterfaceSettings>();
           settings->type = "hgdc" + BaseLib::HelperFunctions::getHexString(deviceType);
           settings->id = deviceId;
@@ -188,7 +191,7 @@ void Interfaces::createHgdcInterfaces(bool reconnected) {
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -198,7 +201,7 @@ void Interfaces::hgdcModuleUpdate(const BaseLib::PVariable &modules) {
     _updatedHgdcModules = modules;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -209,7 +212,7 @@ void Interfaces::hgdcReconnectedThread() {
     createHgdcInterfaces(true);
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -262,14 +265,14 @@ void Interfaces::hgdcModuleUpdateThread() {
         if (interfaceIterator == _physicalInterfaces.end()) {
           interfaceGuard.unlock();
           std::shared_ptr<IMbusInterface> device;
-          GD::out.printDebug("Debug: Creating HGDC device.");
+          Gd::out.printDebug("Debug: Creating HGDC device.");
           auto settings = std::make_shared<Systems::PhysicalInterfaceSettings>();
           settings->type = "hgdc";
           settings->id = module.first;
           settings->serialNumber = settings->id;
           device = std::make_shared<Hgdc>(settings);
 
-          if (_physicalInterfaces.find(settings->id) != _physicalInterfaces.end()) GD::out.printError("Error: id used for two devices: " + settings->id);
+          if (_physicalInterfaces.find(settings->id) != _physicalInterfaces.end()) Gd::out.printError("Error: id used for two devices: " + settings->id);
           _physicalInterfaces[settings->id] = device;
           if (settings->isDefault || !_defaultPhysicalInterface || _defaultPhysicalInterface->getID().empty()) _defaultPhysicalInterface = device;
 
@@ -294,7 +297,7 @@ void Interfaces::hgdcModuleUpdateThread() {
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 
   try {
@@ -302,7 +305,7 @@ void Interfaces::hgdcModuleUpdateThread() {
     _updatedHgdcModules.reset();
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -312,7 +315,7 @@ void Interfaces::worker() {
     hgdcReconnectedThread();
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -320,14 +323,16 @@ BaseLib::PVariable Interfaces::listInterfaces() {
   try {
     auto array = Systems::PhysicalInterfaces::listInterfaces();
 
-    BaseLib::PVariable interfaceStruct(new BaseLib::Variable(BaseLib::VariableType::tStruct));
+    if (array->arrayValue->empty()) {
+      BaseLib::PVariable interfaceStruct(new BaseLib::Variable(BaseLib::VariableType::tStruct));
 
-    interfaceStruct->structValue->insert(BaseLib::StructElement("FAMILYID", std::make_shared<BaseLib::Variable>(MY_FAMILY_ID)));
-    interfaceStruct->structValue->insert(BaseLib::StructElement("VIRTUAL", std::make_shared<BaseLib::Variable>(true)));
-    interfaceStruct->structValue->insert(BaseLib::StructElement("ID", std::make_shared<BaseLib::Variable>(std::to_string(MY_FAMILY_ID) + ".virtual")));
-    interfaceStruct->structValue->insert(BaseLib::StructElement("CONNECTED", std::make_shared<BaseLib::Variable>(true)));
+      interfaceStruct->structValue->insert(BaseLib::StructElement("FAMILYID", std::make_shared<BaseLib::Variable>(MY_FAMILY_ID)));
+      interfaceStruct->structValue->insert(BaseLib::StructElement("VIRTUAL", std::make_shared<BaseLib::Variable>(true)));
+      interfaceStruct->structValue->insert(BaseLib::StructElement("ID", std::make_shared<BaseLib::Variable>(std::to_string(MY_FAMILY_ID) + ".virtual")));
+      interfaceStruct->structValue->insert(BaseLib::StructElement("CONNECTED", std::make_shared<BaseLib::Variable>(true)));
 
-    array->arrayValue->emplace_back(interfaceStruct);
+      array->arrayValue->emplace_back(interfaceStruct);
+    }
 
     return array;
   }

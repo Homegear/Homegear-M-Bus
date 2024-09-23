@@ -99,12 +99,12 @@ class MbusPacket : public BaseLib::Systems::Packet {
   };
 
   MbusPacket();
-  MbusPacket(const std::vector<uint8_t> &packet);
+  explicit MbusPacket(const std::vector<uint8_t> &packet);
   ~MbusPacket() override;
 
   std::string getInfoString();
 
-  bool wireless() { return _wireless; }
+  bool wireless() const { return _wireless; }
   bool batteryEmpty() { return _status & 4; } //See EN 13757-7 section 7.5.6
   bool permanentError() { return _status & 8; } //See EN 13757-7 section 7.5.6
   bool temporaryError() { return _status & 0x10; } //See EN 13757-7 section 7.5.6
@@ -115,9 +115,12 @@ class MbusPacket : public BaseLib::Systems::Packet {
   uint8_t length() { return _length; }
   int32_t primaryAddress() { return _primaryAddress; }
   int32_t secondaryAddress() { return _secondaryAddress; }
+  uint64_t getDeviceId() { return ((uint64_t)_manufacturerCode << 48u) | ((uint64_t)_version << 40u) | ((uint64_t)_medium << 32u) | (uint32_t)_secondaryAddress; }
+  std::string getDeviceIdString() { return _manufacturer + "-" + BaseLib::HelperFunctions::getHexString(_secondaryAddress, 8) + "-" + std::to_string(_version) + "-" + std::to_string(_medium); }
   int32_t getRssi() { return _rssi; }
   uint8_t getControl() { return _control; }
   std::string getManufacturer() { return _manufacturer; }
+  uint32_t getManufacturerCode() { return _manufacturerCode; }
   uint8_t getVersion() { return _version; }
   uint8_t getMedium() { return _medium; }
   uint8_t getControlInformation() { return _controlInformation; }
@@ -144,7 +147,7 @@ class MbusPacket : public BaseLib::Systems::Packet {
   bool isCompactDataTelegram();
   bool isDataTelegram();
 
-  std::string getMediumString(uint8_t medium);
+  static std::string getMediumString(uint8_t medium);
   std::string getControlInformationString(uint8_t controlInformation);
   std::vector<uint8_t> getBinary();
 
@@ -161,6 +164,7 @@ class MbusPacket : public BaseLib::Systems::Packet {
   int32_t _rssi = 0;
   uint8_t _command = 0;
   uint8_t _control = 0;
+  uint32_t _manufacturerCode = 0;
   std::string _manufacturer;
   uint8_t _version = 0;
   uint8_t _medium = 0;

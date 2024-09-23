@@ -32,6 +32,7 @@ class MbusCentral : public BaseLib::Systems::ICentral {
   PMyPeer getPeer(int32_t address);
   PMyPeer getPeer(std::string serialNumber);
 
+  PVariable createDevice(BaseLib::PRpcClientInfo clientInfo, int32_t deviceType, std::string secondary_address, int32_t primary_address, int32_t firmwareVersion, std::string interfaceId) override;
   PVariable deleteDevice(BaseLib::PRpcClientInfo clientInfo, std::string serialNumber, int32_t flags) override;
   PVariable deleteDevice(BaseLib::PRpcClientInfo clientInfo, uint64_t peerId, int32_t flags) override;
   PVariable getSniffedDevices(BaseLib::PRpcClientInfo clientInfo) override;
@@ -40,36 +41,54 @@ class MbusCentral : public BaseLib::Systems::ICentral {
   PVariable startSniffing(BaseLib::PRpcClientInfo clientInfo) override;
   PVariable stopSniffing(BaseLib::PRpcClientInfo clientInfo) override;
  protected:
+  enum class PollingInterval {
+    kOff,
+    kQuarterHourly,
+    kHourly,
+    kDaily,
+    kWeekly,
+    kMonthly
+  };
+
   std::map<std::string, std::function<BaseLib::PVariable(const BaseLib::PRpcClientInfo &clientInfo, const BaseLib::PArray &parameters)>> _localRpcMethods;
 
   bool _sniff = false;
   std::mutex _sniffedPacketsMutex;
-  std::map<int32_t, std::vector<PMbusPacket>> _sniffedPackets;
+  std::map<std::string, std::vector<PMbusPacket>> _sniffedPackets;
 
   std::atomic_bool _stopPairingModeThread;
   std::mutex _pairingModeThreadMutex;
   std::thread _pairingModeThread;
   std::mutex _devicesToPairMutex;
-  std::unordered_map<int32_t, std::string> _devicesToPair;
+  std::unordered_map<uint64_t, std::string> _devicesToPair;
   std::mutex _pairMutex;
   DescriptionCreator _descriptionCreator;
 
   std::atomic_bool _stopWorkerThread;
   std::thread _workerThread;
 
+  //{{{ Polling
+  std::atomic<int64_t> last_poll_{0};
+  //}}}
+
   virtual void init();
   virtual void worker();
-  virtual void loadPeers();
-  virtual void savePeers(bool full);
-  virtual void loadVariables() {}
-  virtual void saveVariables() {}
-  std::shared_ptr<MbusPeer> createPeer(uint32_t deviceType, int32_t address, std::string serialNumber, bool save = true);
+  void loadPeers() override;
+  void savePeers(bool full) override;
+  void loadVariables() override;
+  void saveVariables() override;
+  std::shared_ptr<MbusPeer> createPeer(uint64_t deviceType, int32_t address, std::string serialNumber, bool save = true);
   void deletePeer(uint64_t id);
 
   void pairingModeTimer(int32_t duration, bool debugOutput = true);
-  void pairDevice(PMbusPacket packet, std::vector<uint8_t> &key);
+  void pairDevice(const PMbusPacket& packet, std::vector<uint8_t> &key, const std::string &interfaceId);
+
+  void PollPeers(bool use_secondary_address);
 
   //{{{ Family RPC methods
+  BaseLib::PVariable getPrimaryAddress(const BaseLib::PRpcClientInfo &clientInfo, const BaseLib::PArray &parameters);
+  BaseLib::PVariable setPrimaryAddress(const BaseLib::PRpcClientInfo &clientInfo, const BaseLib::PArray &parameters);
+  BaseLib::PVariable poll(const BaseLib::PRpcClientInfo &clientInfo, const BaseLib::PArray &parameters);
   BaseLib::PVariable processPacket(const BaseLib::PRpcClientInfo &clientInfo, const BaseLib::PArray &parameters);
   //}}}
 };

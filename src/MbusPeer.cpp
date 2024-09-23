@@ -2,7 +2,7 @@
 
 #include "MbusPeer.h"
 
-#include "GD.h"
+#include "Gd.h"
 #include "MbusPacket.h"
 #include "MbusCentral.h"
 
@@ -12,20 +12,25 @@ namespace Mbus {
 std::shared_ptr<BaseLib::Systems::ICentral> MbusPeer::getCentral() {
   try {
     if (_central) return _central;
-    _central = GD::family->getCentral();
+    _central = Gd::family->getCentral();
     return _central;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
-  return std::shared_ptr<BaseLib::Systems::ICentral>();
+  return {};
 }
 
-MbusPeer::MbusPeer(uint32_t parentID, IPeerEventSink *eventHandler) : BaseLib::Systems::Peer(GD::bl, parentID, eventHandler) {
+MbusPeer::MbusPeer(uint32_t parentID, IPeerEventSink *eventHandler) : BaseLib::Systems::Peer(Gd::bl, parentID, eventHandler) {
   init();
 }
 
-MbusPeer::MbusPeer(int32_t id, int32_t address, std::string serialNumber, uint32_t parentID, IPeerEventSink *eventHandler) : BaseLib::Systems::Peer(GD::bl, id, address, serialNumber, parentID, eventHandler) {
+MbusPeer::MbusPeer(uint64_t id, int32_t address, std::string serialNumber, uint32_t parentID, IPeerEventSink *eventHandler) : BaseLib::Systems::Peer(Gd::bl,
+                                                                                                                                                     id,
+                                                                                                                                                     address,
+                                                                                                                                                     serialNumber,
+                                                                                                                                                     parentID,
+                                                                                                                                                     eventHandler) {
   init();
 }
 
@@ -34,7 +39,7 @@ MbusPeer::~MbusPeer() {
     dispose();
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -42,7 +47,7 @@ void MbusPeer::init() {
   try {
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -56,7 +61,7 @@ void MbusPeer::worker() {
     if (!serviceMessages->getUnreach()) serviceMessages->checkUnreach(_rpcDevice->timeout, getLastPacketReceived());
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -65,7 +70,7 @@ void MbusPeer::homegearStarted() {
     Peer::homegearStarted();
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -75,7 +80,7 @@ void MbusPeer::homegearShuttingDown() {
     Peer::homegearShuttingDown();
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -137,7 +142,7 @@ std::string MbusPeer::handleCliCommand(std::string command) {
     } else return "Unknown command.\n";
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return "Error executing command. See log file for more details.\n";
 }
@@ -155,7 +160,7 @@ std::string MbusPeer::printConfig() {
         if (!j->second.rpcParameter) stringStream << "(No RPC parameter) ";
         std::vector<uint8_t> parameterData = j->second.getBinaryData();
         for (std::vector<uint8_t>::const_iterator k = parameterData.begin(); k != parameterData.end(); ++k) {
-          stringStream << std::hex << std::setfill('0') << std::setw(2) << (int32_t)*k << " ";
+          stringStream << std::hex << std::setfill('0') << std::setw(2) << (int32_t) *k << " ";
         }
         stringStream << std::endl;
       }
@@ -173,7 +178,7 @@ std::string MbusPeer::printConfig() {
         if (!j->second.rpcParameter) stringStream << "(No RPC parameter) ";
         std::vector<uint8_t> parameterData = j->second.getBinaryData();
         for (std::vector<uint8_t>::const_iterator k = parameterData.begin(); k != parameterData.end(); ++k) {
-          stringStream << std::hex << std::setfill('0') << std::setw(2) << (int32_t)*k << " ";
+          stringStream << std::hex << std::setfill('0') << std::setw(2) << (int32_t) *k << " ";
         }
         stringStream << std::endl;
       }
@@ -184,9 +189,21 @@ std::string MbusPeer::printConfig() {
     return stringStream.str();
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return "";
+}
+
+std::string MbusPeer::getPhysicalInterfaceId() const {
+  if (_physicalInterfaceId.empty()) Gd::interfaces->getDefaultInterface()->getID();
+  return _physicalInterfaceId;
+}
+
+void MbusPeer::setPhysicalInterfaceId(std::string id) {
+  if (id.empty() || Gd::interfaces->hasInterface(id)) {
+    _physicalInterfaceId = id;
+    saveVariable(19, _physicalInterfaceId);
+  }
 }
 
 void MbusPeer::loadVariables(BaseLib::Systems::ICentral *central, std::shared_ptr<BaseLib::Database::DataTable> &rows) {
@@ -194,49 +211,57 @@ void MbusPeer::loadVariables(BaseLib::Systems::ICentral *central, std::shared_pt
     if (!rows) rows = _bl->db->getPeerVariables(_peerID);
     Peer::loadVariables(central, rows);
 
-    _rpcDevice = GD::family->getRpcDevices()->find(_deviceType, _firmwareVersion, -1);
+    _rpcDevice = Gd::family->getRpcDevices()->find(_deviceType, _firmwareVersion, -1);
     if (!_rpcDevice) return;
 
-    for (BaseLib::Database::DataTable::iterator row = rows->begin(); row != rows->end(); ++row) {
-      switch (row->second.at(2)->intValue) {
+    for (auto &row : *rows) {
+      switch (row.second.at(2)->intValue) {
+        case 19: {
+          _physicalInterfaceId = row.second.at(4)->textValue;
+          break;
+        }
         case 21: {
           _aesKey.clear();
-          _aesKey.insert(_aesKey.end(), row->second.at(5)->binaryValue->begin(), row->second.at(5)->binaryValue->end());
+          _aesKey.insert(_aesKey.end(), row.second.at(5)->binaryValue->begin(), row.second.at(5)->binaryValue->end());
           break;
         }
         case 22: {
-          _controlInformation = row->second.at(3)->intValue;
+          _controlInformation = row.second.at(3)->intValue;
           break;
         }
         case 23: {
-          _dataRecordCount = row->second.at(3)->intValue;
+          _dataRecordCount = row.second.at(3)->intValue;
           break;
         }
         case 24: {
-          _formatCrc = row->second.at(3)->intValue;
+          _formatCrc = row.second.at(3)->intValue;
           break;
         }
         case 25: {
-          _encryptionMode = row->second.at(3)->intValue;
+          _encryptionMode = row.second.at(3)->intValue;
           break;
         }
         case 26: {
-          _lastTime = row->second.at(3)->intValue;
+          _lastTime = row.second.at(3)->intValue;
           break;
         }
         case 27: {
-          _wireless = (bool)row->second.at(3)->intValue;
+          _wireless = (bool) row.second.at(3)->intValue;
           break;
         }
         case 28: {
-          _primaryAddress = row->second.at(3)->intValue;
+          _primaryAddress = (int32_t) row.second.at(3)->intValue;
+          break;
+        }
+        case 29: {
+          medium_ = (uint8_t) row.second.at(3)->intValue;
           break;
         }
       }
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -244,17 +269,19 @@ void MbusPeer::saveVariables() {
   try {
     if (_peerID == 0) return;
     Peer::saveVariables();
+    saveVariable(19, _physicalInterfaceId);
     saveVariable(21, _aesKey);
     saveVariable(22, _controlInformation);
     saveVariable(23, _dataRecordCount);
     saveVariable(24, _formatCrc);
     saveVariable(25, _encryptionMode);
     saveVariable(26, _lastTime);
-    saveVariable(27, (int32_t)_wireless);
+    saveVariable(27, (int32_t) _wireless);
     saveVariable(28, _primaryAddress);
+    saveVariable(29, medium_);
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -263,7 +290,8 @@ bool MbusPeer::load(BaseLib::Systems::ICentral *central) {
     std::shared_ptr<BaseLib::Database::DataTable> rows;
     loadVariables(central, rows);
     if (!_rpcDevice) {
-      GD::out.printError("Error loading peer " + std::to_string(_peerID) + ": Device type not found: 0x" + BaseLib::HelperFunctions::getHexString(_deviceType) + " Firmware version: " + std::to_string(_firmwareVersion));
+      Gd::out.printError("Error loading peer " + std::to_string(_peerID) + ": Device type not found: 0x" + BaseLib::HelperFunctions::getHexString(_deviceType) + " Firmware version: "
+                             + std::to_string(_firmwareVersion));
       return false;
     }
 
@@ -275,10 +303,16 @@ bool MbusPeer::load(BaseLib::Systems::ICentral *central) {
     serviceMessages.reset(new BaseLib::Systems::ServiceMessages(_bl, _peerID, _serialNumber, this));
     serviceMessages->load();
 
+    auto setting = Gd::family->getFamilySetting("pollinginterval");
+    if (setting) {
+      if (setting->stringValue == "weekly") _rpcDevice->timeout = 1213200;
+      else if (setting->stringValue == "monthly") _rpcDevice->timeout = 5360400;
+    }
+
     return true;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return false;
 }
@@ -290,9 +324,9 @@ void MbusPeer::setRssiDevice(uint8_t rssi) {
     if (time - _lastRssiDevice > 10) {
       _lastRssiDevice = time;
 
-      std::unordered_map<uint32_t, std::unordered_map<std::string, BaseLib::Systems::RpcConfigurationParameter>>::iterator channelIterator = valuesCentral.find(0);
+      auto channelIterator = valuesCentral.find(0);
       if (channelIterator == valuesCentral.end()) return;
-      std::unordered_map<std::string, BaseLib::Systems::RpcConfigurationParameter>::iterator parameterIterator = channelIterator->second.find("RSSI_DEVICE");
+      auto parameterIterator = channelIterator->second.find("RSSI_DEVICE");
       if (parameterIterator == channelIterator->second.end()) return;
 
       BaseLib::Systems::RpcConfigurationParameter &parameter = parameterIterator->second;
@@ -310,19 +344,21 @@ void MbusPeer::setRssiDevice(uint8_t rssi) {
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
-void MbusPeer::getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues> &frameValues) {
+void MbusPeer::getValuesFromPacket(const PMbusPacket &packet, std::vector<FrameValues> &frameValues) {
   try {
     if (!_rpcDevice) return;
 
     //Check for low battery
-    if (packet->batteryEmpty()) {
-      serviceMessages->set("LOWBAT", true);
-      if (_bl->debugLevel >= 4) GD::out.printInfo("Info: LOWBAT of peer " + std::to_string(_peerID) + " with serial number " + _serialNumber + " was set to \"true\".");
-    } else serviceMessages->set("LOWBAT", false);
+    if (wireless()) {
+      if (packet->batteryEmpty()) {
+        serviceMessages->set("LOWBAT", true);
+        if (_bl->debugLevel >= 4) Gd::out.printInfo("Info: LOWBAT of peer " + std::to_string(_peerID) + " with serial number " + _serialNumber + " was set to \"true\".");
+      } else if (serviceMessages->getLowbat()) serviceMessages->set("LOWBAT", false);
+    }
 
     //equal_range returns all elements with "0" or an unknown element as argument
     if (_rpcDevice->packetsByMessageType.find(1) == _rpcDevice->packetsByMessageType.end()) return;
@@ -338,7 +374,7 @@ void MbusPeer::getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues> 
       uint32_t payloadBitSize = payload.size() * 8;
       int32_t channelIndex = frame->channelIndex;
       int32_t channel = -1;
-      if (channelIndex >= 0 && channelIndex < (signed)payload.size()) channel = payload.at(channelIndex);
+      if (channelIndex >= 0 && channelIndex < (signed) payload.size()) channel = payload.at(channelIndex);
       if (channel > -1 && frame->channelSize < 8.0) channel &= (0xFFu >> (8u - std::lround(frame->channelSize)));
       channel += frame->channelIndexOffset;
       if (frame->channel > -1) channel = frame->channel;
@@ -405,7 +441,7 @@ void MbusPeer::getValuesFromPacket(PMbusPacket packet, std::vector<FrameValues> 
     } while (++i != range.second && i != _rpcDevice->packetsByMessageType.end());
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -414,18 +450,35 @@ void MbusPeer::packetReceived(PMbusPacket &packet) {
     if (_disposing || !packet || !_rpcDevice) return;
     if (packet->secondaryAddress() != _address) return;
     if (_formatCrc != 0 && packet->getFormatCrc() != _formatCrc) {
-      GD::out.printWarning("Warning: Ignoring packet with wrong format frame CRC.");
+      Gd::out.printWarning("Warning: Ignoring packet with wrong format frame CRC.");
       return;
     }
     if (getEncryptionMode() != packet->getEncryptionMode()) {
-      GD::out.printWarning("Warning: Ignoring packet with wrong encryption mode.");
+      Gd::out.printWarning("Warning: Ignoring packet with wrong encryption mode.");
       return;
     }
     std::shared_ptr<MbusCentral> central = std::dynamic_pointer_cast<MbusCentral>(getCentral());
     if (!central) return;
-    setLastPacketReceived();
     setRssiDevice(packet->getRssi() * -1);
     serviceMessages->endUnreach();
+
+    setLastPacketReceived();
+
+    { //Set LAST_PACKET
+      auto values_iterator = valuesCentral.find(0);
+      if (values_iterator != valuesCentral.end()) {
+        auto parameters_iterator = values_iterator->second.find("LAST_PACKET");
+        if (parameters_iterator != values_iterator->second.end() && parameters_iterator->second.rpcParameter) {
+          std::vector<uint8_t> parameterData;
+          parameters_iterator->second.rpcParameter->convertToPacket(std::make_shared<Variable>(BaseLib::HelperFunctions::getHexString(packet->getBinary())),
+                                                                    parameters_iterator->second.mainRole(),
+                                                                    parameterData);
+          parameters_iterator->second.setBinaryData(parameterData);
+          if (parameters_iterator->second.databaseId > 0) saveParameter(parameters_iterator->second.databaseId, parameterData);
+          else saveParameter(0, ParameterGroup::Type::Enum::variables, 0, "LAST_PACKET", parameterData);
+        }
+      }
+    }
 
     std::vector<FrameValues> frameValues;
     getValuesFromPacket(packet, frameValues);
@@ -433,27 +486,29 @@ void MbusPeer::packetReceived(PMbusPacket &packet) {
     std::map<uint32_t, std::shared_ptr<std::vector<PVariable>>> rpcValues;
 
     //Loop through all matching frames
-    for (auto &frameValue: frameValues) {
+    for (auto &frameValue : frameValues) {
       PPacket frame;
       if (!frameValue.frameID.empty()) frame = _rpcDevice->packetsById.at(frameValue.frameID);
       if (!frame) continue;
 
       for (auto i = frameValue.values.begin(); i != frameValue.values.end(); ++i) {
-        for (std::list<uint32_t>::const_iterator j = frameValue.paramsetChannels.begin(); j != frameValue.paramsetChannels.end(); ++j) {
-          if (std::find(i->second.channels.begin(), i->second.channels.end(), *j) == i->second.channels.end()) continue;
-          if (!valueKeys[*j] || !rpcValues[*j]) {
-            valueKeys[*j].reset(new std::vector<std::string>());
-            rpcValues[*j].reset(new std::vector<PVariable>());
+        for (auto j = frameValue.paramsetChannels.begin(); j != frameValue.paramsetChannels.end(); ++j) {
+          auto channel = (int32_t) *j;
+          if (std::find(i->second.channels.begin(), i->second.channels.end(), channel) == i->second.channels.end()) continue;
+          if (!valueKeys[channel] || !rpcValues[channel]) {
+            valueKeys[channel].reset(new std::vector<std::string>());
+            rpcValues[channel].reset(new std::vector<PVariable>());
           }
 
-          BaseLib::Systems::RpcConfigurationParameter &parameter = valuesCentral[*j][i->first];
+          BaseLib::Systems::RpcConfigurationParameter &parameter = valuesCentral[channel][i->first];
           //if (parameter.equals(i->second.value)) continue;
           parameter.setBinaryData(i->second.value);
           if (parameter.databaseId > 0) saveParameter(parameter.databaseId, i->second.value);
-          else saveParameter(0, ParameterGroup::Type::Enum::variables, *j, i->first, i->second.value);
+          else saveParameter(0, ParameterGroup::Type::Enum::variables, channel, i->first, i->second.value);
           if (_bl->debugLevel >= 4)
-            GD::out.printInfo(
-                "Info: " + i->first + " on channel " + std::to_string(*j) + " of peer " + std::to_string(_peerID) + " with serial number " + _serialNumber + " was set to 0x" + BaseLib::HelperFunctions::getHexString(i->second.value) + ".");
+            Gd::out.printInfo(
+                "Info: " + i->first + " on channel " + std::to_string(channel) + " of peer " + std::to_string(_peerID) + " with serial number " + _serialNumber + " was set to 0x"
+                    + BaseLib::HelperFunctions::getHexString(i->second.value) + ".");
 
           if (parameter.rpcParameter) {
             if (parameter.rpcParameter->casts.empty()) continue;
@@ -461,40 +516,181 @@ void MbusPeer::packetReceived(PMbusPacket &packet) {
             if (!parameterCast) continue;
 
             uint8_t type = BaseLib::Math::getUnsignedNumber(parameterCast->type);
-            std::vector<uint8_t> vifs = _bl->hf.getUBinary(parameter.rpcParameter->metadata);
+            std::vector<uint8_t> vifs = BaseLib::HelperFunctions::getUBinary(parameter.rpcParameter->metadata);
+
+            BaseLib::PVariable value = VifConverter::getVariable(type, vifs, i->second.value);
+
+            if (parameter.rpcParameter->casts.size() > 1) {
+              for (auto k = parameter.rpcParameter->casts.begin() + 1; k != parameter.rpcParameter->casts.end(); k++) {
+                (*k)->fromPacket(value);
+              }
+            }
 
             //Process service messages
             if (parameter.rpcParameter->service && !i->second.value.empty()) {
               if (parameter.rpcParameter->logical->type == ILogical::Type::Enum::tEnum) {
-                serviceMessages->set(i->first, i->second.value.at(0), *j);
-              } else if (parameter.rpcParameter->logical->type == ILogical::Type::Enum::tBoolean) {
-                serviceMessages->set(i->first, VifConverter::getVariable(type, vifs, i->second.value)->booleanValue);
+                serviceMessages->set(i->first, i->second.value.at(0), channel);
+              } else if (channel == 0 && parameter.rpcParameter->logical->type == ILogical::Type::Enum::tBoolean) {
+                serviceMessages->set(i->first, (bool) (*value));
+              } else {
+                serviceMessages->set(i->first, value->integerValue, channel);
               }
             }
 
-            BaseLib::PVariable value = VifConverter::getVariable(type, vifs, i->second.value);
+            valueKeys[channel]->push_back(i->first);
+            rpcValues[channel]->push_back(value);
 
             if (i->first == "DATE" || i->first == "DATETIME") {
-              int32_t time = BaseLib::HelperFunctions::getTimeSeconds();
-              if (packet->wireless() && (value->integerValue < time - (86400 * 2) || value->integerValue > time + (86400 * 2))) {
+              int64_t time = BaseLib::HelperFunctions::getTimeSeconds();
+              if (packet->wireless() && (value->integerValue64 < time - (86400 * 2) || value->integerValue64 > time + (86400 * 2))) {
                 serviceMessages->set("POSSIBLE_HACKING_ATTEMPT", true);
-                GD::out.printWarning("Warning: Possible hacking attempt. Date in packet deviates more than two days from current date.");
-              } else if (packet->wireless() && value->integerValue < _lastTime) {
+                Gd::out.printWarning("Warning: Possible hacking attempt. Date in packet deviates more than two days from current date.");
+              } else if (packet->wireless() && value->integerValue64 < _lastTime) {
                 serviceMessages->set("POSSIBLE_HACKING_ATTEMPT", true);
-                GD::out.printWarning("Warning: Possible hacking attempt. Date in packet is older than in last packet.");
-              } else _lastTime = value->integerValue;
+                Gd::out.printWarning("Warning: Possible hacking attempt. Date in packet is older than in last packet.");
+              } else _lastTime = value->integerValue64;
             }
-
-            valueKeys[*j]->push_back(i->first);
-            rpcValues[*j]->push_back(value);
           }
         }
       }
     }
 
+    //{{{ Set generated values of power meters
+    if (medium_ == 0x02) {
+      bool set_energy_total = false;
+      BaseLib::Systems::RpcConfigurationParameter *energy_total = nullptr;
+      bool set_energy_import_total = false;
+      BaseLib::Systems::RpcConfigurationParameter *energy_import_total = nullptr;
+      bool set_energy_export_total = false;
+      BaseLib::Systems::RpcConfigurationParameter *energy_export_total = nullptr;
+      for (auto &channel_iterator : valuesCentral) {
+        for (auto &variable_iterator : channel_iterator.second) {
+          if (variable_iterator.second.hasRole(900201) && variable_iterator.first == "ENERGY_TOTAL_GENERATED" && variable_iterator.second.rpcParameter) {
+            set_energy_total = true;
+            energy_total = &variable_iterator.second;
+          } else if (variable_iterator.second.hasRole(900211) && variable_iterator.first == "ENERGY_IMPORT_TOTAL_GENERATED" && variable_iterator.second.rpcParameter) {
+            set_energy_import_total = true;
+            energy_import_total = &variable_iterator.second;
+          } else if (variable_iterator.second.hasRole(900217) && variable_iterator.first == "ENERGY_EXPORT_TOTAL_GENERATED" && variable_iterator.second.rpcParameter) {
+            set_energy_export_total = true;
+            energy_export_total = &variable_iterator.second;
+          }
+        }
+      }
+
+      if (set_energy_total || set_energy_import_total || set_energy_export_total) {
+        BaseLib::PVariable total_value = std::make_shared<BaseLib::Variable>(BaseLib::VariableType::tInteger64);
+        BaseLib::PVariable total_import_value = std::make_shared<BaseLib::Variable>(BaseLib::VariableType::tInteger64);
+        BaseLib::PVariable total_export_value = std::make_shared<BaseLib::Variable>(BaseLib::VariableType::tInteger64);
+        for (auto &channel_iterator : valuesCentral) {
+          for (auto &variable_iterator : channel_iterator.second) {
+            if (set_energy_total && (variable_iterator.second.hasRole(900203) || variable_iterator.second.hasRole(900205))) {
+              if (!variable_iterator.second.rpcParameter || variable_iterator.second.rpcParameter->casts.empty()) continue;
+              ParameterCast::PGeneric parameterCast = std::dynamic_pointer_cast<ParameterCast::Generic>(variable_iterator.second.rpcParameter->casts.at(0));
+              if (!parameterCast) continue;
+
+              uint8_t type = BaseLib::Math::getUnsignedNumber(parameterCast->type);
+              std::vector<uint8_t> vifs = BaseLib::HelperFunctions::getUBinary(variable_iterator.second.rpcParameter->metadata);
+
+              auto value = VifConverter::getVariable(type, vifs, variable_iterator.second.getBinaryData());
+
+              if (variable_iterator.second.rpcParameter->casts.size() > 1) {
+                for (auto k = variable_iterator.second.rpcParameter->casts.begin() + 1; k != variable_iterator.second.rpcParameter->casts.end(); k++) {
+                  (*k)->fromPacket(value);
+                }
+              }
+
+              total_value->type = value->type;
+              total_value->floatValue += value->floatValue == 0.0 ? (double) value->integerValue64 : value->floatValue;
+            } else if (set_energy_import_total && (variable_iterator.second.hasRole(900207) || variable_iterator.second.hasRole(900209))) {
+              if (!variable_iterator.second.rpcParameter || variable_iterator.second.rpcParameter->casts.empty()) continue;
+              ParameterCast::PGeneric parameterCast = std::dynamic_pointer_cast<ParameterCast::Generic>(variable_iterator.second.rpcParameter->casts.at(0));
+              if (!parameterCast) continue;
+
+              uint8_t type = BaseLib::Math::getUnsignedNumber(parameterCast->type);
+              std::vector<uint8_t> vifs = BaseLib::HelperFunctions::getUBinary(variable_iterator.second.rpcParameter->metadata);
+
+              auto value = VifConverter::getVariable(type, vifs, variable_iterator.second.getBinaryData());
+
+              if (variable_iterator.second.rpcParameter->casts.size() > 1) {
+                for (auto k = variable_iterator.second.rpcParameter->casts.begin() + 1; k != variable_iterator.second.rpcParameter->casts.end(); k++) {
+                  (*k)->fromPacket(value);
+                }
+              }
+
+              total_import_value->type = value->type;
+              total_import_value->floatValue += value->floatValue == 0.0 ? (double) value->integerValue64 : value->floatValue;
+            } else if (set_energy_export_total && (variable_iterator.second.hasRole(900213) || variable_iterator.second.hasRole(900215))) {
+              if (!variable_iterator.second.rpcParameter || variable_iterator.second.rpcParameter->casts.empty()) continue;
+              ParameterCast::PGeneric parameterCast = std::dynamic_pointer_cast<ParameterCast::Generic>(variable_iterator.second.rpcParameter->casts.at(0));
+              if (!parameterCast) continue;
+
+              uint8_t type = BaseLib::Math::getUnsignedNumber(parameterCast->type);
+              std::vector<uint8_t> vifs = BaseLib::HelperFunctions::getUBinary(variable_iterator.second.rpcParameter->metadata);
+
+              auto value = VifConverter::getVariable(type, vifs, variable_iterator.second.getBinaryData());
+
+              if (variable_iterator.second.rpcParameter->casts.size() > 1) {
+                for (auto k = variable_iterator.second.rpcParameter->casts.begin() + 1; k != variable_iterator.second.rpcParameter->casts.end(); k++) {
+                  (*k)->fromPacket(value);
+                }
+              }
+
+              total_export_value->type = value->type;
+              total_export_value->floatValue += value->floatValue == 0.0 ? (double) value->integerValue64 : value->floatValue;
+            }
+          }
+        }
+
+        if (set_energy_total) {
+          std::vector<uint8_t> parameterData;
+          energy_total->rpcParameter->convertToPacket(total_value,
+                                                      energy_total->mainRole(),
+                                                      parameterData);
+          energy_total->setBinaryData(parameterData);
+          if (energy_total->databaseId > 0) saveParameter(energy_total->databaseId, parameterData);
+          else saveParameter(0, ParameterGroup::Type::Enum::variables, 1, energy_total->rpcParameter->id, parameterData);
+
+          if (valueKeys[1] && rpcValues[1]) {
+            valueKeys[1]->push_back(energy_total->rpcParameter->id);
+            rpcValues[1]->push_back(total_value);
+          }
+        }
+        if (set_energy_import_total) {
+          std::vector<uint8_t> parameterData;
+          energy_import_total->rpcParameter->convertToPacket(total_import_value,
+                                                             energy_import_total->mainRole(),
+                                                             parameterData);
+          energy_import_total->setBinaryData(parameterData);
+          if (energy_import_total->databaseId > 0) saveParameter(energy_import_total->databaseId, parameterData);
+          else saveParameter(0, ParameterGroup::Type::Enum::variables, 1, energy_import_total->rpcParameter->id, parameterData);
+
+          if (valueKeys[1] && rpcValues[1]) {
+            valueKeys[1]->push_back(energy_import_total->rpcParameter->id);
+            rpcValues[1]->push_back(total_import_value);
+          }
+        }
+        if (set_energy_export_total) {
+          std::vector<uint8_t> parameterData;
+          energy_export_total->rpcParameter->convertToPacket(total_export_value,
+                                                             energy_export_total->mainRole(),
+                                                             parameterData);
+          energy_export_total->setBinaryData(parameterData);
+          if (energy_export_total->databaseId > 0) saveParameter(energy_export_total->databaseId, parameterData);
+          else saveParameter(0, ParameterGroup::Type::Enum::variables, 1, energy_export_total->rpcParameter->id, parameterData);
+
+          if (valueKeys[1] && rpcValues[1]) {
+            valueKeys[1]->push_back(energy_export_total->rpcParameter->id);
+            rpcValues[1]->push_back(total_export_value);
+          }
+        }
+      }
+    }
+    //}}}
+
     if (!rpcValues.empty()) {
-      for (auto &valueKey: valueKeys) {
-        if (valueKey.second->empty()) continue;
+      for (auto &valueKey : valueKeys) {
+        if (!valueKey.second || valueKey.second->empty()) continue;
         std::string eventSource = "device-" + std::to_string(_peerID);
         std::string address(_serialNumber + ":" + std::to_string(valueKey.first));
         raiseEvent(eventSource, _peerID, valueKey.first, valueKey.second, rpcValues.at(valueKey.first));
@@ -503,7 +699,7 @@ void MbusPeer::packetReceived(PMbusPacket &packet) {
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
 
@@ -515,7 +711,7 @@ PParameterGroup MbusPeer::getParameterSet(int32_t channel, ParameterGroup::Type:
     else if (type == ParameterGroup::Type::Enum::link) return rpcChannel->linkParameters;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return PParameterGroup();
 }
@@ -526,13 +722,13 @@ bool MbusPeer::getAllValuesHook2(PRpcClientInfo clientInfo, PParameter parameter
       if (parameter->id == "PEER_ID") {
         std::vector<uint8_t> parameterData;
         auto &rpcConfigurationParameter = valuesCentral[channel][parameter->id];
-        parameter->convertToPacket(PVariable(new Variable((int32_t)_peerID)), rpcConfigurationParameter.mainRole(), parameterData);
+        parameter->convertToPacket(PVariable(new Variable((int32_t) _peerID)), rpcConfigurationParameter.mainRole(), parameterData);
         rpcConfigurationParameter.setBinaryData(parameterData);
       }
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return false;
 }
@@ -543,13 +739,13 @@ bool MbusPeer::getParamsetHook2(PRpcClientInfo clientInfo, PParameter parameter,
       if (parameter->id == "PEER_ID") {
         std::vector<uint8_t> parameterData;
         auto &rpcConfigurationParameter = valuesCentral[channel][parameter->id];
-        parameter->convertToPacket(PVariable(new Variable((int32_t)_peerID)), rpcConfigurationParameter.mainRole(), parameterData);
+        parameter->convertToPacket(PVariable(new Variable((int32_t) _peerID)), rpcConfigurationParameter.mainRole(), parameterData);
         rpcConfigurationParameter.setBinaryData(parameterData);
       }
     }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return false;
 }
@@ -565,9 +761,15 @@ bool MbusPeer::convertFromPacketHook(BaseLib::Systems::RpcConfigurationParameter
     std::vector<uint8_t> vifs = BaseLib::HelperFunctions::getUBinary(parameter.rpcParameter->metadata);
 
     result = VifConverter::getVariable(type, vifs, data);
+
+    if (parameter.rpcParameter->casts.size() > 1) {
+      for (auto i = parameter.rpcParameter->casts.begin() + 1; i != parameter.rpcParameter->casts.end(); i++) {
+        (*i)->fromPacket(result);
+      }
+    }
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return true;
 }
@@ -576,17 +778,26 @@ PVariable MbusPeer::getDeviceInfo(BaseLib::PRpcClientInfo clientInfo, std::map<s
   try {
     PVariable info(Peer::getDeviceInfo(clientInfo, fields));
 
-    info->structValue->emplace("INTERFACE", std::make_shared<Variable>(std::to_string(MY_FAMILY_ID) + ".virtual"));
+    auto interface = Gd::interfaces->getInterface(_physicalInterfaceId);
+    if (interface->getID().empty()) info->structValue->emplace("INTERFACE", std::make_shared<Variable>(std::to_string(MY_FAMILY_ID) + ".virtual"));
+    else info->structValue->emplace("INTERFACE", std::make_shared<Variable>(interface->getID()));
 
     return info;
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return PVariable();
 }
 
-PVariable MbusPeer::putParamset(BaseLib::PRpcClientInfo clientInfo, int32_t channel, ParameterGroup::Type::Enum type, uint64_t remoteID, int32_t remoteChannel, PVariable variables, bool checkAcls, bool onlyPushing) {
+PVariable MbusPeer::putParamset(BaseLib::PRpcClientInfo clientInfo,
+                                int32_t channel,
+                                ParameterGroup::Type::Enum type,
+                                uint64_t remoteID,
+                                int32_t remoteChannel,
+                                PVariable variables,
+                                bool checkAcls,
+                                bool onlyPushing) {
   try {
     if (_disposing) return Variable::createError(-32500, "Peer is disposing.");
     if (channel < 0) channel = 0;
@@ -615,7 +826,9 @@ PVariable MbusPeer::putParamset(BaseLib::PRpcClientInfo clientInfo, int32_t chan
         if (parameter.databaseId > 0) saveParameter(parameter.databaseId, parameterData);
         else saveParameter(0, ParameterGroup::Type::Enum::config, channel, i->first, parameterData);
         parameterChanged = true;
-        GD::out.printInfo("Info: Parameter " + i->first + " of peer " + std::to_string(_peerID) + " and channel " + std::to_string(channel) + " was set to 0x" + BaseLib::HelperFunctions::getHexString(parameterData) + ".");
+        Gd::out.printInfo(
+            "Info: Parameter " + i->first + " of peer " + std::to_string(_peerID) + " and channel " + std::to_string(channel) + " was set to 0x" + BaseLib::HelperFunctions::getHexString(parameterData)
+                + ".");
       }
 
       if (parameterChanged) raiseRPCUpdateDevice(_peerID, channel, _serialNumber + ":" + std::to_string(channel), 0);
@@ -633,7 +846,21 @@ PVariable MbusPeer::putParamset(BaseLib::PRpcClientInfo clientInfo, int32_t chan
     return std::make_shared<Variable>(VariableType::tVoid);
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+  }
+  return Variable::createError(-32500, "Unknown application error.");
+}
+
+PVariable MbusPeer::setInterface(BaseLib::PRpcClientInfo clientInfo, std::string interfaceId) {
+  try {
+    if (!interfaceId.empty() && !Gd::interfaces->hasInterface(interfaceId)) {
+      return Variable::createError(-5, "Unknown physical interface.");
+    }
+    setPhysicalInterfaceId(interfaceId);
+    return std::make_shared<Variable>(VariableType::tVoid);
+  }
+  catch (const std::exception &ex) {
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return Variable::createError(-32500, "Unknown application error.");
 }
@@ -647,7 +874,7 @@ PVariable MbusPeer::setValue(BaseLib::PRpcClientInfo clientInfo, uint32_t channe
     return Variable::createError(-5, "Unknown parameter.");
   }
   catch (const std::exception &ex) {
-    GD::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
+    Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return Variable::createError(-32500, "Unknown application error. See error log for more details.");
 }
