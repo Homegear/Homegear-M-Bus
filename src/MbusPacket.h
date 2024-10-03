@@ -154,7 +154,7 @@ class MbusPacket : public BaseLib::Systems::Packet {
   std::vector<uint8_t> getPosition(uint32_t position, uint32_t size);
   bool decrypt(const std::vector<uint8_t> &key);
  protected:
-  std::array<uint8_t, 13> _difSizeMap;
+  std::array<uint8_t, 16> _difSizeMap;
 
   std::vector<uint8_t> _packet;
   bool _wireless = true;
