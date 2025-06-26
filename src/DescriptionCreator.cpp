@@ -3,74 +3,79 @@
 #include "DescriptionCreator.h"
 
 #include <memory>
+
 #include "Gd.h"
 
 namespace Mbus {
 
 DescriptionCreator::DescriptionCreator() {
-  //mWh
+  // mWh
   vif_info_[0] = VifInfo("ENERGY", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 1000, VifScaleOperation::kDivision);
-  //10^-2 Wh
+  // 10^-2 Wh
   vif_info_[1] = VifInfo("ENERGY", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 100, VifScaleOperation::kDivision);
-  //10^-1 Wh
+  // 10^-1 Wh
   vif_info_[2] = VifInfo("ENERGY", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours, 10, VifScaleOperation::kDivision);
-  //Wh
+  // Wh
   vif_info_[3] = VifInfo("ENERGY", "Wh", BaseLib::DeviceDescription::UnitCode::kWattHours);
-  //10^-2 kWh
+  // 10^-2 kWh
   vif_info_[4] = VifInfo("ENERGY", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 100, VifScaleOperation::kDivision);
-  //10^-1 kWh
+  // 10^-1 kWh
   vif_info_[5] = VifInfo("ENERGY", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 10, VifScaleOperation::kDivision);
-  //kWh
+  // kWh
   vif_info_[6] = VifInfo("ENERGY", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours);
-  //10^1 kWh
+  // 10^1 kWh
   vif_info_[7] = VifInfo("ENERGY", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 10, VifScaleOperation::kMultiplication);
   for (uint32_t i = 0; i <= 7; i++) {
     vif_info_.at(i).medium_role_map.emplace(0x02, 900201);
     vif_info_.at(i).medium_role_map.emplace(0x102, 900203);
     vif_info_.at(i).medium_role_map.emplace(0x202, 900205);
-    vif_info_.at(i).medium_role_map.emplace(0x04, 900401);
-    vif_info_.at(i).medium_role_map.emplace(0x0C, 900401);
-    vif_info_.at(i).medium_role_map.emplace(0x0D, 900401);
+    vif_info_.at(i).medium_role_map.emplace(0x04, 900401);  // Heat meter
+    vif_info_.at(i).medium_role_map.emplace(0x0C, 900401);  // Heat meter
+    vif_info_.at(i).medium_role_map.emplace(0x0D, 900401);  // Heat meter
+    vif_info_.at(i).medium_role_map.emplace(0x0A, 900501);  // Cooling load meter
+    vif_info_.at(i).medium_role_map.emplace(0x0B, 900501);  // Cooling load meter
   }
 
-  //J
+  // J
   vif_info_[8] = VifInfo("ENERGY", "J", BaseLib::DeviceDescription::UnitCode::kJoules);
-  //10^-2 kJ
+  // 10^-2 kJ
   vif_info_[9] = VifInfo("ENERGY", "kJ", BaseLib::DeviceDescription::UnitCode::kKilojoules, 100, VifScaleOperation::kDivision);
-  //10^-1 kJ
+  // 10^-1 kJ
   vif_info_[10] = VifInfo("ENERGY", "kJ", BaseLib::DeviceDescription::UnitCode::kKilojoules, 10, VifScaleOperation::kDivision);
-  //kJ
+  // kJ
   vif_info_[11] = VifInfo("ENERGY", "kJ", BaseLib::DeviceDescription::UnitCode::kKilojoules);
-  //10^-2 MJ
+  // 10^-2 MJ
   vif_info_[12] = VifInfo("ENERGY", "MJ", BaseLib::DeviceDescription::UnitCode::kMegajoules, 100, VifScaleOperation::kDivision);
-  //10^-1 MJ
+  // 10^-1 MJ
   vif_info_[13] = VifInfo("ENERGY", "MJ", BaseLib::DeviceDescription::UnitCode::kMegajoules, 10, VifScaleOperation::kDivision);
-  //MJ
+  // MJ
   vif_info_[14] = VifInfo("ENERGY", "MJ", BaseLib::DeviceDescription::UnitCode::kMegajoules);
-  //10^1 MJ
+  // 10^1 MJ
   vif_info_[15] = VifInfo("ENERGY", "MJ", BaseLib::DeviceDescription::UnitCode::kMegajoules, 10, VifScaleOperation::kMultiplication);
 
-  //cm^3
+  // cm^3
   vif_info_[16] = VifInfo("VOLUME", "l", BaseLib::DeviceDescription::UnitCode::kLiters, 1000, VifScaleOperation::kDivision);
-  //10^1 cm^3
+  // 10^1 cm^3
   vif_info_[17] = VifInfo("VOLUME", "l", BaseLib::DeviceDescription::UnitCode::kLiters, 100, VifScaleOperation::kDivision);
-  //10^2 cm^3
+  // 10^2 cm^3
   vif_info_[18] = VifInfo("VOLUME", "l", BaseLib::DeviceDescription::UnitCode::kLiters, 10, VifScaleOperation::kDivision);
-  //l
+  // l
   vif_info_[19] = VifInfo("VOLUME", "l", BaseLib::DeviceDescription::UnitCode::kLiters);
-  //10^-2 m^3
+  // 10^-2 m^3
   vif_info_[20] = VifInfo("VOLUME", "m³", BaseLib::DeviceDescription::UnitCode::kCubicMeters, 100, VifScaleOperation::kDivision);
-  //10^-1 m^3
+  // 10^-1 m^3
   vif_info_[21] = VifInfo("VOLUME", "m³", BaseLib::DeviceDescription::UnitCode::kCubicMeters, 10, VifScaleOperation::kDivision);
-  //m^3
+  // m^3
   vif_info_[22] = VifInfo("VOLUME", "m³", BaseLib::DeviceDescription::UnitCode::kCubicMeters);
-  //10^1 m^3
+  // 10^1 m^3
   vif_info_[23] = VifInfo("VOLUME", "m³", BaseLib::DeviceDescription::UnitCode::kCubicMeters, 10, VifScaleOperation::kMultiplication);
   for (uint32_t i = 16; i <= 23; i++) {
     vif_info_.at(i).medium_role_map.emplace(0x03, 900301);
     vif_info_.at(i).medium_role_map.emplace(0x04, 900406);
     vif_info_.at(i).medium_role_map.emplace(0x0C, 900406);
     vif_info_.at(i).medium_role_map.emplace(0x0D, 900406);
+    vif_info_.at(i).medium_role_map.emplace(0x0A, 900506);
+    vif_info_.at(i).medium_role_map.emplace(0x0B, 900506);
     vif_info_.at(i).medium_role_map.emplace(0x06, 900601);
     vif_info_.at(i).medium_role_map.emplace(0x07, 900101);
     vif_info_.at(i).medium_role_map.emplace(0x15, 900601);
@@ -79,21 +84,21 @@ DescriptionCreator::DescriptionCreator() {
     vif_info_.at(i).medium_role_map.emplace(0x28, 900801);
   }
 
-  //g
+  // g
   vif_info_[24] = VifInfo("MASS", "g", BaseLib::DeviceDescription::UnitCode::kGrams, 1, VifScaleOperation::kMultiplication);
-  //10^-2 kg
+  // 10^-2 kg
   vif_info_[25] = VifInfo("MASS", "kg", BaseLib::DeviceDescription::UnitCode::kKilograms, 100, VifScaleOperation::kDivision);
-  //10^-1 kg
+  // 10^-1 kg
   vif_info_[26] = VifInfo("MASS", "kg", BaseLib::DeviceDescription::UnitCode::kKilograms, 10, VifScaleOperation::kDivision);
-  //kg
+  // kg
   vif_info_[27] = VifInfo("MASS", "kg", BaseLib::DeviceDescription::UnitCode::kKilograms);
-  //10^-2 t
+  // 10^-2 t
   vif_info_[28] = VifInfo("MASS", "t", BaseLib::DeviceDescription::UnitCode::kTons, 100, VifScaleOperation::kDivision);
-  //10^-1 t
+  // 10^-1 t
   vif_info_[29] = VifInfo("MASS", "t", BaseLib::DeviceDescription::UnitCode::kTons, 10, VifScaleOperation::kDivision);
-  //t
+  // t
   vif_info_[30] = VifInfo("MASS", "t", BaseLib::DeviceDescription::UnitCode::kTons);
-  //10^1 t
+  // 10^1 t
   vif_info_[31] = VifInfo("MASS", "t", BaseLib::DeviceDescription::UnitCode::kTons, 10, VifScaleOperation::kMultiplication);
 
   vif_info_[32] = VifInfo("ON_TIME", "s", BaseLib::DeviceDescription::UnitCode::kSeconds);
@@ -106,163 +111,169 @@ DescriptionCreator::DescriptionCreator() {
   vif_info_[38] = VifInfo("OPERATING_TIME", "h", BaseLib::DeviceDescription::UnitCode::kHours);
   vif_info_[39] = VifInfo("OPERATING_TIME", "d", BaseLib::DeviceDescription::UnitCode::kDays);
 
-  //mW
+  // mW
   vif_info_[40] = VifInfo("POWER", "mW", BaseLib::DeviceDescription::UnitCode::kMilliwatts);
-  //10^-2 W
+  // 10^-2 W
   vif_info_[41] = VifInfo("POWER", "W", BaseLib::DeviceDescription::UnitCode::kWatts, 100, VifScaleOperation::kDivision);
-  //10^-1 W
+  // 10^-1 W
   vif_info_[42] = VifInfo("POWER", "W", BaseLib::DeviceDescription::UnitCode::kWatts, 10, VifScaleOperation::kDivision);
-  //W
+  // W
   vif_info_[43] = VifInfo("POWER", "W", BaseLib::DeviceDescription::UnitCode::kWatts);
-  //10^-2 kW
+  // 10^-2 kW
   vif_info_[44] = VifInfo("POWER", "kW", BaseLib::DeviceDescription::UnitCode::kKilowatts, 100, VifScaleOperation::kDivision);
-  //10^-1 kW
+  // 10^-1 kW
   vif_info_[45] = VifInfo("POWER", "kW", BaseLib::DeviceDescription::UnitCode::kKilowatts, 10, VifScaleOperation::kDivision);
-  //kW
+  // kW
   vif_info_[46] = VifInfo("POWER", "kW", BaseLib::DeviceDescription::UnitCode::kKilowatts);
-  //10^1 kW
+  // 10^1 kW
   vif_info_[47] = VifInfo("POWER", "kW", BaseLib::DeviceDescription::UnitCode::kKilowatts, 10, VifScaleOperation::kMultiplication);
 
-  //J/h
+  // J/h
   vif_info_[48] = VifInfo("POWER", "J/h", BaseLib::DeviceDescription::UnitCode::kJoulePerHours);
-  //10^-2 kJ/h
+  // 10^-2 kJ/h
   vif_info_[49] = VifInfo("POWER", "J/h", BaseLib::DeviceDescription::UnitCode::kJoulePerHours, 10, VifScaleOperation::kMultiplication);
-  //10^-1 kJ/h
+  // 10^-1 kJ/h
   vif_info_[50] = VifInfo("POWER", "J/h", BaseLib::DeviceDescription::UnitCode::kJoulePerHours, 100, VifScaleOperation::kMultiplication);
-  //kJ/j
+  // kJ/j
   vif_info_[51] = VifInfo("POWER", "J/h", BaseLib::DeviceDescription::UnitCode::kJoulePerHours, 1000, VifScaleOperation::kMultiplication);
-  //10^-2 MJ/h
+  // 10^-2 MJ/h
   vif_info_[52] = VifInfo("POWER", "J/h", BaseLib::DeviceDescription::UnitCode::kJoulePerHours, 10000, VifScaleOperation::kMultiplication);
-  //10^-1 MJ/h
+  // 10^-1 MJ/h
   vif_info_[53] = VifInfo("POWER", "J/h", BaseLib::DeviceDescription::UnitCode::kJoulePerHours, 100000, VifScaleOperation::kMultiplication);
-  //MJ/h
+  // MJ/h
   vif_info_[54] = VifInfo("POWER", "J/h", BaseLib::DeviceDescription::UnitCode::kJoulePerHours, 1000000, VifScaleOperation::kMultiplication);
-  //10^1 MJ/h
+  // 10^1 MJ/h
   vif_info_[55] = VifInfo("POWER", "J/h", BaseLib::DeviceDescription::UnitCode::kJoulePerHours, 10000000, VifScaleOperation::kMultiplication);
 
-  //cm^3/h
+  // cm^3/h
   vif_info_[56] = VifInfo("VOLUME_FLOW", "l/h", BaseLib::DeviceDescription::UnitCode::kLitersPerHour, 1000, VifScaleOperation::kDivision);
-  //10^1 cm^3/h
+  // 10^1 cm^3/h
   vif_info_[57] = VifInfo("VOLUME_FLOW", "l/h", BaseLib::DeviceDescription::UnitCode::kLitersPerHour, 100, VifScaleOperation::kDivision);
-  //10^2 cm^3/h
+  // 10^2 cm^3/h
   vif_info_[58] = VifInfo("VOLUME_FLOW", "l/h", BaseLib::DeviceDescription::UnitCode::kLitersPerHour, 10, VifScaleOperation::kDivision);
-  //l/h
+  // l/h
   vif_info_[59] = VifInfo("VOLUME_FLOW", "l/h", BaseLib::DeviceDescription::UnitCode::kLitersPerHour);
-  //10^-2 m^3/h
+  // 10^-2 m^3/h
   vif_info_[60] = VifInfo("VOLUME_FLOW", "m³/h", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerHour, 100, VifScaleOperation::kDivision);
-  //10^-1 m^3/h
+  // 10^-1 m^3/h
   vif_info_[61] = VifInfo("VOLUME_FLOW", "m³/h", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerHour, 10, VifScaleOperation::kDivision);
-  //m^3/h
+  // m^3/h
   vif_info_[62] = VifInfo("VOLUME_FLOW", "m³/h", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerHour);
-  //10^1 m^3/h
+  // 10^1 m^3/h
   vif_info_[63] = VifInfo("VOLUME_FLOW", "m³/h", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerHour, 10, VifScaleOperation::kMultiplication);
   for (uint32_t i = 56; i <= 63; i++) {
     vif_info_.at(i).medium_role_map.emplace(0x04, 900403);
     vif_info_.at(i).medium_role_map.emplace(0x0C, 900403);
+    vif_info_.at(i).medium_role_map.emplace(0x0A, 900503);
+    vif_info_.at(i).medium_role_map.emplace(0x0B, 900503);
   }
 
-  //10⁻¹ cm³/min
+  // 10⁻¹ cm³/min
   vif_info_[64] = VifInfo("VOLUME_FLOW", "l/min", BaseLib::DeviceDescription::UnitCode::kLitersPerMinute, 10000, VifScaleOperation::kDivision);
-  //cm³/min
+  // cm³/min
   vif_info_[65] = VifInfo("VOLUME_FLOW", "l/min", BaseLib::DeviceDescription::UnitCode::kLitersPerMinute, 1000, VifScaleOperation::kDivision);
-  //10¹ cm³/min
+  // 10¹ cm³/min
   vif_info_[66] = VifInfo("VOLUME_FLOW", "l/min", BaseLib::DeviceDescription::UnitCode::kLitersPerMinute, 100, VifScaleOperation::kDivision);
-  //10² cm³/min
+  // 10² cm³/min
   vif_info_[67] = VifInfo("VOLUME_FLOW", "l/min", BaseLib::DeviceDescription::UnitCode::kLitersPerMinute, 10, VifScaleOperation::kDivision);
-  //l/min
+  // l/min
   vif_info_[68] = VifInfo("VOLUME_FLOW", "l/min", BaseLib::DeviceDescription::UnitCode::kLitersPerMinute);
-  //10⁻² m³/min
+  // 10⁻² m³/min
   vif_info_[69] = VifInfo("VOLUME_FLOW", "m³/min", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerMinute, 100, VifScaleOperation::kDivision);
-  //10⁻¹ m³/min
+  // 10⁻¹ m³/min
   vif_info_[70] = VifInfo("VOLUME_FLOW", "m³/min", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerMinute, 10, VifScaleOperation::kDivision);
-  //m³/min
+  // m³/min
   vif_info_[71] = VifInfo("VOLUME_FLOW", "m³/min", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerMinute);
 
-  //mm³/s
+  // mm³/s
   vif_info_[72] = VifInfo("VOLUME_FLOW", "l/s", BaseLib::DeviceDescription::UnitCode::kLitersPerSecond, 1000000, VifScaleOperation::kDivision);
-  //10⁻² cm³/s
+  // 10⁻² cm³/s
   vif_info_[73] = VifInfo("VOLUME_FLOW", "l/s", BaseLib::DeviceDescription::UnitCode::kLitersPerSecond, 100000, VifScaleOperation::kDivision);
-  //10⁻¹ cm³/s
+  // 10⁻¹ cm³/s
   vif_info_[74] = VifInfo("VOLUME_FLOW", "l/s", BaseLib::DeviceDescription::UnitCode::kLitersPerSecond, 10000, VifScaleOperation::kDivision);
-  //cm³/s
+  // cm³/s
   vif_info_[75] = VifInfo("VOLUME_FLOW", "l/s", BaseLib::DeviceDescription::UnitCode::kLitersPerSecond, 1000, VifScaleOperation::kDivision);
-  //10¹ cm³/s
+  // 10¹ cm³/s
   vif_info_[76] = VifInfo("VOLUME_FLOW", "l/s", BaseLib::DeviceDescription::UnitCode::kLitersPerSecond, 100, VifScaleOperation::kDivision);
-  //10² cm³/s
+  // 10² cm³/s
   vif_info_[77] = VifInfo("VOLUME_FLOW", "l/s", BaseLib::DeviceDescription::UnitCode::kLitersPerSecond, 10, VifScaleOperation::kDivision);
-  //l/s
+  // l/s
   vif_info_[78] = VifInfo("VOLUME_FLOW", "l/s", BaseLib::DeviceDescription::UnitCode::kLitersPerSecond);
-  //10⁻² m³/s
+  // 10⁻² m³/s
   vif_info_[79] = VifInfo("VOLUME_FLOW", "m³/s", BaseLib::DeviceDescription::UnitCode::kCubicMetersPerSecond, 100, VifScaleOperation::kDivision);
 
-  //g/h
+  // g/h
   vif_info_[80] = VifInfo("MASS_FLOW", "kg/h", BaseLib::DeviceDescription::UnitCode::kKilogramsPerHour, 1000, VifScaleOperation::kDivision);
-  //10⁻² kg/h
+  // 10⁻² kg/h
   vif_info_[81] = VifInfo("MASS_FLOW", "kg/h", BaseLib::DeviceDescription::UnitCode::kKilogramsPerHour, 100, VifScaleOperation::kDivision);
-  //10⁻¹ kg/h
+  // 10⁻¹ kg/h
   vif_info_[82] = VifInfo("MASS_FLOW", "kg/h", BaseLib::DeviceDescription::UnitCode::kKilogramsPerHour, 10, VifScaleOperation::kDivision);
-  //kg/h
+  // kg/h
   vif_info_[83] = VifInfo("MASS_FLOW", "kg/h", BaseLib::DeviceDescription::UnitCode::kKilogramsPerHour);
-  //10⁻² t/h
+  // 10⁻² t/h
   vif_info_[84] = VifInfo("MASS_FLOW", "t/h", BaseLib::DeviceDescription::UnitCode::kTonsPerHour, 100, VifScaleOperation::kDivision);
-  //10⁻¹ t/h
+  // 10⁻¹ t/h
   vif_info_[85] = VifInfo("MASS_FLOW", "t/h", BaseLib::DeviceDescription::UnitCode::kTonsPerHour, 10, VifScaleOperation::kDivision);
-  //t/h
+  // t/h
   vif_info_[86] = VifInfo("MASS_FLOW", "t/h", BaseLib::DeviceDescription::UnitCode::kTonsPerHour);
-  //10¹ t/h
+  // 10¹ t/h
   vif_info_[87] = VifInfo("MASS_FLOW", "t/h", BaseLib::DeviceDescription::UnitCode::kTonsPerHour, 10, VifScaleOperation::kMultiplication);
 
-  //10⁻³ °C
+  // 10⁻³ °C
   vif_info_[88] = VifInfo("FLOW_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 1000, VifScaleOperation::kDivision);
-  //10⁻² °C
+  // 10⁻² °C
   vif_info_[89] = VifInfo("FLOW_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 100, VifScaleOperation::kDivision);
-  //10⁻¹ °C
+  // 10⁻¹ °C
   vif_info_[90] = VifInfo("FLOW_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 10, VifScaleOperation::kDivision);
-  //°C
+  // °C
   vif_info_[91] = VifInfo("FLOW_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius);
   for (uint32_t i = 88; i <= 91; i++) {
     vif_info_.at(i).medium_role_map.emplace(0x04, 900404);
     vif_info_.at(i).medium_role_map.emplace(0x0C, 900404);
+    vif_info_.at(i).medium_role_map.emplace(0x0A, 900504);
+    vif_info_.at(i).medium_role_map.emplace(0x0B, 900504);
   }
 
-  //10⁻³ °C
+  // 10⁻³ °C
   vif_info_[92] = VifInfo("RETURN_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 1000, VifScaleOperation::kDivision);
-  //10⁻² °C
+  // 10⁻² °C
   vif_info_[93] = VifInfo("RETURN_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 100, VifScaleOperation::kDivision);
-  //10⁻¹ °C
+  // 10⁻¹ °C
   vif_info_[94] = VifInfo("RETURN_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 10, VifScaleOperation::kDivision);
-  //°C
+  // °C
   vif_info_[95] = VifInfo("RETURN_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius);
   for (uint32_t i = 92; i <= 95; i++) {
     vif_info_.at(i).medium_role_map.emplace(0x04, 900405);
     vif_info_.at(i).medium_role_map.emplace(0x0C, 900405);
+    vif_info_.at(i).medium_role_map.emplace(0x0A, 900505);
+    vif_info_.at(i).medium_role_map.emplace(0x0B, 900505);
   }
 
-  //mK
+  // mK
   vif_info_[96] = VifInfo("TEMPERATURE_DIFFERENCE", "K", BaseLib::DeviceDescription::UnitCode::kKelvins, 1000, VifScaleOperation::kDivision);
-  //10⁻² K
+  // 10⁻² K
   vif_info_[97] = VifInfo("TEMPERATURE_DIFFERENCE", "K", BaseLib::DeviceDescription::UnitCode::kKelvins, 100, VifScaleOperation::kDivision);
-  //10⁻¹ K
+  // 10⁻¹ K
   vif_info_[98] = VifInfo("TEMPERATURE_DIFFERENCE", "K", BaseLib::DeviceDescription::UnitCode::kKelvins, 10, VifScaleOperation::kDivision);
-  //K
+  // K
   vif_info_[99] = VifInfo("TEMPERATURE_DIFFERENCE", "K", BaseLib::DeviceDescription::UnitCode::kKelvins);
 
-  //10⁻³ °C
+  // 10⁻³ °C
   vif_info_[100] = VifInfo("EXTERNAL_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 1000, VifScaleOperation::kDivision);
-  //10⁻² °C
+  // 10⁻² °C
   vif_info_[101] = VifInfo("EXTERNAL_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 100, VifScaleOperation::kDivision);
-  //10⁻¹ °C
+  // 10⁻¹ °C
   vif_info_[102] = VifInfo("EXTERNAL_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 10, VifScaleOperation::kDivision);
-  //°C
+  // °C
   vif_info_[103] = VifInfo("EXTERNAL_TEMPERATURE", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius);
 
-  //mbar
+  // mbar
   vif_info_[104] = VifInfo("PRESSURE", "mbar", BaseLib::DeviceDescription::UnitCode::kMillibars);
-  //10⁻² bar
+  // 10⁻² bar
   vif_info_[105] = VifInfo("PRESSURE", "bar", BaseLib::DeviceDescription::UnitCode::kBars, 100, VifScaleOperation::kDivision);
-  //10⁻¹ bar
+  // 10⁻¹ bar
   vif_info_[106] = VifInfo("PRESSURE", "bar", BaseLib::DeviceDescription::UnitCode::kBars, 10, VifScaleOperation::kDivision);
-  //bar
+  // bar
   vif_info_[107] = VifInfo("PRESSURE", "bar", BaseLib::DeviceDescription::UnitCode::kBars);
 
   vif_info_[108] = VifInfo("DATE", "s", BaseLib::DeviceDescription::UnitCode::kTimestampSeconds);
@@ -270,7 +281,7 @@ DescriptionCreator::DescriptionCreator() {
 
   vif_info_[110] = VifInfo("HCA_UNITS", "", BaseLib::DeviceDescription::UnitCode::kHeatingCostAllocatorUnits);
 
-  //111 reserved
+  // 111 reserved
 
   vif_info_[112] = VifInfo("AVERAGING_DURATION", "s", BaseLib::DeviceDescription::UnitCode::kSeconds);
   vif_info_[113] = VifInfo("AVERAGING_DURATION", "m", BaseLib::DeviceDescription::UnitCode::kMinutes);
@@ -293,56 +304,56 @@ DescriptionCreator::DescriptionCreator() {
   vif_info_[0x7F] = VifInfo("MANUFACTURER_SPECIFIC", "", BaseLib::DeviceDescription::UnitCode::kUndefined);
   vif_info_[0xFF] = VifInfo("MANUFACTURER_SPECIFIC", "", BaseLib::DeviceDescription::UnitCode::kUndefined);
 
-  //10^-1 MWh
+  // 10^-1 MWh
   vif_fb_info_[0] = VifInfo("ENERGY", "MWh", BaseLib::DeviceDescription::UnitCode::kMegawattHours, 10, VifScaleOperation::kDivision);
-  //MWh
+  // MWh
   vif_fb_info_[1] = VifInfo("ENERGY", "MWh", BaseLib::DeviceDescription::UnitCode::kMegawattHours);
 
-  //2 to 7 reserved
+  // 2 to 7 reserved
 
-  //10^-1 GJ
+  // 10^-1 GJ
   vif_fb_info_[8] = VifInfo("ENERGY", "MJ", BaseLib::DeviceDescription::UnitCode::kMegajoules, 100, VifScaleOperation::kMultiplication);
-  //GJ
+  // GJ
   vif_fb_info_[9] = VifInfo("ENERGY", "MJ", BaseLib::DeviceDescription::UnitCode::kMegajoules, 1000, VifScaleOperation::kMultiplication);
 
-  //10 to 15 reserved
+  // 10 to 15 reserved
 
-  //10^2 m^2
+  // 10^2 m^2
   vif_fb_info_[16] = VifInfo("VOLUME", "m³", BaseLib::DeviceDescription::UnitCode::kCubicMeters, 100, VifScaleOperation::kMultiplication);
-  //10^3 m^3
+  // 10^3 m^3
   vif_fb_info_[17] = VifInfo("VOLUME", "m³", BaseLib::DeviceDescription::UnitCode::kCubicMeters, 1000, VifScaleOperation::kMultiplication);
 
-  //18 to 23 reserved
+  // 18 to 23 reserved
 
-  //10^2 t
+  // 10^2 t
   vif_fb_info_[24] = VifInfo("MASS", "t", BaseLib::DeviceDescription::UnitCode::kTons, 100, VifScaleOperation::kMultiplication);
-  //10^3 t
+  // 10^3 t
   vif_fb_info_[25] = VifInfo("MASS", "t", BaseLib::DeviceDescription::UnitCode::kTons, 1000, VifScaleOperation::kMultiplication);
 
-  //26 to 32 reserved
+  // 26 to 32 reserved
 
-  //10^-1 feet^3
+  // 10^-1 feet^3
   vif_fb_info_[33] = VifInfo("VOLUME", "feet³", BaseLib::DeviceDescription::UnitCode::kCubicFeet, 10, VifScaleOperation::kDivision);
-  //10^-1 american gallons
+  // 10^-1 american gallons
   vif_fb_info_[34] = VifInfo("VOLUME", "american gallons", BaseLib::DeviceDescription::UnitCode::kUsGallons, 10, VifScaleOperation::kDivision);
-  //american gallons
+  // american gallons
   vif_fb_info_[35] = VifInfo("VOLUME", "american gallons", BaseLib::DeviceDescription::UnitCode::kUsGallons);
 
-  //10⁻³ american gallons/min
+  // 10⁻³ american gallons/min
   vif_fb_info_[36] = VifInfo("VOLUME_FLOW", "american gallons/min", BaseLib::DeviceDescription::UnitCode::kUsGallonsPerMinute, 1000, VifScaleOperation::kDivision);
-  //american gallons/min
+  // american gallons/min
   vif_fb_info_[37] = VifInfo("VOLUME_FLOW", "american gallons/min", BaseLib::DeviceDescription::UnitCode::kUsGallonsPerMinute);
-  //american gallons/hour
+  // american gallons/hour
   vif_fb_info_[38] = VifInfo("VOLUME_FLOW", "american gallons/h", BaseLib::DeviceDescription::UnitCode::kUsGallonsPerHours);
 
-  //39 reserved
+  // 39 reserved
 
-  //10^-1 MW
+  // 10^-1 MW
   vif_fb_info_[40] = VifInfo("POWER", "MW", BaseLib::DeviceDescription::UnitCode::kMegawatts, 10, VifScaleOperation::kDivision);
-  //MW
+  // MW
   vif_fb_info_[41] = VifInfo("POWER", "MW", BaseLib::DeviceDescription::UnitCode::kMegawatts);
 
-  //42 to 87 reserved
+  // 42 to 87 reserved
 
   vif_fb_info_[88] = VifInfo("FLOW_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 1000, VifScaleOperation::kDivision);
   vif_fb_info_[89] = VifInfo("FLOW_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 100, VifScaleOperation::kDivision);
@@ -351,6 +362,8 @@ DescriptionCreator::DescriptionCreator() {
   for (uint32_t i = 88; i <= 91; i++) {
     vif_fb_info_.at(i).medium_role_map.emplace(0x04, 900404);
     vif_fb_info_.at(i).medium_role_map.emplace(0x0C, 900404);
+    vif_fb_info_.at(i).medium_role_map.emplace(0x0A, 900504);
+    vif_fb_info_.at(i).medium_role_map.emplace(0x0B, 900504);
   }
 
   vif_fb_info_[92] = VifInfo("RETURN_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 1000, VifScaleOperation::kDivision);
@@ -360,6 +373,8 @@ DescriptionCreator::DescriptionCreator() {
   for (uint32_t i = 92; i <= 95; i++) {
     vif_fb_info_.at(i).medium_role_map.emplace(0x04, 900405);
     vif_fb_info_.at(i).medium_role_map.emplace(0x0C, 900405);
+    vif_fb_info_.at(i).medium_role_map.emplace(0x0A, 900505);
+    vif_fb_info_.at(i).medium_role_map.emplace(0x0B, 900505);
   }
 
   vif_fb_info_[96] = VifInfo("TEMPERATURE_DIFFERENCE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 1000, VifScaleOperation::kDivision);
@@ -372,7 +387,7 @@ DescriptionCreator::DescriptionCreator() {
   vif_fb_info_[102] = VifInfo("EXTERNAL_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 10, VifScaleOperation::kDivision);
   vif_fb_info_[103] = VifInfo("EXTERNAL_TEMPERATURE", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit);
 
-  //104 to 111 reserved
+  // 104 to 111 reserved
 
   vif_fb_info_[112] = VifInfo("COLD_WARM_TEMPERATURE_LIMIT", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 1000, VifScaleOperation::kDivision);
   vif_fb_info_[113] = VifInfo("COLD_WARM_TEMPERATURE_LIMIT", "°F", BaseLib::DeviceDescription::UnitCode::kDegreesFahrenheit, 100, VifScaleOperation::kDivision);
@@ -384,21 +399,21 @@ DescriptionCreator::DescriptionCreator() {
   vif_fb_info_[118] = VifInfo("COLD_WARM_TEMPERATURE_LIMIT", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius, 10, VifScaleOperation::kDivision);
   vif_fb_info_[119] = VifInfo("COLD_WARM_TEMPERATURE_LIMIT", "°C", BaseLib::DeviceDescription::UnitCode::kDegreesCelsius);
 
-  //mW
+  // mW
   vif_fb_info_[120] = VifInfo("MAX_POWER_COUNT", "W", BaseLib::DeviceDescription::UnitCode::kWatts, 1000, VifScaleOperation::kDivision);
-  //10^-2 W
+  // 10^-2 W
   vif_fb_info_[121] = VifInfo("MAX_POWER_COUNT", "W", BaseLib::DeviceDescription::UnitCode::kWatts, 100, VifScaleOperation::kDivision);
-  //10^-1 W
+  // 10^-1 W
   vif_fb_info_[122] = VifInfo("MAX_POWER_COUNT", "W", BaseLib::DeviceDescription::UnitCode::kWatts, 10, VifScaleOperation::kDivision);
-  //W
+  // W
   vif_fb_info_[123] = VifInfo("MAX_POWER_COUNT", "W", BaseLib::DeviceDescription::UnitCode::kWatts);
-  //10^-2 kW
+  // 10^-2 kW
   vif_fb_info_[124] = VifInfo("MAX_POWER_COUNT", "kW", BaseLib::DeviceDescription::UnitCode::kKilowatts, 100, VifScaleOperation::kDivision);
-  //10^-1 kW
+  // 10^-1 kW
   vif_fb_info_[125] = VifInfo("MAX_POWER_COUNT", "kW", BaseLib::DeviceDescription::UnitCode::kKilowatts, 10, VifScaleOperation::kDivision);
-  //kW
+  // kW
   vif_fb_info_[126] = VifInfo("MAX_POWER_COUNT", "kW", BaseLib::DeviceDescription::UnitCode::kKilowatts);
-  //10^1 kW
+  // 10^1 kW
   vif_fb_info_[127] = VifInfo("MAX_POWER_COUNT", "kW", BaseLib::DeviceDescription::UnitCode::kKilowatts, 10, VifScaleOperation::kMultiplication);
 
   vif_fd_info_[0] = VifInfo("CREDIT", "", BaseLib::DeviceDescription::UnitCode::kCurrency1, 1000, VifScaleOperation::kDivision);
@@ -541,7 +556,7 @@ DescriptionCreator::DescriptionCreator() {
   vif_ff_info_["KAM"][0x0602 /* parsed VIF 86FF02 */] = VifInfo("COOLING", "", BaseLib::DeviceDescription::UnitCode::kNoUnits, 1, VifScaleOperation::kMultiplication, 900501);
   vif_ff_info_["KAM"][0x20] = VifInfo("INFO_CODE", "", BaseLib::DeviceDescription::UnitCode::kNoUnits);
 
-  //Manufacturer, medium, pos
+  // Manufacturer, medium, pos
   vif_info_by_pos_["EMU"][0x02][72] = VifInfo("ENERGY_T1_IMPORT", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 1000, VifScaleOperation::kDivision, 900207);
   vif_info_by_pos_["EMU"][0x02][128] = VifInfo("ENERGY_T2_IMPORT", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 1000, VifScaleOperation::kDivision, 900209);
   vif_info_by_pos_["EMU"][0x02][184] = VifInfo("ENERGY_T1_EXPORT", "kWh", BaseLib::DeviceDescription::UnitCode::kKilowattHours, 1000, VifScaleOperation::kDivision, 900213);
@@ -562,7 +577,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPa
 
     std::shared_ptr<HomegearDevice> device = std::make_shared<HomegearDevice>(Gd::bl);
     device->version = 1;
-    device->timeout = 176400; //2 days 1 hour => some devices can only be polled once per day
+    device->timeout = 176400;  // 2 days 1 hour => some devices can only be polled once per day
 
     PSupportedDevice supportedDevice = std::make_shared<SupportedDevice>(Gd::bl);
     supportedDevice->id = packet->getDeviceIdString();
@@ -602,7 +617,6 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPa
       }
     }
 
-
     //{{{ Create variable for meter reading totals of power meters if non-existent
     if (packet->getMedium() == 0x02) {
       bool has_total = false;
@@ -619,19 +633,20 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPa
       std::string unit_export;
       for (auto &parameter : function->variables->parameters) {
         if (!parameter.second->roles.empty()) {
-          if ((*parameter.second->roles.begin()).first == 900201) has_total = true;
+          if ((*parameter.second->roles.begin()).first == 900201)
+            has_total = true;
           else if ((*parameter.second->roles.begin()).first == 900203 || (*parameter.second->roles.begin()).first == 900205) {
             has_energy = true;
             unit_code_total = parameter.second->unit_code;
             unit_total = parameter.second->unit;
-          }
-          else if ((*parameter.second->roles.begin()).first == 900211) has_import_total = true;
+          } else if ((*parameter.second->roles.begin()).first == 900211)
+            has_import_total = true;
           else if ((*parameter.second->roles.begin()).first == 900207 || (*parameter.second->roles.begin()).first == 900209) {
             has_import_energy = true;
             unit_code_import = parameter.second->unit_code;
             unit_import = parameter.second->unit;
-          }
-          else if ((*parameter.second->roles.begin()).first == 900217) has_export_total = true;
+          } else if ((*parameter.second->roles.begin()).first == 900217)
+            has_export_total = true;
           else if ((*parameter.second->roles.begin()).first == 900213 || (*parameter.second->roles.begin()).first == 900215) {
             has_export_energy = true;
             unit_code_export = parameter.second->unit_code;
@@ -704,8 +719,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateDescription(const PMbusPa
     peerInfo.serialNumber = packet->getDeviceIdString();
     peerInfo.type = supportedDevice->typeNumber;
     return peerInfo;
-  }
-  catch (const std::exception &ex) {
+  } catch (const std::exception &ex) {
     Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 
@@ -720,10 +734,10 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateEmptyDescription(int32_t 
 
     std::shared_ptr<HomegearDevice> device = std::make_shared<HomegearDevice>(Gd::bl);
     device->version = 1;
-    device->timeout = 176400; //2 days 1 hour => some devices can only be polled once per day
+    device->timeout = 176400;  // 2 days 1 hour => some devices can only be polled once per day
     PSupportedDevice supportedDevice = std::make_shared<SupportedDevice>(Gd::bl);
     supportedDevice->id = id;
-    supportedDevice->typeNumber = (uint32_t) secondary_address;
+    supportedDevice->typeNumber = (uint32_t)secondary_address;
     device->supportedDevices.push_back(supportedDevice);
 
     createXmlMaintenanceChannel(device);
@@ -749,8 +763,7 @@ DescriptionCreator::PeerInfo DescriptionCreator::CreateEmptyDescription(int32_t 
     peerInfo.serialNumber = BaseLib::HelperFunctions::getHexString(secondary_address, 16);
     peerInfo.type = supportedDevice->typeNumber;
     return peerInfo;
-  }
-  catch (const std::exception &ex) {
+  } catch (const std::exception &ex) {
     Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 
@@ -761,7 +774,7 @@ void DescriptionCreator::createDirectories() {
   try {
     uid_t localUserId = BaseLib::HelperFunctions::userId(Gd::bl->settings.dataPathUser());
     gid_t localGroupId = BaseLib::HelperFunctions::groupId(Gd::bl->settings.dataPathGroup());
-    if (((int32_t) localUserId) == -1 || ((int32_t) localGroupId) == -1) {
+    if (((int32_t)localUserId) == -1 || ((int32_t)localGroupId) == -1) {
       localUserId = Gd::bl->userId;
       localGroupId = Gd::bl->groupId;
     }
@@ -784,8 +797,7 @@ void DescriptionCreator::createDirectories() {
       if (chown(_xmlPath.c_str(), localUserId, localGroupId) == -1) Gd::out.printWarning("Could not set owner on " + _xmlPath);
       if (chmod(_xmlPath.c_str(), Gd::bl->settings.dataPathPermissions()) == -1) Gd::out.printWarning("Could not set permissions on " + _xmlPath);
     }
-  }
-  catch (const std::exception &ex) {
+  } catch (const std::exception &ex) {
     Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
@@ -854,13 +866,9 @@ void DescriptionCreator::createXmlMaintenanceChannel(PHomegearDevice &device) {
   // }}}
 }
 
-void DescriptionCreator::parseDataRecord(const std::string &manufacturer,
-                                         uint32_t medium,
-                                         MbusPacket::DataRecord &dataRecord,
-                                         PParameter &parameter,
-                                         PFunction &function,
-                                         PPacket &packet,
-                                         std::unordered_set<uint64_t> &used_roles) {
+void DescriptionCreator::parseDataRecord(
+    const std::string &manufacturer, uint32_t medium, MbusPacket::DataRecord &dataRecord, PParameter &parameter, PFunction &function, PPacket &packet, std::unordered_set<uint64_t> &used_roles
+) {
   try {
     uint8_t dif = dataRecord.difs.front() & 0x0Fu;
     parameter->metadata = BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
@@ -886,26 +894,29 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer,
 
     if (!dataRecord.vifCustomName.empty()) {
       parameter->id = dataRecord.vifCustomName;
-    } else if (dataRecord.vifs.size() == 1 || (dataRecord.vifs.size() == 3 && dataRecord.vifs.at(1) == 0xFF)
-        || (dataRecord.vifs.size() == 5 && dataRecord.vifs.at(1) == 0xFF && dataRecord.vifs.at(3) == 0xFF)
-        || (dataRecord.vifs.size() == 7 && dataRecord.vifs.at(1) == 0xFF && dataRecord.vifs.at(3) == 0xFF && dataRecord.vifs.at(5) == 0xFF)) {
+    } else if (dataRecord.vifs.size() == 1 || (dataRecord.vifs.size() == 3 && dataRecord.vifs.at(1) == 0xFF) ||
+               (dataRecord.vifs.size() == 5 && dataRecord.vifs.at(1) == 0xFF && dataRecord.vifs.at(3) == 0xFF) ||
+               (dataRecord.vifs.size() == 7 && dataRecord.vifs.at(1) == 0xFF && dataRecord.vifs.at(3) == 0xFF && dataRecord.vifs.at(5) == 0xFF)) {
       VifInfo vif_info;
       std::string id_postfix;
 
       {
         auto vif_iterator = vif_info_.find(dataRecord.vifs.front() & 0x7F);
-        if (vif_iterator == vif_info_.end()) id_postfix = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.front(), 2);
-        else vif_info = vif_iterator->second;
+        if (vif_iterator == vif_info_.end())
+          id_postfix = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.front(), 2);
+        else
+          vif_info = vif_iterator->second;
       }
 
       for (uint32_t i = 2; i < dataRecord.vifs.size(); i += 2) {
-        //Manufacturer specific VIFE after standard VIF
-        //Example packet: FF00874487052913010004027A2801000003FDC6FF00A4910304FDD9FF000000000002FF84FF00E80306A8FF00290E0000000002FF94FF50F4010682FF80FF009EA2320100000682FF80FF82FF000000000000000DFF550A4144355236353031323201FF560E01FF570302FF58690002FF59020001FF620002FF7300000DFF6504414C474F01FF66010000
+        // Manufacturer specific VIFE after standard VIF
+        // Example packet:
+        // FF00874487052913010004027A2801000003FDC6FF00A4910304FDD9FF000000000002FF84FF00E80306A8FF00290E0000000002FF94FF50F4010682FF80FF009EA2320100000682FF80FF82FF000000000000000DFF550A4144355236353031323201FF560E01FF570302FF58690002FF59020001FF620002FF7300000DFF6504414C474F01FF66010000
         auto vif_iterator = vif_ff_info_.find(manufacturer);
         if (vif_iterator != vif_ff_info_.end()) {
           auto vif_iterator_2 = vif_iterator->second.find(dataRecord.vifs.at(i) & 0x7F);
           if (vif_iterator_2 == vif_iterator->second.end()) {
-            vif_iterator_2 = vif_iterator->second.find((((uint32_t) (dataRecord.vifs.front() & 0x7F)) << 8) | dataRecord.vifs.at(i));
+            vif_iterator_2 = vif_iterator->second.find((((uint32_t)(dataRecord.vifs.front() & 0x7F)) << 8) | dataRecord.vifs.at(i));
           }
           if (vif_iterator_2 == vif_iterator->second.end()) vif_iterator_2 = vif_iterator->second.find(dataRecord.vifs.at(i));
           if (vif_iterator_2 != vif_iterator->second.end()) {
@@ -923,7 +934,7 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer,
         }
       }
 
-      { //Set device specific VIF info
+      {  // Set device specific VIF info
         auto vif_iterator = vif_info_by_pos_.find(manufacturer);
         if (vif_iterator != vif_info_by_pos_.end()) {
           auto vif_iterator_2 = vif_iterator->second.find(medium);
@@ -939,30 +950,39 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer,
 
       if (!vif_info.name.empty()) setVifInfo(parameter, vif_info, dataRecord, medium, used_roles);
       parameter->id += id_postfix;
-    } else if (dataRecord.vifs.size() == 2 || (dataRecord.vifs.size() == 4 && dataRecord.vifs.at(2) == 0xFF)
-        || (dataRecord.vifs.size() == 6 && dataRecord.vifs.at(2) == 0xFF && dataRecord.vifs.at(4) == 0xFF)) {
+    } else if (dataRecord.vifs.size() == 2 || (dataRecord.vifs.size() == 4 && dataRecord.vifs.at(2) == 0xFF) ||
+               (dataRecord.vifs.size() == 6 && dataRecord.vifs.at(2) == 0xFF && dataRecord.vifs.at(4) == 0xFF)) {
       if (dataRecord.vifs.front() == 0xFB) {
         auto vif_iterator = vif_fb_info_.find(dataRecord.vifs.at(1) & 0x7F);
-        if (vif_iterator == vif_fb_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
-        else setVifInfo(parameter, vif_iterator->second, dataRecord, medium, used_roles);
+        if (vif_iterator == vif_fb_info_.end())
+          parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
+        else
+          setVifInfo(parameter, vif_iterator->second, dataRecord, medium, used_roles);
       } else if (dataRecord.vifs.front() == 0xFD) {
         auto vif_iterator = vif_fd_info_.find(dataRecord.vifs.at(1) & 0x7F);
-        if (vif_iterator == vif_fd_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
-        else setVifInfo(parameter, vif_iterator->second, dataRecord, medium, used_roles);
+        if (vif_iterator == vif_fd_info_.end())
+          parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
+        else
+          setVifInfo(parameter, vif_iterator->second, dataRecord, medium, used_roles);
       } else if (dataRecord.vifs.front() == 0xFF) {
-        //Manufacturer specific
+        // Manufacturer specific
         auto vif_iterator = vif_ff_info_.find(manufacturer);
         if (vif_iterator != vif_ff_info_.end()) {
           auto vif_iterator2 = vif_iterator->second.find(dataRecord.vifs.at(1) & 0x7F);
           if (vif_iterator2 == vif_iterator->second.end()) vif_iterator2 = vif_iterator->second.find(dataRecord.vifs.at(1));
-          if (vif_iterator2 != vif_iterator->second.end()) setVifInfo(parameter, vif_iterator2->second, dataRecord, medium, used_roles);
-          else parameter->id = "MANUFACTURER_SPECIFIC_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
-        } else parameter->id = "MANUFACTURER_SPECIFIC_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
+          if (vif_iterator2 != vif_iterator->second.end())
+            setVifInfo(parameter, vif_iterator2->second, dataRecord, medium, used_roles);
+          else
+            parameter->id = "MANUFACTURER_SPECIFIC_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
+        } else
+          parameter->id = "MANUFACTURER_SPECIFIC_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
       } else {
-        //Example packet: FF003944A51143782464A00A7AE10000000C07550300000C13006693120B3B0000000C2B000000000A5A39010A5E61018C1007000000000AA61800020000
+        // Example packet: FF003944A51143782464A00A7AE10000000C07550300000C13006693120B3B0000000C2B000000000A5A39010A5E61018C1007000000000AA61800020000
         auto vif_iterator = vif_info_.find(dataRecord.vifs.front() & 0x7F);
-        if (vif_iterator == vif_info_.end()) parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.front(), 2);
-        else parameter->id = vif_iterator->second.name;
+        if (vif_iterator == vif_info_.end())
+          parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.front(), 2);
+        else
+          parameter->id = vif_iterator->second.name;
 
         auto vif_iterator2 = vif_fd_info_.find(dataRecord.vifs.at(1) & 0x7F);
         if (vif_iterator2 != vif_fd_info_.end()) {
@@ -971,23 +991,27 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer,
       }
 
       for (uint32_t i = 3; i < dataRecord.vifs.size(); i += 2) {
-        //Manufacturer specific VIFE after standard VIFE
-        //Example packet: FF00874487052913010004027A2801000003FDC6FF00A4910304FDD9FF000000000002FF84FF00E80306A8FF00290E0000000002FF94FF50F4010682FF80FF009EA2320100000682FF80FF82FF000000000000000DFF550A4144355236353031323201FF560E01FF570302FF58690002FF59020001FF620002FF7300000DFF6504414C474F01FF66010000
+        // Manufacturer specific VIFE after standard VIFE
+        // Example packet:
+        // FF00874487052913010004027A2801000003FDC6FF00A4910304FDD9FF000000000002FF84FF00E80306A8FF00290E0000000002FF94FF50F4010682FF80FF009EA2320100000682FF80FF82FF000000000000000DFF550A4144355236353031323201FF560E01FF570302FF58690002FF59020001FF620002FF7300000DFF6504414C474F01FF66010000
         auto vif_iterator = vif_ff_info_.find(manufacturer);
         if (vif_iterator != vif_ff_info_.end()) {
           auto vif_iterator2 = vif_iterator->second.find(dataRecord.vifs.at(i) & 0x7F);
           if (vif_iterator2 == vif_iterator->second.end()) vif_iterator2 = vif_iterator->second.find(dataRecord.vifs.at(i));
-          if (vif_iterator2 != vif_iterator->second.end()) parameter->id += "_" + vif_iterator2->second.name;
-          else parameter->id += "_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.at(i) & 0x7F);
-        } else parameter->id += "_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.at(i) & 0x7F);
+          if (vif_iterator2 != vif_iterator->second.end())
+            parameter->id += "_" + vif_iterator2->second.name;
+          else
+            parameter->id += "_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.at(i) & 0x7F);
+        } else
+          parameter->id += "_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs.at(i) & 0x7F);
       }
-    } else if (dataRecord.difs.front() == 0xF) { //Manufacturer specific
+    } else if (dataRecord.difs.front() == 0xF) {  // Manufacturer specific
       parameter->id = "UNKNOWN_MANUFACTURER_SPECIFIC";
     } else {
       parameter->id = "UNKNOWN_" + BaseLib::HelperFunctions::getHexString(dataRecord.vifs);
     }
 
-    if ((int32_t) dataRecord.difFunction > 0) parameter->id += "_F" + std::to_string((int32_t) dataRecord.difFunction);
+    if ((int32_t)dataRecord.difFunction > 0) parameter->id += "_F" + std::to_string((int32_t)dataRecord.difFunction);
     if (dataRecord.subunit > 0) parameter->id += "_SU" + std::to_string(dataRecord.subunit);
     if (dataRecord.storageNumber > 0) parameter->id += "_SN" + std::to_string(dataRecord.storageNumber);
     if (dataRecord.tariff > 0) parameter->id += "_T" + std::to_string(dataRecord.tariff);
@@ -998,14 +1022,13 @@ void DescriptionCreator::parseDataRecord(const std::string &manufacturer,
     PBinaryPayload payload = std::make_shared<BinaryPayload>(Gd::bl);
     payload->bitIndex = dataRecord.dataStart * 8;
     payload->bitSize = dataRecord.dataSize * 8;
-    payload->metaInteger1 = (int32_t) dataRecord.difFunction;
+    payload->metaInteger1 = (int32_t)dataRecord.difFunction;
     payload->metaInteger2 = dataRecord.subunit;
     payload->metaInteger3 = dataRecord.storageNumber;
     payload->metaInteger4 = dataRecord.tariff;
     payload->parameterId = parameter->id;
     packet->binaryPayloads.push_back(payload);
-  }
-  catch (const std::exception &ex) {
+  } catch (const std::exception &ex) {
     Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
@@ -1018,13 +1041,15 @@ void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_in
 
     if (vif_info.unit_scale_factor != 1) {
       auto cast2 = std::make_shared<DecimalIntegerScale>(Gd::bl);
-      if (vif_info.unit_scale_operation == VifScaleOperation::kDivision) cast2->factor = vif_info.unit_scale_factor;
-      else cast2->factor = 1.0 / (double) vif_info.unit_scale_factor;
+      if (vif_info.unit_scale_operation == VifScaleOperation::kDivision)
+        cast2->factor = vif_info.unit_scale_factor;
+      else
+        cast2->factor = 1.0 / (double)vif_info.unit_scale_factor;
       parameter->casts.emplace_back(std::move(cast2));
     }
 
-    if (dataRecord.difFunction == MbusPacket::DifFunction::instantaneousValue && (dataRecord.subunit == -1 || dataRecord.subunit == 0)
-        && (dataRecord.storageNumber == 0 || dataRecord.storageNumber == 1)) {
+    if (dataRecord.difFunction == MbusPacket::DifFunction::instantaneousValue && (dataRecord.subunit == -1 || dataRecord.subunit == 0) &&
+        (dataRecord.storageNumber == 0 || dataRecord.storageNumber == 1)) {
       if (vif_info.force_role != 0 && (dataRecord.storageNumber == 0 || used_roles.find(vif_info.force_role) == used_roles.end())) {
         parameter->roles.emplace(vif_info.force_role, Role(vif_info.force_role, RoleDirection::input, false, false, {}));
         used_roles.emplace(vif_info.force_role);
@@ -1039,8 +1064,7 @@ void DescriptionCreator::setVifInfo(PParameter &parameter, const VifInfo &vif_in
         }
       }
     }
-  }
-  catch (const std::exception &ex) {
+  } catch (const std::exception &ex) {
     Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
 }
@@ -1057,11 +1081,10 @@ std::string DescriptionCreator::getFreeParameterId(std::string baseId, PFunction
       return currentId;
     }
     return baseId;
-  }
-  catch (const std::exception &ex) {
+  } catch (const std::exception &ex) {
     Gd::out.printEx(__FILE__, __LINE__, __PRETTY_FUNCTION__, ex.what());
   }
   return "";
 }
 
-}
+}  // namespace Mbus
