@@ -1,0 +1,6 @@
+BasedOnStyle: Google
+ColumnLimit: 200
+AlignConsecutiveMacros: AcrossComments
+AlignConsecutiveBitFields: AcrossComments
+BinPackArguments: false
+AlignAfterOpenBracket: BlockIndent
