@@ -6,22 +6,22 @@
 
 namespace Mbus {
 MbusPacket::MbusPacket() {
-  _difSizeMap[0] = 0; //No data
-  _difSizeMap[1] = 1; //8 bit integer
-  _difSizeMap[2] = 2; //16 bit integer
-  _difSizeMap[3] = 3; //24 bit integer
-  _difSizeMap[4] = 4; //32 bit integer
-  _difSizeMap[5] = 4; //32 bit floating point
-  _difSizeMap[6] = 6; //48 bit integer
-  _difSizeMap[7] = 8; //64 bit integer
-  _difSizeMap[8] = 0; //"Auswahl für Ablesung"
-  _difSizeMap[9] = 1; //2 digit BCD
-  _difSizeMap[10] = 2; //4 digit BCD
-  _difSizeMap[11] = 3; //6 digit BCD
-  _difSizeMap[12] = 4; //8 digit BCD
-  _difSizeMap[13] = 0; //Variable length
-  _difSizeMap[14] = 6; //12 digit BCD
-  _difSizeMap[15] = 0; //Special functions
+  _difSizeMap.at(0) = 0; //No data
+  _difSizeMap.at(1) = 1; //8 bit integer
+  _difSizeMap.at(2) = 2; //16 bit integer
+  _difSizeMap.at(3) = 3; //24 bit integer
+  _difSizeMap.at(4) = 4; //32 bit integer
+  _difSizeMap.at(5) = 4; //32 bit floating point
+  _difSizeMap.at(6) = 6; //48 bit integer
+  _difSizeMap.at(7) = 8; //64 bit integer
+  _difSizeMap.at(8) = 0; //"Auswahl für Ablesung"
+  _difSizeMap.at(9) = 1; //2 digit BCD
+  _difSizeMap.at(10) = 2; //4 digit BCD
+  _difSizeMap.at(11) = 3; //6 digit BCD
+  _difSizeMap.at(12) = 4; //8 digit BCD
+  _difSizeMap.at(13) = 0; //Variable length
+  _difSizeMap.at(14) = 6; //12 digit BCD
+  _difSizeMap.at(15) = 0; //Special functions
 }
 
 MbusPacket::MbusPacket(const std::vector<uint8_t> &packet) : MbusPacket() {
