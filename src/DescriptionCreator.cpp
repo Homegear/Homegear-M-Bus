@@ -34,6 +34,7 @@ DescriptionCreator::DescriptionCreator() {
     vif_info_.at(i).medium_role_map.emplace(0x0D, 900401);  // Heat meter
     vif_info_.at(i).medium_role_map.emplace(0x0A, 900501);  // Cooling load meter
     vif_info_.at(i).medium_role_map.emplace(0x0B, 900501);  // Cooling load meter
+    vif_info_.at(i).medium_role_map.emplace(0x01, 901203);  // Oil meter
   }
 
   // J
@@ -82,6 +83,7 @@ DescriptionCreator::DescriptionCreator() {
     vif_info_.at(i).medium_role_map.emplace(0x16, 900701);
     vif_info_.at(i).medium_role_map.emplace(0x17, 900101);
     vif_info_.at(i).medium_role_map.emplace(0x28, 900801);
+    vif_info_.at(i).medium_role_map.emplace(0x01, 901201);  // Oil meter
   }
 
   // g
