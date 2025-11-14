@@ -104,13 +104,26 @@ void MbusCentral::worker() {
       setting = Gd::family->getFamilySetting("pollingoffset");
       if (setting) {
         polling_offset = setting->integerValue;
-        if ((polling_interval == PollingInterval::kQuarterHourly && polling_offset >= 15) ||
-            (polling_interval == PollingInterval::kHourly && polling_offset >= 60) ||
-            (polling_interval == PollingInterval::kDaily && polling_offset >= 1440) ||
-            (polling_interval == PollingInterval::kWeekly && polling_offset > 0) ||
-            (polling_interval == PollingInterval::kMonthly && polling_offset > 0)) {
-          Gd::out.printError("Error: Invalid value for setting \"pollingOffset\": " + std::to_string(setting->integerValue));
-          polling_offset = 0;
+        if (polling_offset == -1) {
+          std::string id;
+          Gd::bl->db->getHomegearVariableString(BaseLib::Database::IDatabaseController::HomegearVariables::uniqueid, id);
+          const auto hash = std::hash<std::string>{}(id);
+          if (polling_interval == PollingInterval::kQuarterHourly) {
+            polling_offset = hash % 15;
+          } else if (polling_interval == PollingInterval::kHourly) {
+            polling_offset = hash % 60;
+          } else {
+            polling_offset = hash % 1440;
+          }
+        } else {
+          if ((polling_interval == PollingInterval::kQuarterHourly && polling_offset >= 15) ||
+              (polling_interval == PollingInterval::kHourly && polling_offset >= 60) ||
+              (polling_interval == PollingInterval::kDaily && polling_offset >= 1440) ||
+              (polling_interval == PollingInterval::kWeekly && polling_offset > 0) ||
+              (polling_interval == PollingInterval::kMonthly && polling_offset > 0)) {
+            Gd::out.printError("Error: Invalid value for setting \"pollingOffset\": " + std::to_string(setting->integerValue));
+            polling_offset = 0;
+          }
         }
         polling_offset *= 60000;
       }

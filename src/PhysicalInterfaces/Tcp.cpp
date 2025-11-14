@@ -180,7 +180,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         addCrc8(request_packet_2);
 
         std::vector<uint8_t> response_packet;
-        GetMbusResponse(0xE5, request_packet_2, response_packet, 1000);
+        GetMbusResponse(0xE5, request_packet_2, response_packet, 5000);
         if (response_packet.empty()) continue;
 
         for (uint32_t i = 0; i < set_temporary_primary_address_delay_ * 10; i++) {
