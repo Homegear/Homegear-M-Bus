@@ -3,6 +3,8 @@
 #ifndef HOMEGEAR_MBUS_VIFCONVERTER_H
 #define HOMEGEAR_MBUS_VIFCONVERTER_H
 
+#include <cstdint>
+
 #include <homegear-base/BaseLib.h>
 
 using namespace BaseLib;
