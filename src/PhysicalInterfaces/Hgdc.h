@@ -3,6 +3,8 @@
 #ifndef HOMEGEAR_MBUS_HGDC_H
 #define HOMEGEAR_MBUS_HGDC_H
 
+#include <cstdint>
+
 #include "../MbusPacket.h"
 #include "IMbusInterface.h"
 #include <homegear-base/BaseLib.h>

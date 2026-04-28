@@ -3,6 +3,8 @@
 #ifndef MYPEER_H_
 #define MYPEER_H_
 
+#include <cstdint>
+
 #include "PhysicalInterfaces/IMbusInterface.h"
 #include "MbusPacket.h"
 #include "VifConverter.h"
