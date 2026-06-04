@@ -105,12 +105,24 @@ void MbusCentral::worker() {
         std::string id;
         Gd::bl->db->getHomegearVariableString(BaseLib::Database::IDatabaseController::HomegearVariables::uniqueid, id);
         const auto hash = std::hash<std::string>{}(id);
+        int32_t interval_minutes = 0;
         if (polling_interval == PollingInterval::kQuarterHourly) {
-          polling_offset = hash % 15;
+          interval_minutes = 15;
         } else if (polling_interval == PollingInterval::kHourly) {
-          polling_offset = hash % 60;
+          interval_minutes = 60;
         } else {
-          polling_offset = hash % 1440;
+          interval_minutes = 1440;
+        }
+        polling_offset = hash % interval_minutes;
+
+        setting = Gd::family->getFamilySetting("pollingoffset");
+        if (setting && setting->integerValue != 0) {
+          if (polling_interval == PollingInterval::kWeekly || polling_interval == PollingInterval::kMonthly) {
+            Gd::out.printError("Error: Invalid value for setting \"pollingOffset\": " + std::to_string(setting->integerValue) + ". pollingOffset cannot be set when pollingInterval is set to weekly or monthly.");
+          } else {
+            //Add the configured offset to the random offset (or subtract it when negative) and wrap the result into [0, interval_minutes).
+            polling_offset = (((polling_offset + setting->integerValue) % interval_minutes) + interval_minutes) % interval_minutes;
+          }
         }
         polling_offset *= 60000;
       }
