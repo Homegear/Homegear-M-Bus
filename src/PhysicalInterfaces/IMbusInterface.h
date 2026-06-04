@@ -25,6 +25,8 @@ class IMbusInterface : public BaseLib::Systems::IPhysicalInterface {
     std::condition_variable condition_variable;
     bool mutex_ready = false;
     std::vector<uint8_t> response;
+    int32_t expected_secondary_address = -1; //-1 = accept any sender
+    int32_t expected_primary_address = -1; //-1 = accept any sender
   };
 
   BaseLib::SharedObjects *_bl = nullptr;

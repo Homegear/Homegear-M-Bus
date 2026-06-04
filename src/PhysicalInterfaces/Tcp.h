@@ -29,7 +29,7 @@ class Tcp : public IMbusInterface {
   uint32_t set_temporary_primary_address_delay_ = 10;
   uint32_t req_ud2_delay_ = 10;
 
-  void GetMbusResponse(uint8_t response_type, const std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet, uint32_t timeout = 15000);
+  void GetMbusResponse(uint8_t response_type, const std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet, uint32_t timeout = 15000, int32_t expected_secondary_address = -1, int32_t expected_primary_address = -1);
   void RawSend(const std::vector<uint8_t> &packet) override;
   void Listen();
   void ProcessPacket(const std::vector<uint8_t> &packet);

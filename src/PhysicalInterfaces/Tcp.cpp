@@ -130,7 +130,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         addCrc8(request_packet);
 
         response_packet.clear();
-        GetMbusResponse(0x68, request_packet, response_packet, 5000);
+        GetMbusResponse(0x68, request_packet, response_packet, 5000, -1, address);
         if (!response_packet.empty()) {
           PMbusPacket mbus_packet = std::make_shared<MbusPacket>(response_packet);
           if (mbus_packet->headerValid()) {
@@ -194,7 +194,7 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
         addCrc8(request_packet_3);
 
         response_packet.clear();
-        GetMbusResponse(0x68, request_packet_3, response_packet, 5000);
+        GetMbusResponse(0x68, request_packet_3, response_packet, 5000, address);
         if (!response_packet.empty()) {
           PMbusPacket mbus_packet = std::make_shared<MbusPacket>(response_packet);
           if (mbus_packet->headerValid()) {
@@ -217,13 +217,15 @@ void Tcp::Poll(const std::vector<uint8_t> &primary_addresses, const std::vector<
   }
 }
 
-void Tcp::GetMbusResponse(uint8_t response_type, const std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet, uint32_t timeout) {
+void Tcp::GetMbusResponse(uint8_t response_type, const std::vector<uint8_t> &request_packet, std::vector<uint8_t> &response_packet, uint32_t timeout, int32_t expected_secondary_address, int32_t expected_primary_address) {
   try {
     if (_stopped || request_packet.empty()) return;
     response_packet.clear();
 
     std::lock_guard<std::mutex> get_response_guard(get_response_mutex_);
     std::shared_ptr<Request> request(new Request());
+    request->expected_secondary_address = expected_secondary_address;
+    request->expected_primary_address = expected_primary_address;
     std::unique_lock<std::mutex> requests_guard(requests_mutex_);
     requests_[response_type] = request;
     requests_guard.unlock();
@@ -402,9 +404,25 @@ void Tcp::ProcessPacket(const std::vector<uint8_t> &packet) {
     std::unique_lock<std::mutex> requests_guard(requests_mutex_);
     auto request_iterator = requests_.find(packet_type);
     if (request_iterator != requests_.end()) {
-      if (Gd::bl->debugLevel >= 4) _out.printInfo("Info: Processing packet as response: " + BaseLib::HelperFunctions::getHexString(packet));
       std::shared_ptr<Request> request = request_iterator->second;
       requests_guard.unlock();
+
+      //{{{ Don't treat packets from other devices as response (e.g. responses to a request of a second M-Bus master on the same bus). Process them as unsolicited packets instead.
+      if (packet_type == 0x68 && (request->expected_secondary_address != -1 || request->expected_primary_address != -1)) {
+        PMbusPacket mbus_packet = std::make_shared<MbusPacket>(packet);
+        bool address_mismatch = !mbus_packet->headerValid()
+            || (request->expected_secondary_address != -1 && mbus_packet->secondaryAddress() != request->expected_secondary_address)
+            || (request->expected_primary_address != -1 && mbus_packet->primaryAddress() != request->expected_primary_address);
+        if (address_mismatch) {
+          std::string expected_address = request->expected_secondary_address != -1 ? "0x" + BaseLib::HelperFunctions::getHexString(request->expected_secondary_address, 8) : std::to_string(request->expected_primary_address);
+          _out.printWarning("Warning: Received packet from " + (mbus_packet->headerValid() ? mbus_packet->getDeviceIdString() : "<invalid header>") + " while waiting for a response from " + expected_address + ". Processing it as unsolicited packet.");
+          if (mbus_packet->headerValid()) raisePacketReceived(mbus_packet);
+          return;
+        }
+      }
+      //}}}
+
+      if (Gd::bl->debugLevel >= 4) _out.printInfo("Info: Processing packet as response: " + BaseLib::HelperFunctions::getHexString(packet));
       request->response = packet;
       {
         std::lock_guard<std::mutex> lock(request->mutex);
